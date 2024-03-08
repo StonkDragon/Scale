@@ -341,17 +341,16 @@ typedef struct {
 
 typedef struct TypeInfo {
 	const ID_t							type;
-	const _scl_lambda*					vtable;
 	const struct TypeInfo*				super;
 	const scl_int8*						type_name;
 	const size_t						size;
 	const struct _scl_methodinfo* const	vtable_info;
+	const _scl_lambda					vtable[];
 } TypeInfo;
 
 struct scale_string {
-	const _scl_lambda* const			$fast;
-	const TypeInfo* const				$statics;
-	const scl_any						$mutex;
+	const TypeInfo*						$type;
+	scl_any								$mutex;
 	scl_int8*							data;
 	scl_int								length;
 	scl_int								hash;
@@ -407,7 +406,7 @@ void				_scl_delete_ptr(void* ptr);
 
 #define				SCL_ASSUME(val, what, ...) \
 						if (_scl_expect(!(val), 0)) { \
-							size_t msg_len = strlen((what)) + 256; \
+							size_t msg_len = snprintf(NULL, 0, (what) __VA_OPT__(,) __VA_ARGS__); \
 							scl_int8 msg[sizeof(scl_int8) * msg_len]; \
 							snprintf(msg, msg_len, (what) __VA_OPT__(,) __VA_ARGS__); \
 							_scl_assert(0, msg); \
@@ -480,37 +479,6 @@ void				_scl_setup(void);
 							self; \
 						})
 
-#define STATIC_STRING(_data, _hash, _len) ({ \
-							extern const TypeInfo _scl_ti_str __asm("__Tstr"); \
-							static struct { memory_layout_t l; scl_int8 data[(_len)]; } str_data_ ## _hash = { \
-								.l = { \
-									.size = (_len), \
-									.array_elem_size = sizeof(scl_int8), \
-									.flags = MEM_FLAG_ARRAY \
-								}, \
-								.data = (_data) \
-							}; \
-							static struct { \
-								memory_layout_t layout; \
-								struct scale_string str; \
-							} str_ ## _hash = { \
-								.layout = { \
-									.flags = MEM_FLAG_INSTANCE, \
-									.size = sizeof(struct scale_string) \
-								}, \
-								.str = { \
-									.$statics = &_scl_ti_str, \
-									.data = (str_data_ ## _hash).data, \
-									.hash = (_hash), \
-									.length = (_len) \
-								} \
-							}; \
-							if (_scl_expect(!(str_ ## _hash).str.$fast, 0)) { \
-								*(_scl_vtable**) &(str_ ## _hash).str.$fast = _scl_ti_str.vtable; \
-							} \
-							&((str_ ## _hash).str); \
-						})
-
 #define				_scl_string_with_hash_len(_data, _hash, _len) ({ \
 							scl_int8* _data_ = (scl_int8*) (_data); \
 							scl_int _len_ = (scl_int) (_len); \
@@ -575,9 +543,9 @@ void				cxx_std_recursive_mutex_lock(scl_any* mutex);
 void				cxx_std_recursive_mutex_unlock(scl_any* mutex);
 // END C++ Concurrency API wrappers
 
-#define _scl_push(_type, _value)			((*(_type*) _local_stack_ptr) = (_value), _local_stack_ptr++)
+#define _scl_push(_type, _value)			(*(_type*) _local_stack_ptr = (_value), _local_stack_ptr++)
 #define _scl_pop(_type)						(_local_stack_ptr--, *(_type*) _local_stack_ptr)
-#define _scl_positive_offset(offset, _type)	(*(_type*) (_local_stack_ptr + (offset)))
+#define _scl_positive_offset(offset, _type)	(*(_type*) (_local_stack_ptr + offset))
 #define _scl_top(_type)						(*(_type*) (_local_stack_ptr - 1))
 #define _scl_cast_stack(_to, _from)			(_scl_top(_to) = (_to) _scl_top(_from))
 #define _scl_popn(n)						(_local_stack_ptr -= (n))
@@ -642,8 +610,8 @@ void				cxx_std_recursive_mutex_unlock(scl_any* mutex);
 #define _scl_or(a, b)			(a) || (b)
 #define _scl_not(a)				!(a)
 #define _scl_at(a)				(*((a)))
-#define _scl_inc(a)				(++(a))
-#define _scl_dec(a)				(--(a))
+#define _scl_inc(a)				((a) + 1)
+#define _scl_dec(a)				((a) - 1)
 #define _scl_ann(a)				({ typeof((a)) _a = (a); _scl_assert(_a, "Expected non-nil value"); _a; })
 #define _scl_elvis(a, b)		({ typeof((a)) _a = (a); _a ? _a : (b); })
 #define _scl_ror(a, b)			({ typeof((a)) _a = (a); typeof((b)) _b = (b); ((_a) >> (_b)) | ((_a) << ((sizeof(typeof(_a)) << 3) - (_b))); })

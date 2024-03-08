@@ -17,10 +17,8 @@ extern "C" {
 #define unlikely(x) _scl_expect(!!(x), 0)
 
 typedef struct Struct {
-	// Actual function ptrs for this object
-	_scl_lambda*	vtable;
 	// Typeinfo for this object
-	TypeInfo*		statics;
+	TypeInfo*		type;
 	// Mutex for this object
 	scl_any			mutex;
 } Struct;
@@ -102,9 +100,7 @@ scl_any _scl_alloc(scl_int size) {
 		_scl_runtime_error(EX_BAD_PTR, "allocate() failed!");
 	}
 
-	memory_layout_t x = {0};
-	x.size = orig_size;
-	*(memory_layout_t*) ptr = x;
+	((memory_layout_t*) ptr)->size = orig_size;
 
 	return ptr + sizeof(memory_layout_t);
 }
@@ -119,20 +115,13 @@ scl_any _scl_realloc(scl_any ptr, scl_int size) {
 	size = ((size + 7) >> 3) << 3;
 	if (unlikely(size == 0)) size = 8;
 
-	memory_layout_t* layout = _scl_get_memory_layout(ptr);
-
 	ptr = GC_realloc(ptr - sizeof(memory_layout_t), size + sizeof(memory_layout_t));
 	if (unlikely(ptr == nil)) {
 		_scl_runtime_error(EX_BAD_PTR, "realloc() failed!");
 	}
 
-	memory_layout_t x = {0};
-	x.size = orig_size;
-	if (likely(layout)) {
-		x.flags = layout->flags;
-	}
-	*(memory_layout_t*) ptr = x;
-
+	((memory_layout_t*) ptr)->size = orig_size;
+	
 	return ptr + sizeof(memory_layout_t);
 }
 
@@ -178,19 +167,21 @@ scl_int builtinIsInstanceOf(scl_any obj, scl_str type) {
 
 _scl_symbol_hidden static void native_trace(void);
 
+char* vstrformat(const char* fmt, va_list args) {
+	size_t len = vsnprintf(NULL, 0, fmt, args);
+	char* s = _scl_alloc(len);
+	vsnprintf(s, len, fmt, args);
+	return s;
+}
+
 _scl_no_return void _scl_runtime_error(int code, const scl_int8* msg, ...) {
 	va_list args;
 	va_start(args, msg);
-	size_t len = strlen(msg) * 8;
-	scl_int8 str[len];
-	vsnprintf(str, len, msg, args);
-	scl_int size = 22 + strlen(str);
-	scl_int8 cmsg[size];
-	snprintf(cmsg, size, "Exception: %s\n", str);
+	char* str = vstrformat(msg, args);
 	va_end(args);
 
 	scl_RuntimeError ex = ALLOC(RuntimeError);
-	virtual_call(ex, "init(s;)V;", _scl_create_string(cmsg));
+	virtual_call(ex, "init(s;)V;", _scl_create_string(str));
 	
 	_scl_throw(ex);
 }
@@ -309,7 +300,7 @@ _scl_lambda _scl_get_method_on_type(scl_any type, ID_t method, ID_t signature, i
 		_scl_runtime_error(EX_CAST_ERROR, "Tried getting method on non-struct type (%p)", type);
 	}
 
-	const struct TypeInfo* ti = likely(!onSuper) ? ((Struct*) type)->statics : ((Struct*) type)->statics->super;
+	const struct TypeInfo* ti = likely(!onSuper) ? ((Struct*) type)->type : ((Struct*) type)->type->super;
 	const struct _scl_methodinfo* mi = ti->vtable_info;
 	const _scl_lambda* vtable = ti->vtable;
 
@@ -357,7 +348,7 @@ scl_any _scl_get_vtable_function(scl_int onSuper, scl_any instance, const scl_in
 
 	_scl_lambda m = _scl_get_method_on_type(instance, methodNameHash, signatureHash, onSuper);
 	if (unlikely(m == nil)) {
-		_scl_runtime_error(EX_BAD_PTR, "Method '%s%s' not found on type '%s'", methodName, signature, ((Struct*) instance)->statics->type_name);
+		_scl_runtime_error(EX_BAD_PTR, "Method '%s%s' not found on type '%s'", methodName, signature, ((Struct*) instance)->type->type_name);
 	}
 	return m;
 }
@@ -367,8 +358,7 @@ scl_any _scl_init_struct(scl_any ptr, const TypeInfo* statics, memory_layout_t* 
 		_scl_runtime_error(EX_BAD_PTR, "Tried to access nil pointer");
 	}
 	layout->flags |= MEM_FLAG_INSTANCE;
-	((Struct*) ptr)->statics = (TypeInfo*) statics;
-	((Struct*) ptr)->vtable = (_scl_lambda*) statics->vtable;
+	((Struct*) ptr)->type = (TypeInfo*) statics;
 	return ptr;
 }
 
@@ -388,7 +378,7 @@ scl_int _scl_is_instance_of(scl_any ptr, ID_t type_id) {
 
 	Struct* ptrStruct = (Struct*) ptr;
 
-	for (const TypeInfo* super = ptrStruct->statics; super != nil; super = super->super) {
+	for (const TypeInfo* super = ptrStruct->type; super != nil; super = super->super) {
 		if (super->type == type_id) return 1;
 	}
 
@@ -496,14 +486,14 @@ scl_any _scl_checked_cast(scl_any instance, ID_t target_type, const scl_int8* ta
 		scl_int size;
 		scl_bool is_instance = layout && (layout->flags & MEM_FLAG_INSTANCE);
 		if (is_instance) {
-			size = 64 + strlen(((Struct*) instance)->statics->type_name) + strlen(target_type_name);
+			size = 64 + strlen(((Struct*) instance)->type->type_name) + strlen(target_type_name);
 		} else {
 			size = 96 + strlen(target_type_name);
 		}
 
 		char cmsg[size];
 		if (is_instance) {
-			snprintf(cmsg, size - 1, "Cannot cast instance of struct '%s' to type '%s'\n", ((Struct*) instance)->statics->type_name, target_type_name);
+			snprintf(cmsg, size - 1, "Cannot cast instance of struct '%s' to type '%s'\n", ((Struct*) instance)->type->type_name, target_type_name);
 		} else {
 			snprintf(cmsg, size - 1, "Cannot cast non-object to type '%s'\n", target_type_name);
 		}
@@ -514,7 +504,7 @@ scl_any _scl_checked_cast(scl_any instance, ID_t target_type, const scl_int8* ta
 
 scl_int8* _scl_typename_or_else(scl_any instance, const scl_int8* else_) {
 	if (likely(_scl_is_instance(instance))) {
-		return (scl_int8*) ((Struct*) instance)->statics->type_name;
+		return (scl_int8*) ((Struct*) instance)->type->type_name;
 	}
 	return (scl_int8*) else_;
 }
@@ -804,7 +794,7 @@ _scl_no_return void _scl_runtime_catch(scl_any _ex) {
 	scl_Exception ex = (scl_Exception) _ex;
 	scl_str msg = ex->msg;
 
-	fprintf(stderr, "Uncaught %s: %s\n", ex->rtFields.statics->type_name, msg->data);
+	fprintf(stderr, "Uncaught %s: %s\n", ex->rtFields.type->type_name, msg->data);
 	print_stacktrace_of(ex);
 	exit(EX_THROWN);
 }
