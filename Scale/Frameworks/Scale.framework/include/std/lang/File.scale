@@ -151,7 +151,7 @@ final struct File is Closeable
     new<str>[0] => decl lines: [str]
     decl line: str?
     while self:readLine => line line nil != do
-      line lines:append as [str] => lines
+      line!! lines:append as [str] => lines
     done
     lines return
   end

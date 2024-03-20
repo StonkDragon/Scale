@@ -595,7 +595,7 @@ scl_any* _scl_array_resize(scl_int new_size, scl_any* arr) {
 	if (unlikely(!_scl_is_array(arr))) {
 		_scl_runtime_error(EX_INVALID_ARGUMENT, "Array must be initialized with 'new[]'");
 	}
-	if (unlikely(new_size < 1)) {
+	if (unlikely(new_size < 0)) {
 		_scl_runtime_error(EX_INVALID_ARGUMENT, "Array size must not be less than 1");
 	}
 	scl_int elem_size = _scl_get_memory_layout(arr)->array_elem_size;

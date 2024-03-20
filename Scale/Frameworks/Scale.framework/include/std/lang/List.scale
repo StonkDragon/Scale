@@ -1,285 +1,283 @@
 import std.util.Range
 
 static struct List
-    macro! CreateListOperations(type) {
-        function filter(arr: [$type], f: lambda($type): bool): [$type]
-            new<$type>[arr:size] => decl result: [$type]
-            0 => decl acc: int
-            foreach x in arr do
-                if x f:accept then
-                    x => result[acc]
-                    acc 1 +> acc
-                fi
-            done
-            if acc 1 < then
-                new<$type>[0] return
+    reified function filter<[T], >(arr: [T], f: lambda(T): bool): [T]
+        new<T>[arr:size] => decl result: [T]
+        0 => decl acc: int
+        foreach x in arr do
+            if x f:accept then
+                x => result[acc]
+                acc 1 +> acc
             fi
-            acc result:resize return
-        end
+        done
+        if acc 1 < then
+            new<T>[0] return
+        fi
+        acc result:resize return
+    end
 
-        function map(arr: [$type], f: lambda($type): $type): [$type]
-            for i in 0 to arr:size do
-                arr[i] f:accept => arr[i]
-            done
-            arr return
-        end
+    reified function map<[T], >(arr: [T], f: lambda(T): T): [T]
+        for i in 0 to arr:size do
+            arr[i] f:accept => arr[i]
+        done
+        arr return
+    end
 
-        function reduce(arr: [$type], f: lambda($type, $type): $type): $type
-            decl result: $type
-            for i in 0 to arr:size do
-                result arr[i] f:accept => result
-            done
-            result return
-        end
+    reified function reduce<[T], >(arr: [T], f: lambda(T, T): T): T
+        decl result: T
+        for i in 0 to arr:size do
+            result arr[i] f:accept => result
+        done
+        result return
+    end
 
-        function count(arr: [$type], f: lambda($type): bool): int
-            decl acc: int
-            foreach val in arr do
-                if val f:accept then
-                    acc 1 +> acc
-                fi
-            done
-            acc return
-        end
-
-        function each(arr: [$type], f: lambda($type): none): none
-            foreach val in arr do
-                val f:accept
-            done
-        end
-
-        function also(arr: [$type], f: lambda($type): bool): [$type]
-            foreach val in arr do
-                val f:accept
-            done
-            arr return
-        end
-
-        function transform(arr: [$type], f: lambda([$type]): any): any
-            arr f:accept return
-        end
-
-        function tail(x: [$type]): [$type]
-            (1 to x:size) x:slice return
-        end
-
-        function head(x: [$type]): $type
-            x[0] return
-        end
-
-        function last(x: [$type]): $type
-            x[x:size 1 -] return
-        end
-
-        function zip(a: [$type], b: [$type]): [[$type]]
-            assert (a:size b:size ==) else (
-                "Arrays must be of same size" InvalidArgumentException::new throw
-            )
-            new<$type>[a:size][2] => decl result: [[$type]]
-            for i in 0 to a:size do
-                a[i] => result[i][0]
-                b[i] => result[i][1]
-            done
-            result return
-        end
-
-        function slice(r: Range, arr: [$type]): [$type]
-            if r.lower 0 < r.upper arr:size > || then
-                "Slice out of bounds" InvalidArgumentException::new throw
+    reified function count<[T], >(arr: [T], f: lambda(T): bool): int
+        decl acc: int
+        foreach val in arr do
+            if val f:accept then
+                acc 1 +> acc
             fi
+        done
+        acc return
+    end
 
-            r:toList => decl indices: [int]
-            new<$type>[indices:size] => decl result: [$type]
-            decl j: int
-            foreach i in indices do
-                arr[i] => result[j]
-                j++ => j
-            done
-            result return
-        end
+    reified function each<[T], >(arr: [T], f: lambda(T): none): none
+        foreach val in arr do
+            val f:accept
+        done
+    end
 
-        cdecl "_scl_array_resize"
-        expect foreign function resize(size: int, arr: [$type]): [$type]
+    reified function also<[T], >(arr: [T], f: lambda(T): bool): [T]
+        foreach val in arr do
+            val f:accept
+        done
+        arr return
+    end
 
-        cdecl "_scl_array_sort"
-        expect foreign function sort(arr: [$type]): [$type]
+    reified function transform<[T], >(arr: [T], f: lambda([T]): any): any
+        arr f:accept return
+    end
 
-        cdecl "_scl_array_reverse"
-        expect foreign function reverse(arr: [$type]): [$type]
+    reified function tail<[T]>(x: [T]): [T]
+        (1 to x:size) x:slice return
+    end
 
-        cdecl "_scl_array_to_string"
-        expect foreign function toString(arr: [$type]): str
+    reified function head<[T]>(x: [T]): T
+        x[0] return
+    end
 
-        cdecl "_scl_array_size"
-        expect foreign function size(arr: [$type]): int
+    reified function last<[T]>(x: [T]): T
+        x[x:size 1 -] return
+    end
 
-        function empty(arr: [$type]): bool
-            arr:size 0 == return
-        end
+    reified function zip<[T]>(a: [T], b: [T]): [[T]]
+        assert (a:size b:size ==) else (
+            "Arrays must be of same size" InvalidArgumentException::new throw
+        )
+        new<T>[a:size][2] => decl result: [[T]]
+        for i in 0 to a:size do
+            a[i] => result[i][0]
+            b[i] => result[i][1]
+        done
+        result return
+    end
 
-        function contains(val: $type, arr: [$type]): bool
-            val arr:indexOf -1 != return
-        end
+    reified function slice<[T]>(r: Range, arr: [T]): [T]
+        if r.lower 0 < r.upper arr:size > || then
+            "Slice out of bounds" InvalidArgumentException::new throw
+        fi
 
-        function indexOf(val: $type, arr: [$type]): int
-            for i in 0 to arr:size do
-                if arr[i] val == then
-                    i return
-                fi
-            done
-            -1 return
-        end
+        r:toList => decl indices: [int]
+        new<T>[indices:size] => decl result: [T]
+        decl j: int
+        foreach i in indices do
+            arr[i] => result[j]
+            j++ => j
+        done
+        result return
+    end
 
-        function lastIndexOf(val: $type, arr: [$type]): int
-            for i in arr:size 1 - to -1 step -- do
-                if arr[i] val == then
-                    i return
-                fi
-            done
-            -1 return
-        end
+    cdecl "_scl_array_resize"
+    expect foreign reified function resize<[T]>(size: int, arr: [T]): [T]
 
-        function once(val: $type, arr: [$type]): bool
-            decl _count: int
-            for i in 0 to arr:size do
-                if arr[i] val == then
-                    _count 1 +> _count
-                    if _count 1 > then
-                        false return
-                    fi
-                fi
-            done
-            _count 1 == return
-        end
+    cdecl "_scl_array_sort"
+    expect foreign reified function sort<[T]>(arr: [T]): [T]
 
-        function combine(a: [$type], b: [$type]): [$type]
-            new<$type>[a:size b:size +] => decl result: [$type]
-            for i in 0 to a:size do
-                a[i] => result[i]
-            done
-            a:size => decl j: int
-            for i in j to result:size do
-                b[i j -] => result[i]
-            done
-            result return
-        end
+    cdecl "_scl_array_reverse"
+    expect foreign reified function reverse<[T]>(arr: [T]): [T]
 
-        function append(elem: $type, arr: [$type]): [$type]
-            new<$type>[arr:size 1 +] => decl result: [$type]
-            for i in 0 to arr:size do
-                arr[i] => result[i]
-            done
-            elem => result[arr:size]
-            result return
-        end
+    cdecl "_scl_array_to_string"
+    expect foreign reified function toString<[T]>(arr: [T]): str
 
-        function prepend(elem: $type, arr: [$type]): [$type]
-            new<$type>[arr:size 1 +] => decl result: [$type]
-            elem => result[0]
-            for i in 0 to arr:size do
-                arr[i] => result[i 1 +]
-            done
-            result return
-        end
+    cdecl "_scl_array_size"
+    expect foreign reified function size<[T]>(arr: [T]): int
 
-        function insert(elem: $type, index: int, arr: [$type]): [$type]
-            if index 0 < index arr:size > || then
-                "Index out of bounds" InvalidArgumentException::new throw
+    reified function empty<[T]>(arr: [T]): bool
+        arr:size 0 == return
+    end
+
+    reified function contains<[T]>(val: T, arr: [T]): bool
+        val arr:indexOf -1 != return
+    end
+
+    reified function indexOf<[T]>(val: T, arr: [T]): int
+        for i in 0 to arr:size do
+            if arr[i] val == then
+                i return
             fi
+        done
+        -1 return
+    end
 
-            new<$type>[arr:size 1 +] => decl result: [$type]
-            for i in 0 to index do
-                arr[i] => result[i]
-            done
-            elem => result[index]
-            for i in index to arr:size do
-                arr[i] => result[i 1 +]
-            done
-            result return
-        end
-
-        function remove(index: int, arr: [$type]): [$type]
-            if index 0 < index arr:size > || then
-                "Index out of bounds" InvalidArgumentException::new throw
+    reified function lastIndexOf<[T]>(val: T, arr: [T]): int
+        for i in arr:size 1 - to -1 step -- do
+            if arr[i] val == then
+                i return
             fi
+        done
+        -1 return
+    end
 
-            new<$type>[arr:size 1 -] => decl result: [$type]
-            for i in 0 to index do
-                arr[i] => result[i]
-            done
-            for i in index to arr:size do
-                arr[i 1 +] => result[i]
-            done
-            result return
-        end
-
-        function intersect(b: [$type], a: [$type]): [$type]
-            new<$type>[a:size] => decl result: [$type]
-            decl total: int
-            for i in 0 to a:size do
-                for j in 0 to b:size do
-                    if a[i] b[j] == then
-                        a[i] => result[total]
-                        total 1 +> total
-                        break
-                    fi
-                done
-            done
-            if total 1 < then
-                new<$type>[0] return
+    reified function once<[T]>(val: T, arr: [T]): bool
+        decl _count: int
+        for i in 0 to arr:size do
+            if arr[i] val == then
+                _count 1 +> _count
+                if _count 1 > then
+                    false return
+                fi
             fi
-            total result:resize return
-        end
+        done
+        _count 1 == return
+    end
 
-        function excl(b: [$type], a: [$type]): [$type]
-            new<$type>[a:size b:size +] => decl result: [$type]
-            decl total: int
-            for i in 0 to a:size do
-                false => decl found: bool
-                for j in 0 to b:size do
-                    if a[i] b[j] == then
-                        true => found
-                        break
-                    fi
-                done
-                if found ! then
+    reified function combine<[T]>(a: [T], b: [T]): [T]
+        new<T>[a:size b:size +] => decl result: [T]
+        for i in 0 to a:size do
+            a[i] => result[i]
+        done
+        a:size => decl j: int
+        for i in j to result:size do
+            b[i j -] => result[i]
+        done
+        result return
+    end
+
+    reified function append<[T]>(elem: T, arr: [T]): [T]
+        new<T>[arr:size 1 +] => decl result: [T]
+        for i in 0 to arr:size do
+            arr[i] => result[i]
+        done
+        elem => result[arr:size]
+        result return
+    end
+
+    reified function prepend<[T]>(elem: T, arr: [T]): [T]
+        new<T>[arr:size 1 +] => decl result: [T]
+        elem => result[0]
+        for i in 0 to arr:size do
+            arr[i] => result[i 1 +]
+        done
+        result return
+    end
+
+    reified function insert<[T]>(elem: T, index: int, arr: [T]): [T]
+        if index 0 < index arr:size > || then
+            "Index out of bounds" InvalidArgumentException::new throw
+        fi
+
+        new<T>[arr:size 1 +] => decl result: [T]
+        for i in 0 to index do
+            arr[i] => result[i]
+        done
+        elem => result[index]
+        for i in index to arr:size do
+            arr[i] => result[i 1 +]
+        done
+        result return
+    end
+
+    reified function remove<[T]>(index: int, arr: [T]): [T]
+        if index 0 < index arr:size > || then
+            "Index out of bounds" InvalidArgumentException::new throw
+        fi
+
+        new<T>[arr:size 1 -] => decl result: [T]
+        for i in 0 to index do
+            arr[i] => result[i]
+        done
+        for i in index to arr:size do
+            arr[i 1 +] => result[i]
+        done
+        result return
+    end
+
+    reified function intersect<[T]>(b: [T], a: [T]): [T]
+        new<T>[a:size] => decl result: [T]
+        decl total: int
+        for i in 0 to a:size do
+            for j in 0 to b:size do
+                if a[i] b[j] == then
                     a[i] => result[total]
                     total 1 +> total
+                    break
                 fi
             done
-            for i in 0 to b:size do
-                false => decl found: bool
-                for j in 0 to a:size do
-                    if b[i] a[j] == then
-                        true => found
-                        break
-                    fi
-                done
-                if found ! then
-                    b[i] => result[total]
-                    total 1 +> total
+        done
+        if total 1 < then
+            new<T>[0] return
+        fi
+        total result:resize return
+    end
+
+    reified function excl<[T]>(b: [T], a: [T]): [T]
+        new<T>[a:size b:size +] => decl result: [T]
+        decl total: int
+        for i in 0 to a:size do
+            false => decl found: bool
+            for j in 0 to b:size do
+                if a[i] b[j] == then
+                    true => found
+                    break
                 fi
             done
-            if total 1 < then
-                new<$type>[0] return
+            if found ! then
+                a[i] => result[total]
+                total 1 +> total
             fi
-            total result:resize return
-        end
-    }
+        done
+        for i in 0 to b:size do
+            false => decl found: bool
+            for j in 0 to a:size do
+                if b[i] a[j] == then
+                    true => found
+                    break
+                fi
+            done
+            if found ! then
+                b[i] => result[total]
+                total 1 +> total
+            fi
+        done
+        if total 1 < then
+            new<T>[0] return
+        fi
+        total result:resize return
+    end
 
-    CreateListOperations! int8
-    CreateListOperations! int16
-    CreateListOperations! int32
-    CreateListOperations! int64
-    CreateListOperations! int
-    CreateListOperations! uint8
-    CreateListOperations! uint16
-    CreateListOperations! uint32
-    CreateListOperations! uint64
-    CreateListOperations! uint
-    CreateListOperations! float
-    CreateListOperations! float32
-    CreateListOperations! any
+    # CreateListOperations! int8
+    # CreateListOperations! int16
+    # CreateListOperations! int32
+    # CreateListOperations! int64
+    # CreateListOperations! int
+    # CreateListOperations! uint8
+    # CreateListOperations! uint16
+    # CreateListOperations! uint32
+    # CreateListOperations! uint64
+    # CreateListOperations! uint
+    # CreateListOperations! float
+    # CreateListOperations! float32
+    # CreateListOperations! any
 
-    delmacro! CreateListOperations
+    # delmacro! CreateListOperations
 end
