@@ -1,7 +1,7 @@
 @std.lang.List
 @@{frameworkPath}/include/std/lang/List.scale
 ## List
-### static function List::filter(arr: [T], fn: lambda(T): Bool): [T]
+### static function List::filter(arr: [T], fn: lambda(T): bool): [T]
 Returns a new array containing only the elements of `arr` for which `fn` returns `true`.
 Provides compatibility with `do 'filter`.
 
@@ -27,7 +27,7 @@ Applies `fn` to each element of `arr` and returns `arr`.
 Does not modify `arr`.
 Provides compatibility with `do 'also`.
 
-### static function List::transform(arr: [T], fn: lambda([T]): [U]): [U]
+### static function List::transform(arr: [T], fn: lambda([T]): U): U
 Returns the result of applying `fn` to `arr`.
 Provides compatibility with `do 'transform`.
 
