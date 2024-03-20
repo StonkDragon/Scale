@@ -390,7 +390,7 @@ struct scale_string {
 						if (setjmp(_scl_exception_handler.jmp) != 666)
 
 #define				SCL_BACKTRACE(_func_name) \
-						struct _scl_backtrace __scl_backtrace_cur /*__attribute__((cleanup(_scl_trace_remove)))*/ = { .marker = TRACE_MARKER, .func_name = (_func_name) } \
+						struct _scl_backtrace __scl_backtrace_cur __attribute__((cleanup(_scl_trace_remove))) = { .marker = TRACE_MARKER, .func_name = (_func_name) } \
 
 void				_scl_trace_remove(struct _scl_backtrace*);
 

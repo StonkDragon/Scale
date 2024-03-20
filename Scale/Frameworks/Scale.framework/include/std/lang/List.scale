@@ -54,7 +54,7 @@ static struct List
         arr return
     end
 
-    reified function transform<[T], >(arr: [T], f: lambda([T]): any): any
+    reified function transform<[T], lambda([T]): U>(arr: [T], f: lambda([T]): U): U
         arr f:accept return
     end
 

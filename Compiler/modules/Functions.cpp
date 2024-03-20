@@ -747,6 +747,9 @@ namespace sclc {
         if (what.front() == '[' && what.back() == ']') {
             return declassifyReify(what.substr(1, what.size() - 2));
         }
+        if (strstarts(what, "lambda(")) {
+            return lambdaReturnType(what);
+        }
         return what;
     }
 
@@ -757,6 +760,8 @@ namespace sclc {
             } else {
                 return reifyType(with.substr(1, with.size() - 2), "any");
             }
+        } else if (strstarts(with, "lambda(") && strstarts(stack, "lambda(")) {
+            return reifyType(lambdaReturnType(with), lambdaReturnType(stack));
         }
         return Token(tok_identifier, stack);
     }
@@ -783,11 +788,13 @@ namespace sclc {
             arg.type = reparseArgType(arg.type, reified_mappings);
             f->addArgument(arg);
         }
+        f->name_token.location = body[i].location;
         f->name = f->name_without_overload + argsToRTSignatureIdent(f);
         if (!contains<Function*>(result.functions, f)) {
             result.functions.push_back(f);
         }
         f->has_reified = 0;
+        f->reified_parameters = self->reified_parameters;
         std::string arguments;
         if (f->args.empty() && !f->has_async) {
             arguments = "void";

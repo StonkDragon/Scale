@@ -702,6 +702,11 @@ namespace sclc {
             std::string inner = type.substr(1, type.size() - 2);
             return "[" + reparseArgType(inner, templateArgs) + "]";
         }
+        if (strstarts(type, "lambda(")) {
+            std::string lt = type.substr(0, type.find(':'));
+            std::string ret = type.substr(type.find(':') + 1);
+            type = lt + ":" + reparseArgType(ret, templateArgs);
+        }
         if (templateArgs.find(type) != templateArgs.end()) {
             return mods + templateArgs.at(type).value;
         }

@@ -109,9 +109,18 @@ void Function::addArgument(Variable arg) {
 bool Function::operator!=(const Function& other) const {
     return !this->operator==(other);
 }
+bool hasCompatibleArgs(const std::vector<Variable>& argsA, const std::vector<Variable>& argsB) {
+    if (argsA.size() != argsB.size()) return false;
+    for (size_t i = 0; i < argsB.size(); i++) {
+        if (!typeEquals(argsA[i].type, argsB[i].type)) return false;
+    }
+    return true;
+}
 bool Function::operator==(const Function& other) const {
     if (isMethod != other.isMethod) return false;
     if (name != other.name) return false;
+    // if (has_reified != other.has_reified) return false;
+    // if (hasCompatibleArgs(args, other.args)) return false;
     return member_type == other.member_type;
 }
 bool Function::operator!=(const Function* other) const {

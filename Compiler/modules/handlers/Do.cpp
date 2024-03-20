@@ -164,12 +164,6 @@ namespace sclc {
 
         functionCall(f, fp, result, warns, errors, body, i);
         
-        if (mode == "transform") {
-            typePop;
-            std::string returnType = lambdaReturnType(lambdaType);
-            typeStack.push_back(returnType);
-        }
-
         scopeDepth--;
         append("}\n");
         if (i + 1 < body.size() && body[i + 1].type == tok_ticked) {
