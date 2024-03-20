@@ -1,0 +1,27 @@
+# Reified parameter
+# Expected is any type, T is bound to that type in this function
+reified function identity<T>(val: T): T
+    val return
+end
+
+# Reified array parameter
+# Expected is an array of anything, T is bound to the element type of the array in this function
+reified function printArray<[T]>(arr: [T]): none
+    foreach x in arr do
+        x puts
+    done
+end
+
+# Expected stack: [ T, int ]
+# Not specifying a parameter name means: ignore this stack value
+reified function addAnInt<T,  >(x: T, y: int): T
+    x y + return
+end
+
+function main(): none
+    "Hello!" identity puts
+    123 identity puts
+
+    new<float> { 1d, 2d, 3d, 4d, 5d, 6d } => decl arr: [float]
+    arr identity printArray
+end
