@@ -178,7 +178,7 @@ namespace sclc {
     std::string generateInternal(Function* f) {
         std::string symbol;
 
-        std::string name = f->name;
+        std::string name = f->name_without_overload;
         if (f->member_type.size()) {
             if (!f->isMethod) {
                 name = name.substr(f->member_type.size() + 1);
@@ -370,8 +370,14 @@ namespace sclc {
         return true;
     }
 
+    void createReifiedCall(Function *self, std::ostream &fp, TPResult &result, std::vector<FPResult> &warns, std::vector<FPResult> &errors, std::vector<Token> &body, size_t &i);
+
     void methodCall(Method* self, std::ostream& fp, TPResult& result, std::vector<FPResult>& warns, std::vector<FPResult>& errors, std::vector<Token>& body, size_t& i, bool ignoreArgs, bool doActualPop, bool withIntPromotion, bool onSuperType, bool checkOverloads) {
         if (!shouldCall(self, warns, errors, body, i)) {
+            return;
+        }
+        if (self->has_reified) {
+            createReifiedCall(self, fp, result, warns, errors, body, i);
             return;
         }
         if (currentFunction) {
@@ -731,8 +737,107 @@ namespace sclc {
         return "???";
     }
 
+    std::string reparseArgType(std::string type, const std::map<std::string, Token>& templateArgs);
+    std::string argsToRTSignatureIdent(Function* f);
+
+    std::string declassifyReify(const std::string& what) {
+        if (what.front() == '@') {
+            return declassifyReify(what.substr(1));
+        }
+        if (what.front() == '[' && what.back() == ']') {
+            return declassifyReify(what.substr(1, what.size() - 2));
+        }
+        return what;
+    }
+
+    Token reifyType(const std::string& with, const std::string& stack) {
+        if (with.front() == '[' && with.back() == ']') {
+            if (stack.front() == '[' && stack.back() == ']') {
+                return reifyType(with.substr(1, with.size() - 2), stack.substr(1, stack.size() - 2));
+            } else {
+                return reifyType(with.substr(1, with.size() - 2), "any");
+            }
+        }
+        return Token(tok_identifier, stack);
+    }
+
+    void createReifiedCall(Function* self, std::ostream& fp, TPResult& result, std::vector<FPResult>& warns, std::vector<FPResult>& errors, std::vector<Token>& body, size_t& i) {
+        if (self->reified_parameters.size() > typeStack.size()) {
+            transpilerError("Reified function requires more type parameters than are available", i);
+            errors.push_back(err);
+            return;
+        }
+        size_t startIndex = typeStack.size() - self->reified_parameters.size();
+        std::map<std::string, Token> reified_mappings;
+        for (size_t i = startIndex; i < typeStack.size(); i++) {
+            const std::string& param = self->reified_parameters[i - startIndex];
+            if (param.empty()) {
+                continue;
+            }
+            reified_mappings[declassifyReify(param)] = reifyType(param, removeTypeModifiers(typeStack[i]));
+        }
+        Function* f = self->clone();
+        f->return_type = reparseArgType(f->return_type, reified_mappings);
+        f->clearArgs();
+        for (Variable arg : self->args) {
+            arg.type = reparseArgType(arg.type, reified_mappings);
+            f->addArgument(arg);
+        }
+        f->name = f->name_without_overload + argsToRTSignatureIdent(f);
+        if (!contains<Function*>(result.functions, f)) {
+            result.functions.push_back(f);
+        }
+        f->has_reified = 0;
+        std::string arguments;
+        if (f->args.empty() && !f->has_async) {
+            arguments = "void";
+        } else {
+            if (f->has_async) {
+                arguments = "struct _args_";
+                if (f->isMethod) {
+                    arguments += "mt_" + f->member_type + "$";
+                } else {
+                    arguments += "fn_";
+                }
+                arguments += f->name + "* __args";
+            } else {
+                if (f->isMethod) {
+                    arguments = sclTypeToCType(result, f->args[f->args.size() - 1].type) + " Var_self";
+                }
+                for (size_t i = 0; i < f->args.size() - (size_t) f->isMethod; i++) {
+                    std::string type = sclTypeToCType(result, f->args[i].type);
+                    if (i || f->isMethod) arguments += ", ";
+                    arguments += type;
+
+                    if (type == "varargs" || type == "...") continue;
+                    if (f->args[i].name.size()) {
+                        arguments += " Var_" + f->args[i].name;
+                    } else {
+                        arguments += " param" + std::to_string(i);
+                    }
+                }
+            }
+        }
+        for (size_t i = 0; i < f->body.size(); i++) {
+            if (f->body[i].type != tok_identifier) continue;
+            if (reified_mappings.find(f->body[i].value) != reified_mappings.end()) {
+                f->body[i] = reified_mappings.at(f->body[i].value);
+            }
+        }
+        append("%s fn_%s(%s) __asm(%s);\n", sclTypeToCType(result, f->return_type).c_str(), f->name.c_str(), arguments.c_str(), generateSymbolForFunction(f).c_str());
+        functionCall(f, fp, result, warns, errors, body, i);
+    }
+
     void functionCall(Function* self, std::ostream& fp, TPResult& result, std::vector<FPResult>& warns, std::vector<FPResult>& errors, std::vector<Token>& body, size_t& i, bool withIntPromotion, bool hasToCallStatic, bool checkOverloads) {
         if (!shouldCall(self, warns, errors, body, i)) {
+            return;
+        }
+        if (self->isCVarArgs()) {
+            createVariadicCall(self, fp, result, errors, body, i);
+            return;
+        }
+        if (self->has_reified) {
+            createReifiedCall(self, fp, result, warns, errors, body, i);
             return;
         }
         if (currentFunction) {
@@ -976,7 +1081,7 @@ namespace sclc {
 
     callFunction:
 
-        
+
         append("_scl_popn(%zu);\n", self->args.size());
         std::string type = typeStackTop;
         if (isSelfType(self->return_type)) {
@@ -1149,7 +1254,7 @@ namespace sclc {
     }
 
     std::string sclFunctionNameToFriendlyString(Function* f) {
-        std::string name = f->name;
+        std::string name = f->name_without_overload;
         name = sclFunctionNameToFriendlyString(name);
         if (f->isMethod) {
             name = retemplate(f->member_type) + ":" + name;

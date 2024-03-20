@@ -203,10 +203,6 @@ namespace sclc {
             });
         } else if (hasFunction(result, body[i].value)) {
             Function* f = getFunctionByName(result, body[i].value);
-            if (f->isCVarArgs()) {
-                createVariadicCall(f, fp, result, errors, body, i);
-                return;
-            }
             if (f->isMethod) {
                 transpilerError("'" + f->name + "' is a method, not a function.", i);
                 errors.push_back(err);
@@ -215,10 +211,6 @@ namespace sclc {
             functionCall(f, fp, result, warns, errors, body, i);
         } else if (hasFunction(result, function->member_type + "$" + body[i].value)) {
             Function* f = getFunctionByName(result, function->member_type + "$" + body[i].value);
-            if (f->isCVarArgs()) {
-                createVariadicCall(f, fp, result, errors, body, i);
-                return;
-            }
             if (f->isMethod) {
                 transpilerError("'" + f->name + "' is a method, not a function.", i);
                 errors.push_back(err);
@@ -266,10 +258,6 @@ namespace sclc {
                 } else {
                     if (hasFunction(result, s.name + "$" + body[i].value)) {
                         Function* f = getFunctionByName(result, s.name + "$" + body[i].value);
-                        if (f->isCVarArgs()) {
-                            createVariadicCall(f, fp, result, errors, body, i);
-                            return;
-                        }
                         if (f->isMethod) {
                             transpilerError("'" + f->name + "' is not static", i);
                             errors.push_back(err);
@@ -515,10 +503,6 @@ namespace sclc {
                 typeStack.push_back(method->member_type);
                 methodCall(method, fp, result, warns, errors, body, i);
             } else if ((f = getFunctionByName(result, s.name + "$" + body[i].value)) != nullptr) {
-                if (f->isCVarArgs()) {
-                    createVariadicCall(f, fp, result, errors, body, i);
-                    return;
-                }
                 functionCall(f, fp, result, warns, errors, body, i);
             } else if (s.hasMember(body[i].value)) {
                 Token here = body[i];

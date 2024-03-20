@@ -51,9 +51,11 @@ namespace sclc
         long has_binary_inherited;
         long has_nonvirtual;
         long has_async;
+        long has_reified;
         
         std::vector<Variable> captures;
         std::vector<Variable> ref_captures;
+        std::vector<std::string> reified_parameters;
 
         Function* container;
 
@@ -70,6 +72,7 @@ namespace sclc
         virtual void clearArgs();
         virtual bool isCVarArgs();
         virtual Variable& varArgsParam();
+        virtual Function* clone();
 
         virtual bool operator==(const Function& other) const;
         virtual bool operator!=(const Function& other) const;

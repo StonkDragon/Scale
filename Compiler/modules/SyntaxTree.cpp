@@ -46,6 +46,35 @@ namespace sclc {
 
     bool isSelfType(std::string type);
 
+    std::vector<std::string> parseReifiedParams(std::vector<FPResult>& errors, size_t& i, std::vector<Token>& tokens) {
+        std::vector<std::string> params;
+        if (tokens[i].type != tok_identifier || tokens[i].value != "<") {
+            return params;
+        }
+        i++;
+        while (tokens[i].type != tok_identifier || tokens[i].value != ">") {
+            if (tokens[i].type == tok_comma || (tokens[i].type == tok_identifier && tokens[i].value == ">")) {
+                params.push_back("");
+            } else {
+                FPResult r = parseType(tokens, &i);
+                if (!r.success) {
+                    errors.push_back(r);
+                    return params;
+                }
+                params.push_back(r.value);
+                i++;
+            }
+            if (tokens[i].type == tok_comma) {
+                i++;
+                if (tokens[i].type == tok_identifier && tokens[i].value == ">") {
+                    params.push_back("");
+                }
+            }
+        }
+        i++;
+        return params;
+    }
+
     Function* parseFunction(std::string name, Token& name_token, std::vector<FPResult>& errors, size_t& i, std::vector<Token>& tokens) {
         if (name == "=>") {
             if (tokens[i + 2].type == tok_bracket_open && tokens[i + 3].type == tok_bracket_close) {
@@ -96,6 +125,9 @@ namespace sclc {
 
         Function* func = new Function(name, name_token);
         i += 2;
+        if (tokens[i].type == tok_identifier && tokens[i].value == "<") {
+            func->reified_parameters = parseReifiedParams(errors, i, tokens);
+        }
         if (tokens[i].type == tok_paren_open) {
             i++;
             while (i < tokens.size() && tokens[i].type != tok_paren_close) {
@@ -356,6 +388,9 @@ namespace sclc {
             method->addModifier("<constructor>");
         }
         i += 2;
+        if (tokens[i].type == tok_identifier && tokens[i].value == "<") {
+            method->reified_parameters = parseReifiedParams(errors, i, tokens);
+        }
         bool memberByValue = false;
         if (tokens[i].type == tok_paren_open) {
             i++;
@@ -2725,6 +2760,7 @@ namespace sclc {
                            t.value == "virtual" ||
                            t.value == "default" ||
                            t.value == "private" ||
+                           t.value == "reified" ||
                            t.value == "static" ||
                            t.value == "export" ||
                            t.value == "expect" ||

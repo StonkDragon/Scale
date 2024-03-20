@@ -67,6 +67,7 @@ Function::Function(std::string name, bool isMethod, Token name_token) : namedRet
     this->has_binary_inherited = 0;
     this->has_nonvirtual = 0;
     this->has_async = 0;
+    this->has_reified = 0;
 }
 Function::~Function() {}
 std::vector<Token>& Function::getBody() {
@@ -100,6 +101,7 @@ void Function::addModifier(std::string modifier) {
     else if (has_binary_inherited == 0 && modifier == "<binary-inherited>") has_binary_inherited = modifiers.size();
     else if (has_nonvirtual == 0 && modifier == "nonvirtual") has_nonvirtual = modifiers.size();
     else if (has_async == 0 && modifier == "async") has_async = modifiers.size();
+    else if (has_reified == 0 && modifier == "reified") has_reified = modifiers.size();
 }
 void Function::addArgument(Variable arg) {
     args.push_back(arg);
@@ -140,6 +142,25 @@ const std::string& Function::getModifier(size_t index) {
     }
     return this->modifiers.at(index - 1);
 }
+Function* Function::clone() {
+    Function* f = new Function(name, isMethod, name_token);
+    f->isMethod = isMethod;
+    f->return_type = return_type;
+    f->member_type = member_type;
+    for (auto s : modifiers) {
+        f->addModifier(s);
+    }
+    for (Token t : this->getBody()) {
+        f->addToken(t);
+    }
+    for (Variable& v : args) {
+        f->addArgument(v);
+    }
+    f->namedReturnValue = namedReturnValue;
+    f->templateArg = templateArg;
+    f->container = container;
+    return f;
+}
 
 Method::Method(std::string member_type, std::string name, Token name_token) : Function(name, true, name_token) {
     this->member_type = member_type;
@@ -163,5 +184,6 @@ Method* Method::cloneAs(std::string memberType) {
     }
     m->namedReturnValue = namedReturnValue;
     m->templateArg = templateArg;
+    m->container = container;
     return m;
 }

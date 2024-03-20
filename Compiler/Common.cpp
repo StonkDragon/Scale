@@ -966,8 +966,19 @@ namespace sclc
                                 ) {
                                     continue;
                                 }
+                                if (currentType.front() == '@' && f->return_type.front() != '@') {
+                                    path += "*";
+                                }
+                                if (f->args[0].type.front() == '@') {
+                                    path += "fn_" + f->name + "(*tmp)";
+                                } else {
+                                    path += "fn_" + f->name + "(tmp)";
+                                }
                                 path += "fn_" + f->name + "(tmp)";
                                 funcFound = true;
+                            }
+                            if (currentType.front() == '@') {
+                                path += "*";
                             }
                             if (!funcFound) {
                                 path += "tmp";
@@ -1068,10 +1079,20 @@ namespace sclc
                             ) {
                                 continue;
                             }
-                            path += "fn_" + f->name + "(tmp)";
+                            if (currentType.front() == '@' && f->return_type.front() != '@') {
+                                path += "*";
+                            }
+                            if (f->args[0].type.front() == '@') {
+                                path += "fn_" + f->name + "(*tmp)";
+                            } else {
+                                path += "fn_" + f->name + "(tmp)";
+                            }
                             funcFound = true;
                         }
                         if (!funcFound) {
+                            if (currentType.front() == '@') {
+                                path += "*";
+                            }
                             path += "tmp";
                         }
                         path += ")";
@@ -1101,11 +1122,23 @@ namespace sclc
                 ) {
                     continue;
                 }
-                path += " = fn_" + f->name + "(tmp)";
+                path += " = ";
+                if (currentType.front() == '@' && f->return_type.front() != '@') {
+                    path += "*";
+                }
+                if (f->args[0].type.front() == '@') {
+                    path += "fn_" + f->name + "(*tmp)";
+                } else {
+                    path += "fn_" + f->name + "(tmp)";
+                }
                 funcFound = true;
             }
             if (!funcFound) {
-                path += " = tmp";
+                path += " = ";
+                if (currentType.front() == '@') {
+                    path += "*";
+                }
+                path += "tmp";
             }
         }
         

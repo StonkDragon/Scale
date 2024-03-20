@@ -47,6 +47,9 @@ enum TokenType
     InterfaceDef
     As
     Enum
+    Using
+    Lambda
+    Pragma
     QuestionMark
     AddrOf
     ParenOpen
@@ -80,6 +83,7 @@ enum TokenType
     UtfStringLiteral
     CharLiteral
     Dollar
+    StackOp
     MAX
 end
 
@@ -131,6 +135,9 @@ function tokenTypeToString(tt: TokenType): str
         case TokenType::InterfaceDef "InterfaceDef" return esac
         case TokenType::As "As" return esac
         case TokenType::Enum "Enum" return esac
+        case TokenType::Using "Using" return esac
+        case TokenType::Lambda "Lambda" return esac
+        case TokenType::Pragma "Pragma" return esac
         case TokenType::QuestionMark "QuestionMark" return esac
         case TokenType::AddrOf "AddrOf" return esac
         case TokenType::ParenOpen "ParenOpen" return esac
@@ -164,6 +171,7 @@ function tokenTypeToString(tt: TokenType): str
         case TokenType::UtfStringLiteral "UtfStringLiteral" return esac
         case TokenType::CharLiteral "CharLiteral" return esac
         case TokenType::Dollar "Dollar" return esac
+        case TokenType::StackOp "StackOp" return esac
         case TokenType::MAX "MAX" return esac
     done
     "Unknown" return

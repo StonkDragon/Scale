@@ -515,7 +515,7 @@ namespace sclc {
         int n_captures = 0;
         for (size_t f = 0; f < result.functions.size(); f++) {
             Function* function = currentFunction = result.functions[f];
-            if (UNLIKELY(function->has_expect || function->has_binary_inherited || getInterfaceByName(result, function->member_type))) {
+            if (UNLIKELY(function->has_reified || function->has_expect || function->has_binary_inherited || getInterfaceByName(result, function->member_type))) {
                 continue;
             }
             if (UNLIKELY(function->return_type.empty())) {
