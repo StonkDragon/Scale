@@ -189,6 +189,14 @@ scl_bool float$isNaN(scl_float val) {
 	return isnan(val);
 }
 
+scl_bool float32$isInfinite(scl_float32 val) {
+	return isinf(val);
+}
+
+scl_bool float32$isNaN(scl_float32 val) {
+	return isnan(val);
+}
+
 void Thread$run(scl_Thread self) {
 	SCL_BACKTRACE("Thread:run(): none");
 	_currentThread = self;

@@ -116,6 +116,12 @@ Cast `value` to a uint32.
 ### static function int::toUInt(value: any): uint
 Cast `value` to a uint.
 
+### static function int::toFloat(value: any): float
+Cast `value` to a float.
+
+### static function int::toFloat32(value: any): float32
+Cast `value` to a float32.
+
 ### static function int::isValidInt8(val: any): bool
 Returns true if `val` can be safely cast to an int8 without loss of precision.
 

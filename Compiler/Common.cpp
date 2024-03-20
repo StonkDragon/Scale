@@ -1166,6 +1166,41 @@ namespace sclc
         return newVec;
     }
 
+    char unquoteChar(const std::string& str) {
+        char c = str[0];
+        if (c == '\\') {
+            c = str[1];
+            switch (c) {
+                case 'n':
+                    return '\n';
+                    break;
+                case 'r':
+                    return '\r';
+                    break;
+                case 't':
+                    return '\t';
+                    break;
+                case '0':
+                    return '\0';
+                    break;
+                case '\\':
+                    return '\\';
+                    break;
+                case '\'':
+                    return '\'';
+                    break;
+                case '\"':
+                    return '\"';
+                    break;
+                default:
+                    std::cerr << "Unknown escape sequence: \\" << c << std::endl;
+                    return ' ';
+            }
+        } else {
+            return c;
+        }
+    }
+
     std::string unquote(const std::string& str) {
         std::string ret;
         ret.reserve(str.size());

@@ -5,9 +5,7 @@
 
 namespace sclc {
     handler(If) {
-        for (long t = typeStack.size() - 1; t >= 0; t--) {
-            typePop;
-        }
+        auto beginningStackSize = typeStack.size();
         noUnused;
         append("if (({\n");
         scopeDepth++;
@@ -43,14 +41,13 @@ namespace sclc {
                    type == tok_else;
         };
         bool exhaustive = false;
-        auto beginningStackSize = typeStack.size();
         std::vector<std::string> returnedTypes;
     nextIfPart:
         while (!tokenEndsIfBlock(body[i].type)) {
             handle(Token);
             safeInc();
         }
-        if (typeStackTop.size() > beginningStackSize) {
+        if (typeStack.size() > beginningStackSize) {
             returnedTypes.push_back(typeStackTop);
         }
         while (typeStack.size() > beginningStackSize) {

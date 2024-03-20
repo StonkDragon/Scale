@@ -100,6 +100,14 @@ final static sealed struct int
     value as uint return
   end
 
+  function toFloat(value: any): float
+    value as int as float return
+  end
+
+  function toFloat32(value: any): float32
+    value as int as float32 return
+  end
+
   function isValidInt8(val: any): bool
     val val:toInt8 == return
   end

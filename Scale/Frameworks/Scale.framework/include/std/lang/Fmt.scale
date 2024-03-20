@@ -24,13 +24,8 @@ final static sealed struct FmtIO
   function puts(fmt: str, args: varargs): none
     0 => decl current: int
     args:size => decl size: int
-    # args:size puts
-    # args puts
-    # fmt puts
     for i in 0 to fmt:size do
       fmt[i] => decl c: int8
-      # "c: " c:toString + puts
-      # c '%' == puts
       if c '%' == then
         i++ => i
         fmt[i] => c

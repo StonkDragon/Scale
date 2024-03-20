@@ -5,9 +5,6 @@
 
 namespace sclc {
     handler(Else) {
-        for (long t = typeStack.size() - 1; t >= 0; t--) {
-            typePop;
-        }
         noUnused;
         varScopePop();
         scopeDepth--;
