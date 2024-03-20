@@ -340,6 +340,14 @@ final sealed struct str is Equatable, Cloneable, Stringifyable, Iterable
     result str::of return
   end
 
+  static reified function map<lambda(int8): U>(arr: str, f: lambda(int8): U): [U]
+    new<U>[arr:size] => decl result: [U]
+    for i in 0 to arr:size do
+      arr[i] f:accept => result[i]
+    done
+    result return
+  end
+
   static function reduce(arr: str, f: lambda(int, int8): int): int
     decl result: int
     for i in 0 to arr:size do
@@ -364,14 +372,14 @@ final sealed struct str is Equatable, Cloneable, Stringifyable, Iterable
     done
   end
 
-  static function also(arr: str, f: lambda(int8): bool): str
+  static function also(arr: str, f: lambda(int8): none): str
     foreach val in arr do
       val f:accept
     done
     arr return
   end
 
-  static function transform(arr: str, f: lambda(str): any): any
+  static reified function transform<lambda(str): U>(arr: str, f: lambda(str): U): U
     arr f:accept return
   end
 

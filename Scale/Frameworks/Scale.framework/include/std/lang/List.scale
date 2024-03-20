@@ -1,6 +1,12 @@
 import std.util.Range
 
 static struct List
+    cdecl "_scl_array_resize"
+    expect foreign reified function resize<[T]>(size: int, arr: [T]): [T]
+
+    cdecl "_scl_array_size"
+    expect foreign reified function size<[T]>(arr: [T]): int
+
     reified function filter<[T], >(arr: [T], f: lambda(T): bool): [T]
         new<T>[arr:size] => decl result: [T]
         0 => decl acc: int
@@ -16,11 +22,12 @@ static struct List
         acc result:resize return
     end
 
-    reified function map<[T], >(arr: [T], f: lambda(T): T): [T]
+    reified function map<[T], lambda(T): U>(arr: [T], f: lambda(T): U): [U]
+        new<U>[arr:size] => decl out: [U]
         for i in 0 to arr:size do
-            arr[i] f:accept => arr[i]
+            arr[i] f:accept => out[i]
         done
-        arr return
+        out return
     end
 
     reified function reduce<[T], >(arr: [T], f: lambda(T, T): T): T
@@ -47,7 +54,7 @@ static struct List
         done
     end
 
-    reified function also<[T], >(arr: [T], f: lambda(T): bool): [T]
+    reified function also<[T], >(arr: [T], f: lambda(T): none): [T]
         foreach val in arr do
             val f:accept
         done
@@ -97,20 +104,51 @@ static struct List
         result return
     end
 
-    cdecl "_scl_array_resize"
-    expect foreign reified function resize<[T]>(size: int, arr: [T]): [T]
+    reified function sort<[T]>(arr: [T]): [T]
+        decl i: int
 
-    cdecl "_scl_array_sort"
-    expect foreign reified function sort<[T]>(arr: [T]): [T]
+        while i arr:size < do
+            arr[i] => decl tmp
+            i 1 - => decl j
+            while j 0 >= do
+                if tmp arr[j] < then
+                    arr[j] => arr[j 1 +]
+                    tmp => arr[j]
+                else
+                    tmp => arr[j 1 +]
+                    break
+                fi
+                j-- => j
+            done
+            i++ => i
+        done
 
-    cdecl "_scl_array_reverse"
-    expect foreign reified function reverse<[T]>(arr: [T]): [T]
+        arr return
+    end
 
-    cdecl "_scl_array_to_string"
-    expect foreign reified function toString<[T]>(arr: [T]): str
+    reified function reverse<[T]>(arr: [T]): [T]
+        arr:size => decl sz: int
+        for i in 0 to sz 2 / do
+            arr[i] => decl tmp: T
+            arr[sz i - 1 -] => arr[i]
+            tmp => arr[sz i - 1 -]
+        done
+        arr return
+    end
 
-    cdecl "_scl_array_size"
-    expect foreign reified function size<[T]>(arr: [T]): int
+    reified function toString<[T]>(arr: [T]): str
+        if arr:size 0 == then
+            "[]" return
+        fi
+        "[" => decl s: str
+        for i in 0 to arr:size do
+            if i 0 != then
+                s ", " +> s
+            fi
+            s arr[i]:toString +> s
+        done
+        s "]" + return
+    end
 
     reified function empty<[T]>(arr: [T]): bool
         arr:size 0 == return
@@ -264,20 +302,4 @@ static struct List
         fi
         total result:resize return
     end
-
-    # CreateListOperations! int8
-    # CreateListOperations! int16
-    # CreateListOperations! int32
-    # CreateListOperations! int64
-    # CreateListOperations! int
-    # CreateListOperations! uint8
-    # CreateListOperations! uint16
-    # CreateListOperations! uint32
-    # CreateListOperations! uint64
-    # CreateListOperations! uint
-    # CreateListOperations! float
-    # CreateListOperations! float32
-    # CreateListOperations! any
-
-    # delmacro! CreateListOperations
 end

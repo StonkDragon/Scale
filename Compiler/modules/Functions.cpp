@@ -483,7 +483,7 @@ namespace sclc {
                         if (!overload->isMethod) continue;
                         
                         bool argsEqual = checkStackType(result, overload->args, b);
-                        if (argsEqual) {
+                        if (argsEqual || overload->has_reified) {
                             methodCall((Method*) overload, fp, result, warns, errors, body, i, ignoreArgs, doActualPop, b);
                             return;
                         }
@@ -944,7 +944,7 @@ namespace sclc {
                         if (overload->isMethod) continue;
 
                         bool argsEqual = checkStackType(result, overload->args, b);
-                        if (argsEqual) {
+                        if (argsEqual || overload->has_reified) {
                             functionCall(overload, fp, result, warns, errors, body, i, b, hasToCallStatic, false);
                             return;
                         }
