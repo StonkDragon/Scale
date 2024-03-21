@@ -5,7 +5,10 @@
 #include <cstdlib>
 #include <cstdio>
 #include <cstring>
-#include <unistd.h>
+
+#ifndef _WIN32
+// #include <unistd.h>
+#endif
 
 #include "../headers/Common.hpp"
 #include "../headers/TranspilerDefs.hpp"

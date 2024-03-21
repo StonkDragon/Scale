@@ -1,4 +1,3 @@
-#include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -27,7 +26,6 @@ typedef struct Struct_Exception {
 	Struct rtFields;
 	scl_str msg;
 	scl_str* stackTrace;
-	scl_str errno_str;
 }* scl_Exception;
 
 typedef struct Struct_RuntimeError {
@@ -54,14 +52,17 @@ typedef struct Struct_AssertError {
 	Struct rtFields;
 	scl_str msg;
 	scl_str* stackTrace;
-	scl_str errno_str;
 }* scl_AssertError;
+typedef struct Struct_SignalError {
+	Struct rtFields;
+	scl_str msg;
+	scl_str* stackTrace;
+}* scl_SignalError;
 
 typedef struct Struct_UnreachableError {
 	Struct rtFields;
 	scl_str msg;
 	scl_str* stackTrace;
-	scl_str errno_str;
 }* scl_UnreachableError;
 
 struct Struct_str {
@@ -71,6 +72,8 @@ struct Struct_str {
 typedef struct Struct_InvalidArgumentException {
 	struct Struct_Exception self;
 }* scl_InvalidArgumentException;
+
+tls scl_int8* thread_name;
 
 _scl_symbol_hidden static memory_layout_t* _scl_get_memory_layout(scl_any ptr) {
 	if (likely(GC_is_heap_ptr(ptr))) {
@@ -194,34 +197,45 @@ scl_any _scl_cvarargs_to_array(va_list args, scl_int count) {
 	return arr;
 }
 
-#if !defined(_WIN32)
-_scl_symbol_hidden static void _scl_sigaction_handler(scl_int sig_num, siginfo_t* sig_info, void* ucontext) {
-	const scl_int8* signalString = strsignal(sig_num);
-
-	fprintf(stderr, "Signal: %s\n", signalString);
-	fprintf(stderr, ((sig_num == SIGSEGV) ? "Tried read/write of faulty address %p\n" : "Faulty address: %p\n"), sig_info->si_addr);
-	if (unlikely(sig_info->si_errno)) {
-		fprintf(stderr, "Error code: %d\n", sig_info->si_errno);
-	}
-	native_trace();
-	fprintf(stderr, "\n");
-	exit(sig_num);
-}
-#else
 _scl_symbol_hidden static void _scl_signal_handler(scl_int sig_num) {
-	const scl_int8* signalString = strsignal(sig_num);
+	static int handling_signal = 0;
+	static int with_errno = 0;
+	const scl_int8* signalString = NULL;
 
-	printf("\n");
+	if (handling_signal) {
+		signalString = strsignal(handling_signal);
+		fprintf(stderr, "\n");
 
-	printf("Signal: %s\n", signalString);
-	if (errno) {
-		printf("errno: %s\n", strerror(errno));
+		fprintf(stderr, "Signal: %s\n", signalString);
+		if (errno) {
+			fprintf(stderr, "errno: %s\n", strerror(with_errno));
+		}
+		native_trace();
+
+		exit(handling_signal);
 	}
-	native_trace();
 
-	exit(sig_num);
+	signalString = strsignal(sig_num);
+	handling_signal = sig_num;
+	with_errno = errno;
+
+	struct {
+		memory_layout_t layout;
+		struct Struct_SignalError error;
+	} data = {
+		.layout = {
+			.size = sizeof(struct Struct_SignalError),
+			.flags = MEM_FLAG_INSTANCE
+		}
+	};
+
+	scl_SignalError sigErr = ALLOC(SignalError);
+	virtual_call(sigErr, "init(s;)V;", _scl_create_string(signalString));
+
+	handling_signal = 0;
+	with_errno = 0;
+	_scl_throw(sigErr);
 }
-#endif
 
 void _scl_sleep(scl_int millis) {
 	sleep(millis);
@@ -397,39 +411,6 @@ _scl_symbol_hidden static scl_int _scl_search_method_index(const struct _scl_met
 }
 
 _scl_symbol_hidden static void _scl_set_up_signal_handler(void) {
-#if !defined(_WIN32)
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-W#pragma-messages"
-_scl_symbol_hidden 
-	static struct sigaction act = {
-		.sa_sigaction = (void(*)(int, siginfo_t*, void*)) _scl_sigaction_handler,
-		.sa_flags = SA_SIGINFO,
-		.sa_mask = sigmask(SIGINT) | sigmask(SIGILL) | sigmask(SIGTRAP) | sigmask(SIGABRT) | sigmask(SIGBUS) | sigmask(SIGSEGV)
-	};
-	#define SIGACTION(_sig) if (sigaction(_sig, &act, NULL) == -1) { fprintf(stderr, "Failed to set up signal handler\n"); fprintf(stderr, "Error: %s (%d)\n", strerror(errno), errno); }
-	
-#ifdef SIGINT
-	SIGACTION(SIGINT);
-#endif
-#ifdef SIGILL
-	SIGACTION(SIGILL);
-#endif
-#ifdef SIGTRAP
-	SIGACTION(SIGTRAP);
-#endif
-#ifdef SIGABRT
-	SIGACTION(SIGABRT);
-#endif
-#ifdef SIGBUS
-	SIGACTION(SIGBUS);
-#endif
-#ifdef SIGSEGV
-	SIGACTION(SIGSEGV);
-#endif
-
-	#undef SIGACTION
-#pragma clang diagnostic pop
-#else
 #define SIGACTION(_sig) signal(_sig, (void(*)(int)) _scl_signal_handler)
 	
 #ifdef SIGINT
@@ -449,7 +430,6 @@ _scl_symbol_hidden
 #endif
 #ifdef SIGSEGV
 	SIGACTION(SIGSEGV);
-#endif
 #endif
 }
 
@@ -471,7 +451,6 @@ scl_any _scl_checked_cast(scl_any instance, ID_t target_type, const scl_int8* ta
 			Struct rtFields;
 			scl_str msg;
 			scl_str* stackTrace;
-			scl_str errno_str;
 		}* scl_CastError;
 
 		if (instance == nil) {
@@ -620,6 +599,9 @@ void _scl_delete_ptr(void* ptr) {
 
 void _scl_throw(scl_any ex) {
 	scl_bool is_error = _scl_is_instance_of(ex, type_id("Error"));
+	if (is_error) {
+		_scl_runtime_catch(ex);
+	}
 
 	scl_uint* stack_top = (scl_uint*) &stack_top;
 	struct GC_stack_base sb;
@@ -638,7 +620,6 @@ void _scl_throw(scl_any ex) {
 		if (handler->finalizer) {
 			handler->finalizer(handler->finalization_data);
 		}
-		if (unlikely(is_error)) continue;
 
 		handler->exception = ex;
 		handler->marker = 0;
@@ -647,23 +628,6 @@ void _scl_throw(scl_any ex) {
 	}
 
 	_scl_runtime_catch(ex);
-}
-
-scl_str* _scl_get_callstack() {
-#if !defined(_WIN32) && !defined(__wasm__)
-	void* cs[1024];
-	int frames = backtrace(cs, 1024);
-
-	scl_str* callstack = _scl_new_array_by_size(frames, sizeof(scl_str));
-	char** s = backtrace_symbols(cs, frames);
-	for (int i = 0; i < frames; i++) {
-		callstack[i] = _scl_create_string(s[i]);
-	}
-	free(s);
-	return callstack;
-#else
-	return _scl_new_array_by_size(0, sizeof(scl_str));
-#endif
 }
 
 _scl_symbol_hidden static void native_trace(void) {
@@ -678,21 +642,38 @@ _scl_symbol_hidden static void native_trace(void) {
 }
 
 _scl_symbol_hidden static inline void print_stacktrace_of(scl_Exception e) {
-	if (_scl_is_array((scl_any*) e->stackTrace)) {
-		for (scl_int i = _scl_array_size_unchecked((scl_any*) e->stackTrace); i >= 0; i--) {
-			fprintf(stderr, "    %s\n", e->stackTrace[i]->data);
+	#ifndef _WIN32
+	int write(int, char*, size_t);
+	#else
+	#define write _write
+	#endif
+	const char* do_print = getenv("SCL_BACKTRACE");
+	if (do_print && atoi(do_print) == 1) {
+		if (_scl_is_array((scl_any*) e->stackTrace)) {
+			for (scl_int i = 0; i < _scl_array_size_unchecked((scl_any*) e->stackTrace); i++) {
+				fprintf(stderr, "    %s\n", e->stackTrace[i]->data);
+			}
+		} else {
+			native_trace();
 		}
+	} else {
+		fprintf(stderr, "Run with 'SCL_BACKTRACE=1' environment variable set to display a backtrace\n");
 	}
-
-	fprintf(stderr, "\n");
-	native_trace();
+	#ifdef _WIN32
+	#undef write
+	#endif
 }
 
 _scl_no_return void _scl_runtime_catch(scl_any _ex) {
 	scl_Exception ex = (scl_Exception) _ex;
 	scl_str msg = ex->msg;
 
-	fprintf(stderr, "Uncaught %s: %s\n", ex->rtFields.type->type_name, msg->data);
+	fprintf(stderr, "Unexpected %s", ex->rtFields.type->type_name);
+	if (thread_name) {
+		fprintf(stderr, " in '%s'", thread_name);
+	}
+	fprintf(stderr, ": %s\n", msg->data);	
+	
 	print_stacktrace_of(ex);
 	exit(EX_THROWN);
 }

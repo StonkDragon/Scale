@@ -5,12 +5,10 @@
 extern "C" {
 #endif
 
-#include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
 #include <stdarg.h>
-#include <stdatomic.h>
 #include <string.h>
 #include <math.h>
 #include <time.h>
@@ -390,7 +388,7 @@ struct scale_string {
 						if (setjmp(_scl_exception_handler.jmp) != 666)
 
 #define				SCL_BACKTRACE(_func_name) \
-						struct _scl_backtrace __scl_backtrace_cur __attribute__((cleanup(_scl_trace_remove))) = { .marker = TRACE_MARKER, .func_name = (_func_name) } \
+						struct _scl_backtrace __scl_backtrace_cur __attribute__((cleanup(_scl_trace_remove))) = { .marker = TRACE_MARKER, .func_name = (_func_name) }
 
 void				_scl_trace_remove(struct _scl_backtrace*);
 
@@ -616,6 +614,10 @@ void				cxx_std_recursive_mutex_unlock(scl_any* mutex);
 #define _scl_elvis(a, b)		({ typeof((a)) _a = (a); _a ? _a : (b); })
 #define _scl_ror(a, b)			({ typeof((a)) _a = (a); typeof((b)) _b = (b); ((_a) >> (_b)) | ((_a) << ((sizeof(typeof(_a)) << 3) - (_b))); })
 #define _scl_rol(a, b)			({ typeof((a)) _a = (a); typeof((b)) _b = (b); ((_a) << (_b)) | ((_a) >> ((sizeof(typeof(_a)) << 3) - (_b))); })
+#define _scl_checked_index(a, i) \
+								({ typeof((a)) _a = (a); typeof((i)) _i = (i); _scl_array_check_bounds_or_throw((scl_any*) _a, _i); _a[_i]; })
+#define _scl_checked_write(a, i, w) \
+								({ typeof((a)) _a = (a); typeof((i)) _i = (i); _scl_array_check_bounds_or_throw((scl_any*) _a, _i); _a[_i] = (w); })
 
 #if defined(__cplusplus)
 }

@@ -25,7 +25,6 @@ The struct `Exception` is the base class for all exceptions.
 Declared Fields:
 - `msg: str` - The message of the exception.
 - `stackTrace: const Array` - The stack trace of the exception.
-- `errnoStr: readonly str` - The string representation of the error code in errno at the time the exception was initialized.
 
 ### static function Exception::new(): Exception
 Returns a new instance of `Exception`.
@@ -59,6 +58,9 @@ The struct `CastError` is thrown when a cast fails.
 
 ### final struct UnreachableError: Error
 The struct `UnreachableError` is thrown when the program encounters a statement that is unreachable.
+
+### final struct SignalError: Error
+The struct `SignalError` is thrown when the program receives a terminating signal.
 
 ### function sysPrettyString(): str
 Returns a string representation of the system name.

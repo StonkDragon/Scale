@@ -96,6 +96,7 @@ typedef struct Struct_Range {
 
 extern scl_Array		Var_Thread$threads;
 extern scl_Thread		Var_Thread$mainThread;
+extern tls scl_int8*	thread_name;
 
 tls scl_Thread			_currentThread = nil;
 
@@ -122,31 +123,23 @@ scl_str* Process$stackTrace(void) {
 		iteration_direction = -1;
 	}
 
-	scl_str* arr = _scl_new_array_by_size(count_trace_frames(stack_bottom, stack_top, iteration_direction), sizeof(scl_str));
+	scl_int trace_frames = count_trace_frames(stack_bottom, stack_top, iteration_direction);
+
+	scl_str* arr = _scl_new_array_by_size(trace_frames - 1, sizeof(scl_str));
 
 	scl_int i = 0;
 	while (stack_top != stack_bottom) {
 		if (*stack_top == TRACE_MARKER) {
 			if (i) {
 				struct _scl_backtrace* bt = (struct _scl_backtrace*) stack_top;
-				arr[i] = str_of_exact(bt->func_name);
+				arr[i - 1] = str_of_exact(bt->func_name);
 			}
 			i++;
 		}
 
 		stack_top += iteration_direction;
 	}
-
-	scl_int arr_count = _scl_array_size((scl_any*) arr);
-	scl_str* real = _scl_new_array_by_size(arr_count - 1, sizeof(scl_str));
-
-	for (scl_int i = 1; i < arr_count; i++) {
-		real[i - 1] = arr[i];
-	}
-
-	_scl_free(arr);
-
-	return real;
+	return arr;
 }
 
 scl_str strformat(scl_str fmt, ...) {
@@ -200,6 +193,7 @@ scl_bool float32$isNaN(scl_float32 val) {
 void Thread$run(scl_Thread self) {
 	SCL_BACKTRACE("Thread:run(): none");
 	_currentThread = self;
+	thread_name = self->name->data;
 
 	Process$lock(Var_Thread$threads);
 	virtual_call(Var_Thread$threads, "push(LThread;)V;", self);
@@ -216,6 +210,7 @@ void Thread$run(scl_Thread self) {
 	Process$unlock(Var_Thread$threads);
 	
 	_currentThread = nil;
+	thread_name = nil;
 }
 
 void Thread$start0(scl_Thread self) {
@@ -419,4 +414,5 @@ void _scale_framework_init(void) {
     _scl_setup();
 
 	Var_Thread$mainThread = _currentThread = Thread$currentThread();
+	thread_name = _currentThread->name->data;
 }

@@ -14,8 +14,6 @@ namespace sclc {
             scopeDepth--;
             if (wasTry()) {
                 popTry();
-                append("} else if (_scl_is_instance_of(_scl_exception_handler.exception, 0x%lxUL)) {\n", id("Error"));
-                append("  fn_throw((scl_Exception) _scl_exception_handler.exception);\n");
             } else if (wasCatch()) {
                 popCatch();
             }

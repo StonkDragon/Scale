@@ -1053,8 +1053,48 @@ namespace sclc
                 }
 
                 if (primitive) {
-                    path = "(" + path + "[" + index + "])";
                     currentType = arrayType.substr(1, arrayType.size() - 2);
+                    if (getElem) {
+                        path = "_scl_checked_index(" + path + ", " + index + ")";
+                    } else {
+                        path = "_scl_checked_write(" + path + ", " + index + ", ";
+                        std::vector<Function*> funcs;
+                        for (auto&& f : result.functions) {
+                            if (f->name_without_overload == v.type + "$operator$store") {
+                                funcs.push_back(f);
+                            }
+                        }
+
+                        bool funcFound = false;
+                        for (Function* f : funcs) {
+                            if (
+                                f->isMethod ||
+                                f->args.size() != 1 ||
+                                f->return_type != v.type ||
+                                !typesCompatible(result, typeStackTop, f->args[0].type, true)
+                            ) {
+                                continue;
+                            }
+                            if (currentType.front() == '@' && f->return_type.front() != '@') {
+                                path += "*";
+                            }
+                            if (f->args[0].type.front() == '@') {
+                                path += "fn_" + f->name + "(*tmp)";
+                            } else {
+                                path += "fn_" + f->name + "(tmp)";
+                            }
+                            funcFound = true;
+                        }
+                        if (!funcFound) {
+                            if (currentType.front() == '@') {
+                                path += "*";
+                            }
+                            path += "tmp";
+                        }
+                        path += ")";
+                        onComplete(path, currentType);
+                        return;
+                    }
                 } else {
                     if (getElem) {
                         path = "mt_" + arrayType + "$" + m->name + "(" + path + ", " + index + ")";

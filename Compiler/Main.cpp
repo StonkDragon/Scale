@@ -19,7 +19,6 @@
 #endif
 #else
 #include <process.h>
-#define execv _execv
 #endif
 
 #include "headers/Common.hpp"
@@ -1206,6 +1205,7 @@ int main(int argc, char const *argv[]) {
     signal(SIGSEGV, sclc::signalHandler);
     signal(SIGABRT, sclc::signalHandler);
 
+#ifndef _WIN32
     if (!isatty(fileno(stdout))) {
         sclc::Color::RESET = "";
         sclc::Color::BLACK = "";
@@ -1229,6 +1229,7 @@ int main(int argc, char const *argv[]) {
         sclc::Color::BOLDGRAY = "";
         sclc::Color::GRAY = "";
     }
+#endif
 
     std::vector<std::string> args;
     for (int i = 0; i < argc; i++) {

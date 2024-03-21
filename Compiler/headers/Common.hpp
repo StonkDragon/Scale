@@ -10,9 +10,14 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <stack>
-#include <sys/stat.h>
 #include <chrono>
+
+#ifdef _WIN32
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
+#else
 #include <dlfcn.h>
+#endif
 
 #define TOKEN(x, y, line, file) if (value == x) return Token(y, value, line, file, begin)
 

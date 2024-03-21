@@ -1100,6 +1100,43 @@ namespace sclc {
         void* (*str$of)(char*) = nullptr;
         char* (*str$view)(void* str) = nullptr;
 
+        template<typename Func>
+        Func getFunction(void* lib, const char* name) {
+        #ifdef _WIN32
+            Func f = (Func) GetProcAddress(lib, name);
+            if (!f) {
+                std::cout << "Failed to load function '" << name << "': " << GetLastError() << std::endl;
+                exit(1);
+            }
+            return f;
+        #else
+            Func f = (Func) dlsym(lib, name);
+            if (!f) {
+                std::cout << "Failed to load function '" << name << "': " << dlerror() << std::endl;
+                exit(1);
+            }
+            return f;
+        #endif
+        }
+
+        void* openLibrary(const char* name) {
+        #ifdef _WIN32
+            void* lib = LoadLibraryA(name);
+            if (!lib) {
+                std::cout << "Failed to load library '" << name << "': " << GetLastError() << std::endl;
+                exit(1);
+            }
+            return lib;
+        #else
+            void* lib = dlopen(name, RTLD_LAZY);
+            if (!lib) {
+                std::cout << "Failed to load library '" << name << "': " << dlerror() << std::endl;
+                exit(1);
+            }
+            return lib;
+        #endif
+        }
+
         NativeMacro(std::string library, std::string name) : Macro() {
             this->type = Native;
             FPResult res = findFileInIncludePath(library);
@@ -1109,27 +1146,17 @@ namespace sclc {
             }
             library = res.location.file;
 
-            this->lib = dlopen(library.c_str(), RTLD_LAZY);
-            if (!this->lib) {
-                std::cout << "Failed to load library '" << library << "': " << dlerror() << std::endl;
-                exit(1);
-            }
-            this->func = (CToken** (*)(CSourceLocation*, SclParser*)) dlsym(this->lib, name.c_str());
-            if (!this->func) {
-                std::cout << "Failed to load function '" << name << "': " << dlerror() << std::endl;
-                exit(1);
-            }
-
-            Result$getErr = (typeof(Result$getErr)) dlsym(this->lib, "_M6Result6getErra");
-            Result$getOk = (typeof(Result$getOk)) dlsym(this->lib, "_M6Result5getOka");
-            Result$isErr = (typeof(Result$isErr)) dlsym(this->lib, "_M6Result5isErrl");
-            Result$isOk = (typeof(Result$isOk)) dlsym(this->lib, "_M6Result4isOkl");
-            scl_migrate_array = (typeof(scl_migrate_array)) dlsym(this->lib, "_scl_migrate_foreign_array");
-            scl_array_size = (typeof(scl_array_size)) dlsym(this->lib, "_scl_array_size");
-            alloc = (typeof(alloc)) dlsym(this->lib, "_scl_alloc");
-
-            str$of = (typeof(str$of)) dlsym(this->lib, "_F3str14operator$storecE");
-            str$view = (typeof(str$view)) dlsym(this->lib, "_M3str4viewc");
+            lib = openLibrary(library.c_str());
+            func = getFunction<typeof(func)>(this->lib, name.c_str());
+            Result$getErr = getFunction<typeof(Result$getErr)>(this->lib, "_M6Result6getErra");
+            Result$getOk = getFunction<typeof(Result$getOk)>(this->lib, "_M6Result5getOka");
+            Result$isErr = getFunction<typeof(Result$isErr)>(this->lib, "_M6Result5isErrl");
+            Result$isOk = getFunction<typeof(Result$isOk)>(this->lib, "_M6Result4isOkl");
+            scl_migrate_array = getFunction<typeof(scl_migrate_array)>(this->lib, "_scl_migrate_foreign_array");
+            scl_array_size = getFunction<typeof(scl_array_size)>(this->lib, "_scl_array_size");
+            alloc = getFunction<typeof(alloc)>(this->lib, "_scl_alloc");
+            str$of = getFunction<typeof(str$of)>(this->lib, "_F3str14operator$storecE");
+            str$view = getFunction<typeof(str$view)>(this->lib, "_M3str4viewc");
         }
 
         ~NativeMacro() {
