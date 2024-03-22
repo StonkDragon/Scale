@@ -143,10 +143,6 @@ int main(int argc, char const *argv[]) {
         std::filesystem::create_directories("/opt/Scale/");
         std::filesystem::create_directory_symlink(std::filesystem::path(path), "/opt/Scale/latest");
         std::filesystem::permissions(
-            path,
-            std::filesystem::perms::all
-        );
-        std::filesystem::permissions(
             "/opt/Scale/latest",
             std::filesystem::perms::all
         );
