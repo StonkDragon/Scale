@@ -207,13 +207,13 @@ namespace sclc {
         if (f->has_asm) {
             std::string label = f->getModifier(f->has_asm + 1);
 
-            return '\"' + label + '\"';
+            return format("\"%s\"", label.c_str());
         }
 
         if (f->has_cdecl) {
             std::string cLabel = f->getModifier(f->has_cdecl + 1);
 
-            return "_scl_macro_to_string(__USER_LABEL_PREFIX__) \"" + cLabel + '\"';
+            return format("_scl_macro_to_string(__USER_LABEL_PREFIX__) \"%s\"", cLabel.c_str());
         }
 
         if (!f->isMethod && !Main::options::noMain && f->name == "main") {
@@ -222,9 +222,9 @@ namespace sclc {
 
         if (f->has_foreign) {
             if (f->isMethod) {
-                return "_scl_macro_to_string(__USER_LABEL_PREFIX__) \"" + f->member_type + "$" + f->name + '\"';
+                return format("_scl_macro_to_string(__USER_LABEL_PREFIX__) \"%s$%s\"", f->member_type.c_str(), f->name.c_str());
             } else {
-                return "_scl_macro_to_string(__USER_LABEL_PREFIX__) \"" + f->name + '\"';
+                return format("_scl_macro_to_string(__USER_LABEL_PREFIX__) \"%s\"", f->name.c_str());
             }
         }
 
@@ -237,9 +237,7 @@ namespace sclc {
             symbol = "_F";
         }
         symbol += generateInternal(f);
-        symbol = "_scl_macro_to_string(__USER_LABEL_PREFIX__) \"" + symbol;
-        symbol += '\"';
-        return symbol;
+        return format("_scl_macro_to_string(__USER_LABEL_PREFIX__) \"%s\"", symbol.c_str());
     }
     
     Method* findMethodLocally(Method* self, TPResult& result) {
