@@ -17,13 +17,9 @@ construct function mathInitialization(): none
   2.71828182845904523536028747135266250 => MathConstants::e
   3.14159265358979323846264338327950288 => MathConstants::pi
 
-  "Setting up math" puts
-
   0.0 0.0 / => MathConstants::nan
   1.0 0.0 / => MathConstants::infinity
   -1.0 0.0 / => MathConstants::negativeInfinity
-
-  "finished" puts
 
   unsafe
     time:bits __c_srand
