@@ -854,6 +854,8 @@ namespace sclc {
                 }
             }
         }
+        debugDump(f->name);
+        debugDump(arguments);
         for (size_t i = 0; i < f->body.size(); i++) {
             if (f->body[i].type != tok_identifier) continue;
             if (reified_mappings.find(f->body[i].value) != reified_mappings.end()) {
