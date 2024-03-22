@@ -795,7 +795,8 @@ namespace sclc {
             if (param.empty()) {
                 continue;
             }
-            reified_mappings[declassifyReify(param)] = reifyType(param, removeTypeModifiers(types[i]));
+            std::string decl = declassifyReify(param);
+            reified_mappings[decl] = reifyType(param, removeTypeModifiers(types[i]));
         }
         Function* f = self->clone();
         if (f->isMethod) {
