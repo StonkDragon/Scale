@@ -5,10 +5,6 @@ cdecl "s_memset"
 expect foreign unsafe reified function memset<T,,>(ptr: T, val: int32, len: int): T
 cdecl "s_memcpy"
 expect foreign unsafe reified function memcpy<T,,>(dst: T, src: T, n: int): T
-deprecated![since: "23.9.2", forRemoval: true]
-function sizeofStack(): int
-  0 return
-end
 cdecl "_scl_sleep"
 expect foreign function sleep(millis: int): none
 cdecl "system"
