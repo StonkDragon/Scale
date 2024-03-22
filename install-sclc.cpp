@@ -319,15 +319,23 @@ int main(int argc, char const *argv[]) {
     std::filesystem::path home = std::filesystem::path(std::getenv("HOME"));
 #endif
 
+    std::vector<std::filesystem::path> paths = {
+        "/usr/local/bin",
+        home / "bin",
+        home / ".bin",
+        "/usr/bin",
+        "/opt/local/bin",
+    };
     std::filesystem::path symlinked_path;
-    if (is_root()) {
-        symlinked_path = "/usr/local/bin/sclc";
-    } else if (std::filesystem::exists(home / "bin")) {
-        symlinked_path = home / "bin/sclc";
+    for (auto&& p : paths) {
+        try {
+            symlinked_path = p / binary;
+            std::filesystem::remove(symlinked_path);
+            std::filesystem::create_symlink(std::string(path) + "/" + binary, symlinked_path);
+            break;
+        } catch(const std::filesystem::filesystem_error& e) {}
     }
-    std::filesystem::remove(symlinked_path);
-    std::filesystem::create_symlink(std::string(path) + "/" + binary, symlinked_path);
-
+    
     std::string macro_library = create_command<std::string>({
         std::string(path) + "/" + binary,
         "-makelib",
