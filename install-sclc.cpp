@@ -135,7 +135,7 @@ int main(int argc, char const *argv[]) {
 
     std::string scl_root_dir = std::filesystem::absolute(SCL_ROOT_DIR);
 
-    std::string path = scl_root_dir + "/Scale/" STR(VERSION);
+    std::string path = scl_root_dir + ("/Scale/" STR(VERSION));
     std::string binary = "sclc";
 
     if (is_root()) {
@@ -221,9 +221,9 @@ int main(int argc, char const *argv[]) {
     #if defined(__APPLE__)
         "-dynamiclib",
         "-current_version",
-        STR(VERSION),
+        (STR(VERSION)),
         "-compatibility_version",
-        STR(VERSION),
+        (STR(VERSION)),
         "-undefined",
         "dynamic_lookup",
     #else
@@ -245,7 +245,7 @@ int main(int argc, char const *argv[]) {
 
     std::string compile_command = create_command<std::string>({
         "clang++",
-        "-DVERSION=\\\"" STR(VERSION) "\\\"",
+        ("-DVERSION=\\\"" STR(VERSION) "\\\""),
         "-DC_VERSION=\\\"gnu17\\\"",
         "-DSCL_ROOT_DIR=\\\"" + scl_root_dir + "\\\"",
         "-std=gnu++17",
@@ -298,7 +298,7 @@ int main(int argc, char const *argv[]) {
 #endif
 
     link_command.push_back("-o");
-    link_command.push_back(binary);
+    link_command.push_back(std::string(path) + "/" + binary);
 
     for (auto&& x : builders) {
         if (x.joinable())
@@ -313,16 +313,23 @@ int main(int argc, char const *argv[]) {
 
     exec_command(create_command<std::string>(link_command));
 
-    std::filesystem::copy(binary, std::string(path) + "/" + binary, std::filesystem::copy_options::overwrite_existing);
+#ifdef _WIN32
+    std::filesystem::path home = std::filesystem::path(std::getenv("UserProfile"));
+#else
+    std::filesystem::path home = std::filesystem::path(std::getenv("HOME"));
+#endif
+
+    std::filesystem::path symlinked_path;
     if (is_root()) {
-        std::filesystem::remove("/usr/local/bin/sclc");
-        std::filesystem::remove("/usr/local/bin/scaledoc");
-        std::filesystem::create_symlink(std::string(path) + "/" + binary, "/usr/local/bin/sclc");
-        std::filesystem::create_symlink(std::string(path) + "/" + binary, "/usr/local/bin/scaledoc");
+        symlinked_path = "/usr/local/bin/sclc";
+    } else if (std::filesystem::exists(home / "bin")) {
+        symlinked_path = home / "bin/sclc";
     }
+    std::filesystem::remove(symlinked_path);
+    std::filesystem::create_symlink(std::string(path) + "/" + binary, symlinked_path);
 
     std::string macro_library = create_command<std::string>({
-        binary,
+        std::string(path) + "/" + binary,
         "-makelib",
         "-o",
         path + "/Frameworks/Scale.framework/impl/__scale_macros.scl",
@@ -330,7 +337,11 @@ int main(int argc, char const *argv[]) {
     });
 
     auto scale_stdlib = create_command<std::string>({
-        binary, "-no-link-std", "-makelib", "-o", path + "/Internal/" + SCALE_STDLIB_FILENAME
+        std::string(path) + "/" + binary,
+        "-no-link-std",
+        "-makelib",
+        "-o",
+        path + "/Internal/" + SCALE_STDLIB_FILENAME
     });
 
     auto files = listFiles(path + "/Frameworks/Scale.framework/include", ".scale");
@@ -343,6 +354,12 @@ int main(int argc, char const *argv[]) {
 
     exec_command(scale_stdlib);
     exec_command(macro_library);
+
+    if (!is_root()) {
+        std::cout << "--------------" << std::endl;
+        std::cout << "'sclc' was symlinked to " << symlinked_path << std::endl;
+        std::cout << "--------------" << std::endl;
+    }
 
     return 0;
 }

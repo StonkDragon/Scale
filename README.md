@@ -14,7 +14,7 @@ Examples can be found in the [examples](./examples) directory.
 Run the following commands:
 ```shell
 $ clang++ install-sclc.cpp -o install-sclc -std=gnu++17
-$ sudo ./install-sclc
+$ ./install-sclc
 ```
 
 # Documentation
@@ -30,7 +30,7 @@ $ sclc -doc-for Scale
 The install script can also function as the development build script, this requires a full install first:
 ```shell
 $ clang++ install-sclc.cpp -o install-sclc -std=gnu++17
-$ sudo ./install-sclc -dev
+$ ./install-sclc -dev
 ```
 
 # License
