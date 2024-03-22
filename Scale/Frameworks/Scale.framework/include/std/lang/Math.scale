@@ -22,8 +22,7 @@ construct function mathInitialization(): none
   -1.0 0.0 / => MathConstants::negativeInfinity
 
   unsafe
-    time => decl x
-    ref x as [int] @ __c_srand
+    time:bits __c_srand
   end
 end
 
