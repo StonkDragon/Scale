@@ -809,13 +809,14 @@ namespace sclc {
             f->addArgument(arg);
         }
         f->name_token.location = body[i].location;
-        f->name = f->name_without_overload + argsToRTSignatureIdent(f);
+        std::string sigident = argsToRTSignatureIdent(f);
+        f->name = f->name_without_overload + sigident;
         bool contains = false;
         for (Function* f2 : result.functions) {
             if (f2->isMethod != f->isMethod) continue;
             if (f2->name_without_overload != f->name_without_overload) continue;
             if (f2->has_reified) continue;
-            if (argsToRTSignatureIdent(f) == argsToRTSignatureIdent(f2)) {
+            if (sigident == argsToRTSignatureIdent(f2)) {
                 contains = true;
             }
         }
@@ -868,6 +869,7 @@ namespace sclc {
             append("%s fn_%s(%s) __asm(%s);\n", sclTypeToCType(result, f->return_type).c_str(), f->name.c_str(), arguments.c_str(), generateSymbolForFunction(f).c_str());
         }
         return f;
+        // TODO: SIGABRT on linux right here
     }
 
     Function* reifiedPreamble(Function* self, std::ostream& fp, TPResult& result, std::vector<FPResult>& errors, std::vector<Token>& body, size_t& i) {
