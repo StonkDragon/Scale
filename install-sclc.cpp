@@ -139,13 +139,7 @@ int main(int argc, char const *argv[]) {
     std::string binary = "sclc";
 
     if (is_root()) {
-        std::filesystem::remove_all("/opt/Scale/latest");
         std::filesystem::create_directories("/opt/Scale/");
-        std::filesystem::create_directory_symlink(std::filesystem::path(path), "/opt/Scale/latest");
-        std::filesystem::permissions(
-            "/opt/Scale/latest",
-            std::filesystem::perms::all
-        );
     }
 
     if (!isDevBuild) {
@@ -158,6 +152,12 @@ int main(int argc, char const *argv[]) {
     if (is_root()) {
         std::filesystem::permissions(
             path,
+            std::filesystem::perms::all
+        );
+        std::filesystem::remove_all("/opt/Scale/latest");
+        std::filesystem::create_directory_symlink(std::filesystem::path(path), "/opt/Scale/latest");
+        std::filesystem::permissions(
+            "/opt/Scale/latest",
             std::filesystem::perms::all
         );
     }
