@@ -789,7 +789,7 @@ namespace sclc {
             errors.push_back(err);
             return nullptr;
         }
-        std::map<std::string, Token> reified_mappings;
+        std::map<std::string, Token> reified_mappings = {};
         for (size_t i = 0; i < self->reified_parameters.size(); i++) {
             const std::string& param = self->reified_parameters[i];
             if (param.empty()) {
