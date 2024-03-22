@@ -1,1 +1,1 @@
-Exception {msg: , stackTrace: [main(): none, getException(): Exception, foo(): Exception]}
+Exception {msg: , stackTrace: [foo(): Exception, getException(): Exception, main(): none]}

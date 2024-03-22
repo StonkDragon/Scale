@@ -2,11 +2,12 @@ function main(): none
     c"Hello" c"World":zip => decl result: [[int8]]
 
     foreach pair in result do
-        pair as [any] puts
+        # This cast is necessary because otherwise the array would be interpreted as a cstr
+        pair as [uint8] puts
         pair[0] puts
         pair[1] puts
         if pair[0] pair[1] == then
-            pair as [any] puts
+            pair as [uint8] puts
         fi
     done
 end
