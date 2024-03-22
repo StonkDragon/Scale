@@ -129,7 +129,9 @@ int main(int argc, char const *argv[]) {
         }
     }
 
-    std::string path = SCL_ROOT_DIR "/Scale/" STR(VERSION);
+    std::string scl_root_dir = std::filesystem::absolute(SCL_ROOT_DIR);
+
+    std::string path = scl_root_dir + "/Scale/" STR(VERSION);
     std::string binary = "sclc";
 
     std::filesystem::remove_all("/opt/Scale/latest");
@@ -228,7 +230,7 @@ int main(int argc, char const *argv[]) {
         "clang++",
         "-DVERSION=\\\"" STR(VERSION) "\\\"",
         "-DC_VERSION=\\\"gnu17\\\"",
-        "-DSCL_ROOT_DIR=\\\"" SCL_ROOT_DIR "\\\"",
+        "-DSCL_ROOT_DIR=\\\"" + scl_root_dir + "\\\"",
         "-std=gnu++17",
         "-Wall",
         "-Wextra",
