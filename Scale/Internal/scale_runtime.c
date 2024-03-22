@@ -100,7 +100,7 @@ scl_any _scl_alloc(scl_int size) {
 
 	scl_any ptr = GC_malloc(size + sizeof(memory_layout_t));
 	if (unlikely(ptr == nil)) {
-		_scl_runtime_error(EX_BAD_PTR, "allocate() failed!");
+		raise(SIGSEGV);
 	}
 
 	((memory_layout_t*) ptr)->size = orig_size;
@@ -120,7 +120,7 @@ scl_any _scl_realloc(scl_any ptr, scl_int size) {
 
 	ptr = GC_realloc(ptr - sizeof(memory_layout_t), size + sizeof(memory_layout_t));
 	if (unlikely(ptr == nil)) {
-		_scl_runtime_error(EX_BAD_PTR, "realloc() failed!");
+		raise(SIGSEGV);
 	}
 
 	((memory_layout_t*) ptr)->size = orig_size;
@@ -144,24 +144,19 @@ void _scl_free(scl_any ptr) {
 
 void _scl_assert(scl_int b, const scl_int8* msg, ...) {
 	if (unlikely(!b)) {
+		scl_AssertError e = ALLOC(AssertError);
 		va_list list;
 		va_start(list, msg);
-		size_t len = vsnprintf(NULL, 0, msg, list);
-		scl_int8 cmsg[len + 1];
-		vsnprintf(cmsg, len, msg, list);
+		virtual_call(e, "init(s;)V;", str_of_exact(strformat("Assertion failed: %s", vstrformat(msg, list))));
 		va_end(list);
-
-		fprintf(stderr, "Assertion failed: %s\n", cmsg);
-		abort();
+		_scl_throw(e);
 	}
 }
 
 void builtinUnreachable(void) {
-#if __has_builtin(__builtin_unreachable)
-	__builtin_unreachable();
-#else
-	abort();
-#endif
+	scl_UnreachableError e = ALLOC(UnreachableError);
+	virtual_call(e, "init(s;)V;", str_of_exact("Unreachable"));
+	_scl_throw(e);
 }
 
 scl_int builtinIsInstanceOf(scl_any obj, scl_str type) {
@@ -172,9 +167,17 @@ _scl_symbol_hidden static void native_trace(void);
 
 char* vstrformat(const char* fmt, va_list args) {
 	size_t len = vsnprintf(NULL, 0, fmt, args);
-	char* s = _scl_alloc(len);
-	vsnprintf(s, len, fmt, args);
+	char* s = _scl_alloc(len + 1);
+	vsnprintf(s, len + 1, fmt, args);
 	return s;
+}
+
+char* strformat(const char* fmt, ...) {
+	va_list args;
+	va_start(args, fmt);
+	char* str = vstrformat(fmt, args);
+	va_end(args);
+	return str;
 }
 
 _scl_no_return void _scl_runtime_error(int code, const scl_int8* msg, ...) {
@@ -453,30 +456,21 @@ scl_any _scl_checked_cast(scl_any instance, ID_t target_type, const scl_int8* ta
 			scl_str* stackTrace;
 		}* scl_CastError;
 
+		scl_CastError e = ALLOC(CastError);
 		if (instance == nil) {
-			scl_int size = 96 + strlen(target_type_name);
-			scl_int8 cmsg[size];
-			snprintf(cmsg, size - 1, "Cannot cast nil to type '%s'\n", target_type_name);
-			_scl_assert(0, cmsg);
+			virtual_call(e, "init(s;)V;", str_of_exact(strformat("Cannot cast nil to type '%s'", target_type_name)));
+			_scl_throw(e);
 		}
 
 		memory_layout_t* layout = _scl_get_memory_layout(instance);
 
-		scl_int size;
 		scl_bool is_instance = layout && (layout->flags & MEM_FLAG_INSTANCE);
 		if (is_instance) {
-			size = 64 + strlen(((Struct*) instance)->type->type_name) + strlen(target_type_name);
+			virtual_call(e, "init(s;)V;", str_of_exact(strformat("Cannot cast instance of struct '%s' to type '%s'\n", ((Struct*) instance)->type->type_name, target_type_name)));
 		} else {
-			size = 96 + strlen(target_type_name);
+			virtual_call(e, "init(s;)V;", str_of_exact(strformat("Cannot cast non-object to type '%s'\n", target_type_name)));
 		}
-
-		char cmsg[size];
-		if (is_instance) {
-			snprintf(cmsg, size - 1, "Cannot cast instance of struct '%s' to type '%s'\n", ((Struct*) instance)->type->type_name, target_type_name);
-		} else {
-			snprintf(cmsg, size - 1, "Cannot cast non-object to type '%s'\n", target_type_name);
-		}
-		_scl_assert(0, cmsg);
+		_scl_throw(e);
 	}
 	return instance;
 }
@@ -559,7 +553,9 @@ scl_int _scl_array_elem_size(scl_any* arr) {
 void _scl_array_check_bounds_or_throw_unchecked(scl_any* arr, scl_int index) {
 	scl_int size = _scl_array_size_unchecked(arr);
 	if (index < 0 || index >= size) {
-		_scl_runtime_error(EX_INVALID_ARGUMENT, "Index " SCL_INT_FMT " out of bounds for array of size " SCL_INT_FMT, index, size);
+		scl_IndexOutOfBoundsException e = ALLOC(IndexOutOfBoundsException);
+		virtual_call(e, "init(s;)V;", _scl_create_string(strformat("Index " SCL_INT_FMT " out of bounds for array of size " SCL_INT_FMT, index, size)));
+		_scl_throw(e);
 	}
 }
 
@@ -648,13 +644,16 @@ _scl_symbol_hidden static inline void print_stacktrace_of(scl_Exception e) {
 	#define write _write
 	#endif
 	const char* do_print = getenv("SCL_BACKTRACE");
-	if (do_print && atoi(do_print) == 1) {
-		if (_scl_is_array((scl_any*) e->stackTrace)) {
-			for (scl_int i = 0; i < _scl_array_size_unchecked((scl_any*) e->stackTrace); i++) {
-				fprintf(stderr, "    %s\n", e->stackTrace[i]->data);
-			}
-		} else {
+	if (do_print) {
+		if (strcmp(do_print, "full") == 0) {
 			native_trace();
+		} else if (atoi(do_print) == 1) {
+			if (_scl_is_array((scl_any*) e->stackTrace)) {
+				for (scl_int i = 0; i < _scl_array_size_unchecked((scl_any*) e->stackTrace); i++) {
+					fprintf(stderr, "    %s\n", e->stackTrace[i]->data);
+				}
+				fprintf(stderr, "Some information was omitted. Run with 'SCL_BACKTRACE=full' environment variable set to display full information\n");
+			}
 		}
 	} else {
 		fprintf(stderr, "Run with 'SCL_BACKTRACE=1' environment variable set to display a backtrace\n");

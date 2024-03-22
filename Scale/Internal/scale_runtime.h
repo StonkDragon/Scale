@@ -509,6 +509,8 @@ scl_any				_scl_cvarargs_to_array(va_list args, scl_int count);
 void				_scl_lock(scl_any obj);
 void				_scl_unlock(scl_any obj);
 scl_any				_scl_copy_fields(scl_any dest, scl_any src, scl_int size);
+char*				vstrformat(const char* fmt, va_list args);
+char*				strformat(const char* fmt, ...);
 
 scl_any				_scl_new_array_by_size(scl_int num_elems, scl_int elem_size);
 scl_any				_scl_migrate_foreign_array(const void* const arr, scl_int num_elems, scl_int elem_size);
@@ -518,13 +520,7 @@ scl_int				_scl_array_size(scl_any* arr);
 scl_int				_scl_array_elem_size(scl_any* arr);
 void				_scl_array_check_bounds_or_throw(scl_any* arr, scl_int index);
 scl_any*			_scl_array_resize(scl_int new_size, scl_any* arr);
-scl_any*			_scl_array_sort(scl_any* arr);
-scl_any*			_scl_array_reverse(scl_any* arr);
 scl_str				_scl_array_to_string(scl_any* arr);
-void				_scl_array_set(scl_any arr, scl_int index, scl_int value);
-scl_any				_scl_array_get(scl_any arr, scl_int index);
-void				_scl_array_setf(scl_any arr, scl_int index, scl_float value);
-scl_float			_scl_array_getf(scl_any arr, scl_int index);
 
 // BEGIN C++ Concurrency API wrappers
 void				cxx_std_thread_join_and_delete(scl_any thread);
