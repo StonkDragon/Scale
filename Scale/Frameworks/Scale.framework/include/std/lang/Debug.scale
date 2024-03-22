@@ -13,17 +13,18 @@ expect foreign function errno(): int
 cdecl "get_errno_as_str"
 expect foreign function strerror(): str
 
-function crash(): none
+function crash(): nothing
   abort
 end
 
-function raise(sigNum: int): none
+function raise(sigNum: int): nothing
   unsafe
     sigNum __c_raise => decl raised
     if raised ! then
       abort
     fi
   end
+  builtinUnreachable
 end
 
 cdecl "getchar"
