@@ -829,7 +829,7 @@ namespace sclc {
         }
         f->has_reified = 0;
         f->reified_parameters = self->reified_parameters;
-        std::string arguments;
+        std::string arguments = "";
         if (f->args.empty() && !f->has_async) {
             arguments = "void";
         } else {
