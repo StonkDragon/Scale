@@ -176,7 +176,7 @@ int main(int argc, char const *argv[]) {
         exec_command(create_command<std::string>({"sh", "./autogen.sh"}));
         exec_command(create_command<std::string>({"./configure", "--prefix=" + path + "/Internal"}));
         exec_command(create_command<std::string>({"make"}));
-        exec_command(create_command<std::string>({"sudo", "make", "install"}));
+        exec_command(create_command<std::string>({"make", "install"}));
 
         std::filesystem::current_path(std::filesystem::current_path().parent_path());
         std::filesystem::remove_all("bdwgc");
