@@ -7,6 +7,8 @@
 #include <regex>
 #include <unordered_map>
 
+#include <gc_cpp.h>
+
 #include "Variable.hpp"
 #include "Token.hpp"
 
@@ -14,7 +16,7 @@ namespace sclc
 {
     typedef std::unordered_map<std::string, std::string> Deprecation;
 
-    struct Function {
+    struct Function : public gc_cleanup {
         size_t lambdaIndex;
         std::string name;
         std::string name_without_overload;

@@ -1,3 +1,5 @@
+#include <gc/gc_allocator.h>
+
 #include "../headers/Common.hpp"
 
 using namespace sclc;

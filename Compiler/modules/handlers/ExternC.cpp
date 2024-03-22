@@ -1,3 +1,5 @@
+#include <gc/gc_allocator.h>
+
 #include <filesystem>
 
 #include "../../headers/Common.hpp"

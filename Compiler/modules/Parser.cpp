@@ -1,3 +1,5 @@
+#include <gc/gc_allocator.h>
+
 #include <memory>
 #include <iostream>
 #include <string>

@@ -1,3 +1,5 @@
+#include <gc/gc_allocator.h>
+
 #include <iostream>
 #include <string>
 #include <vector>
@@ -703,7 +705,7 @@ namespace sclc {
         }
         return mods + type + (isNil ? "?" : "");
     }
-    
+
     std::string reparseArgType(std::string type, const std::map<std::string, Token>& templateArgs) {
         std::string mods = "";
         bool isVal = type.front() == '@';

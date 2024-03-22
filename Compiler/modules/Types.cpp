@@ -1,3 +1,5 @@
+#include <gc/gc_allocator.h>
+
 #include <array>
 
 #include "../headers/Common.hpp"

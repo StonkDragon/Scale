@@ -1,3 +1,7 @@
+#include <gc/gc_allocator.h>
+#include <gc/gc_cpp.h>
+#include <gc/gc.h>
+
 #include <regex>
 
 #include "../headers/DragonConfig.hpp"

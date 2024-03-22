@@ -1,6 +1,8 @@
 #ifndef COMMON_H
 #define COMMON_H
 
+#include <gc/gc_allocator.h>
+
 #include <iostream>
 #include <string>
 #include <vector>
@@ -18,6 +20,9 @@
 #else
 #include <dlfcn.h>
 #endif
+
+#include <gc.h>
+#include <gc_cpp.h>
 
 #define TOKEN(x, y, line, file) if (value == x) return Token(y, value, line, file, begin)
 

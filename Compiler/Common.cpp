@@ -1,3 +1,5 @@
+#include <gc/gc_allocator.h>
+
 #if !defined(_WIN32) && !defined(__wasm__)
 #include <execinfo.h>
 #endif

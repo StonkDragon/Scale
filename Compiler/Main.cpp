@@ -1,3 +1,5 @@
+#include <gc/gc_allocator.h>
+
 #include <iostream>
 #include <string>
 #include <chrono>
@@ -591,7 +593,7 @@ namespace sclc
                 std::cout << Color::BOLDRED << "Fatal Error: Could not open file " << error.location.file << ": " << std::strerror(errno) << Color::RESET << std::endl;
                 continue;
             }
-            char* line = (char*) malloc(sizeof(char) * 500);
+            char* line = (char*) GC_malloc(sizeof(char) * 500);
             int i = 1;
             if (f) fseek(f, 0, SEEK_SET);
             std::string colString;
@@ -622,7 +624,7 @@ namespace sclc
                 i++;
             }
             fclose(f);
-            free(line);
+            GC_free(line);
             logWarns(error.warns);
             logErrors(error.errors);
         }
@@ -1216,6 +1218,8 @@ namespace sclc
 }
 
 int main(int argc, char const *argv[]) {
+    GC_INIT();
+
     signal(SIGSEGV, sclc::signalHandler);
     signal(SIGABRT, sclc::signalHandler);
 

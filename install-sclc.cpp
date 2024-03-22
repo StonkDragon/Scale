@@ -174,7 +174,7 @@ int main(int argc, char const *argv[]) {
         std::filesystem::current_path("bdwgc");
 
         exec_command(create_command<std::string>({"sh", "./autogen.sh"}));
-        exec_command(create_command<std::string>({"./configure", "--prefix=" + path + "/Internal"}));
+        exec_command(create_command<std::string>({"./configure", "--enable-cplusplus", "--prefix=" + path + "/Internal"}));
         exec_command(create_command<std::string>({"make"}));
         exec_command(create_command<std::string>({"make", "install"}));
 
@@ -248,6 +248,7 @@ int main(int argc, char const *argv[]) {
         "-Wall",
         "-Wextra",
         "-Werror",
+        "-I" + path + "/Internal/include",
     });
 
     if (debug) {
@@ -260,7 +261,15 @@ int main(int argc, char const *argv[]) {
     auto builders = std::vector<std::thread>(source_files.size());
     
     std::vector<std::string> link_command = {
-        compile_command
+        compile_command,
+#ifdef __linux__
+        "-Wl,--export-dynamic",
+        "-Wl,-R",
+        "-Wl," + scaleFolder + "/Internal/lib",
+#endif
+        "-L" + path + "/Internal/lib",
+        "-lgc",
+        "-lgccpp",
     };
 
     for (auto f : source_files) {
@@ -288,10 +297,6 @@ int main(int argc, char const *argv[]) {
             builders.push_back(std::move(t));
         }
     }
-
-#ifdef __linux__
-    link_command.push_back("-Wl,--export-dynamic");
-#endif
 
     link_command.push_back("-o");
     link_command.push_back(std::string(path) + "/" + binary);
