@@ -745,7 +745,7 @@ namespace sclc {
     }
 
     std::string reparseArgType(std::string type, const std::map<std::string, Token>& templateArgs);
-    std::string reparseArgType(std::string type, const std::unordered_map<std::string, Token>& templateArgs);
+    std::string reparseArgType(std::string type, const std::unordered_map<std::string, std::string>& templateArgs);
     std::string argsToRTSignatureIdent(Function* f);
 
     std::string declassifyReify(const std::string& what) {
@@ -764,7 +764,7 @@ namespace sclc {
         return what;
     }
 
-    Token reifyType(const std::string& with, const std::string& stack) {
+    std::string reifyType(const std::string& with, const std::string& stack) {
         if (with.front() == '[' && with.back() == ']') {
             if (stack.front() == '[' && stack.back() == ']') {
                 return reifyType(with.substr(1, with.size() - 2), stack.substr(1, stack.size() - 2));
@@ -776,7 +776,7 @@ namespace sclc {
         } else if (with.back() == '?') {
             return reifyType(with.substr(0, with.size() - 1), stack);
         }
-        return Token(tok_identifier, stack);
+        return stack;
     }
 
     Function* generateReifiedFunction(Function* self, std::ostream& fp, TPResult& result, std::vector<FPResult>& errors, std::vector<Token>& body, size_t& i, std::vector<std::string>& types) {
@@ -790,7 +790,7 @@ namespace sclc {
             errors.push_back(err);
             return nullptr;
         }
-        std::unordered_map<std::string, Token> reified_mappings;
+        std::unordered_map<std::string, std::string> reified_mappings;
         for (size_t i = 0; i < self->reified_parameters.size(); i++) {
             const std::string& param = self->reified_parameters[i];
             if (param.empty()) {
@@ -865,7 +865,7 @@ namespace sclc {
         for (size_t i = 0; i < f->body.size(); i++) {
             if (f->body[i].type != tok_identifier) continue;
             if (reified_mappings.find(f->body[i].value) != reified_mappings.end()) {
-                f->body[i] = reified_mappings.at(f->body[i].value);
+                f->body[i] = Token(tok_identifier, reified_mappings.at(f->body[i].value), SourceLocation("<generated>", 1, 1));
             }
         }
         if (f->isMethod) {

@@ -679,7 +679,7 @@ namespace sclc {
 
     const std::array<std::string, 3> removableTypeModifiers = {"mut ", "const ", "readonly "};
 
-    std::string reparseArgType(std::string type, const std::unordered_map<std::string, Token>& templateArgs) {
+    std::string reparseArgType(std::string type, const std::unordered_map<std::string, std::string>& templateArgs) {
         std::string mods = "";
         bool isVal = type.front() == '@';
         if (isVal) {
@@ -699,10 +699,11 @@ namespace sclc {
             type = lt + ":" + reparseArgType(ret, templateArgs);
         }
         if (templateArgs.find(type) != templateArgs.end()) {
-            return mods + templateArgs.at(type).value + (isNil ? "?" : "");
+            return mods + templateArgs.at(type) + (isNil ? "?" : "");
         }
         return mods + type + (isNil ? "?" : "");
     }
+    
     std::string reparseArgType(std::string type, const std::map<std::string, Token>& templateArgs) {
         std::string mods = "";
         bool isVal = type.front() == '@';
