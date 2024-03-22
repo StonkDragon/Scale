@@ -60,7 +60,7 @@ void exec_command(std::string cmd) {
     if (x) std::exit(x);
 }
 
-void require_root() {
+bool is_root() {
     bool root = false;
 #ifdef _WIN32
     void* adminSid = NULL;
@@ -75,7 +75,11 @@ void require_root() {
 #else
     root = (getuid() == 0);
 #endif
-    if (!root) {
+    return root;
+}
+
+void require_root() {
+    if (!is_root()) {
         std::cerr << "This file must be run as root." << std::endl;
         exit(1);
     }
@@ -86,7 +90,7 @@ bool strcontains(const std::string& str, const std::string& substr) {
 }
 
 int main(int argc, char const *argv[]) {
-    require_root();
+    // require_root();
 
     depends_on("clang --version", "clang is required!");
     depends_on("clang++ --version", "clang++ is required!");
@@ -134,8 +138,15 @@ int main(int argc, char const *argv[]) {
     std::string path = scl_root_dir + "/Scale/" STR(VERSION);
     std::string binary = "sclc";
 
-    std::filesystem::remove_all("/opt/Scale/latest");
-    std::filesystem::create_directory_symlink(std::filesystem::path(path), "/opt/Scale/latest");
+    if (is_root()) {
+        std::filesystem::remove_all("/opt/Scale/latest");
+        std::filesystem::create_directories("/opt/Scale/");
+        std::filesystem::create_directory_symlink(std::filesystem::path(path), "/opt/Scale/latest");
+        std::filesystem::permissions(
+            path,
+            std::filesystem::perms::all
+        );
+    }
 
     if (!isDevBuild) {
         std::filesystem::remove_all(path);
@@ -144,10 +155,12 @@ int main(int argc, char const *argv[]) {
         std::filesystem::remove_all(path + "/Internal/" LIB_SCALE_FILENAME);
     }
     std::filesystem::create_directories(path);
-    std::filesystem::permissions(
-        path,
-        std::filesystem::perms::all
-    );
+    if (is_root()) {
+        std::filesystem::permissions(
+            path,
+            std::filesystem::perms::all
+        );
+    }
 
     std::filesystem::copy("Scale", path, std::filesystem::copy_options::recursive | std::filesystem::copy_options::overwrite_existing);
 
@@ -297,10 +310,12 @@ int main(int argc, char const *argv[]) {
     exec_command(create_command<std::string>(link_command));
 
     std::filesystem::copy(binary, std::string(path) + "/" + binary, std::filesystem::copy_options::overwrite_existing);
-    std::filesystem::remove("/usr/local/bin/sclc");
-    std::filesystem::remove("/usr/local/bin/scaledoc");
-    std::filesystem::create_symlink(std::string(path) + "/" + binary, "/usr/local/bin/sclc");
-    std::filesystem::create_symlink(std::string(path) + "/" + binary, "/usr/local/bin/scaledoc");
+    if (is_root()) {
+        std::filesystem::remove("/usr/local/bin/sclc");
+        std::filesystem::remove("/usr/local/bin/scaledoc");
+        std::filesystem::create_symlink(std::string(path) + "/" + binary, "/usr/local/bin/sclc");
+        std::filesystem::create_symlink(std::string(path) + "/" + binary, "/usr/local/bin/scaledoc");
+    }
 
     std::string macro_library = create_command<std::string>({
         "sclc",
@@ -311,7 +326,7 @@ int main(int argc, char const *argv[]) {
     });
 
     auto scale_stdlib = create_command<std::string>({
-        "sudo", "sclc", "-no-link-std", "-makelib", "-o", path + "/Internal/" + SCALE_STDLIB_FILENAME
+        "sclc", "-no-link-std", "-makelib", "-o", path + "/Internal/" + SCALE_STDLIB_FILENAME
     });
 
     auto files = listFiles(path + "/Frameworks/Scale.framework/include", ".scale");
