@@ -171,7 +171,7 @@ namespace sclc
         }
 
         append("\n");
-        append("_scl_constructor void init_this() {\n");
+        append("_scl_constructor void init_this%llx() {\n", random());
         scopeDepth++;
         append("_scl_setup();\n");
         if (initFuncs.size()) {
@@ -194,7 +194,7 @@ namespace sclc
 
         if (destroyFuncs.size()) {
             append("\n");
-            append("_scl_destructor void destroy_this() {\n");
+            append("_scl_destructor void destroy_this%llx() {\n", random());
             scopeDepth++;
             append("TRY {\n");
             for (auto&& f : destroyFuncs) {
