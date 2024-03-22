@@ -6,9 +6,9 @@ end
 function Result:expected(id: int): none
     assert (id __tag ==) else (
         if id 1 == then
-            "Expected Ok, got Err"
+            "Expected Ok, got " self:toString +
         else
-            "Expected Err, got Ok"
+            "Expected Err, got " self:toString +
         fi
         AssertError::new throw
     )
