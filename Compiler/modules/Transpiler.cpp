@@ -428,9 +428,9 @@ namespace sclc {
                     FPResult res;
                     res.success = false;
                     res.message = "No getter for virtual member '" + s.name + "'";
-                    res.location = s.name_token->location;
-                    res.value = s.name_token->value;
-                    res.type = s.name_token->type;
+                    res.location = s.name_token.location;
+                    res.value = s.name_token.value;
+                    res.type = s.name_token.type;
                     errors.push_back(res);
                 }
                 if (!s.isConst) {
@@ -439,9 +439,9 @@ namespace sclc {
                         FPResult res;
                         res.success = false;
                         res.message = "No setter for virtual member '" + s.name + "'";
-                        res.location = s.name_token->location;
-                        res.value = s.name_token->value;
-                        res.type = s.name_token->type;
+                        res.location = s.name_token.location;
+                        res.value = s.name_token.value;
+                        res.type = s.name_token.type;
                         errors.push_back(res);
                     }
                 }
@@ -684,7 +684,7 @@ namespace sclc {
             
             if (UNLIKELY(!function->namedReturnValue.name.empty())) {
                 const std::string& nrvName = function->namedReturnValue.name;
-                checkShadow(nrvName, *(function->namedReturnValue.name_token), function, result, warns);
+                checkShadow(nrvName, function->namedReturnValue.name_token, function, result, warns);
                 append("%s Var_%s;\n", sclTypeToCType(result, function->namedReturnValue.type).c_str(), function->namedReturnValue.name.c_str());
 
                 vars.push_back(function->namedReturnValue);

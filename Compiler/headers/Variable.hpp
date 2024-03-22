@@ -8,6 +8,7 @@
 #include <unordered_map>
 
 #include "Function.hpp"
+#include "Token.hpp"
 
 namespace sclc
 {
@@ -39,7 +40,7 @@ namespace sclc
         bool isReadonly;
         bool isVirtual;
         bool isExtern;
-        Token* name_token;
+        Token name_token;
         bool isPrivate;
         bool canBeNil;
         std::string typeFromTemplate;

@@ -159,8 +159,8 @@ namespace sclc
         scopeDepth = 0;
 
         for (Variable& s : result.globals) {
-            if (!Main::options::noLinkScale && strstarts(s.name_token->location.file, scaleFolder + "/Frameworks/Scale.framework") && !Main::options::noMain) {
-                const std::string& file = s.name_token->location.file;
+            if (!Main::options::noLinkScale && strstarts(s.name_token.location.file, scaleFolder + "/Frameworks/Scale.framework") && !Main::options::noMain) {
+                const std::string& file = s.name_token.location.file;
                 if (!strcontains(file, "/compiler/") && !strcontains(file, "/macros/") && !strcontains(file, "/__")) {
                     continue;
                 }

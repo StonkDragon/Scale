@@ -2049,30 +2049,30 @@ namespace sclc {
                     name += (char) std::toupper(varName[0]);
                     name += varName.substr(1);
 
-                    Method* getter = new Method(unionName, name, *(v.name_token));
+                    Method* getter = new Method(unionName, name, v.name_token);
                     getter->return_type = v.type;
                     getter->addModifier("@getter");
                     getter->addModifier(varName);
                     getter->addArgument(Variable("self", unionName));
-                    getter->addToken(Token(tok_number, std::to_string(n), v.name_token->location));
-                    getter->addToken(Token(tok_identifier, "self", v.name_token->location));
-                    getter->addToken(Token(tok_column, ":", v.name_token->location));
-                    getter->addToken(Token(tok_identifier, "expected", v.name_token->location));
+                    getter->addToken(Token(tok_number, std::to_string(n), v.name_token.location));
+                    getter->addToken(Token(tok_identifier, "self", v.name_token.location));
+                    getter->addToken(Token(tok_column, ":", v.name_token.location));
+                    getter->addToken(Token(tok_identifier, "expected", v.name_token.location));
                     std::string removed = removeTypeModifiers(v.type);
                     if (removed == "none" || removed == "nothing") {
                         return getter;
                     }
-                    getter->addToken(Token(tok_identifier, "self", v.name_token->location));
-                    getter->addToken(Token(tok_dot, ".", v.name_token->location));
-                    getter->addToken(Token(tok_identifier, "__value", v.name_token->location));
-                    getter->addToken(Token(tok_as, "as", v.name_token->location));
-                    getter->addToken(Token(tok_identifier, removeTypeModifiers(v.type), v.name_token->location));
-                    getter->addToken(Token(tok_return, "return", v.name_token->location));
+                    getter->addToken(Token(tok_identifier, "self", v.name_token.location));
+                    getter->addToken(Token(tok_dot, ".", v.name_token.location));
+                    getter->addToken(Token(tok_identifier, "__value", v.name_token.location));
+                    getter->addToken(Token(tok_as, "as", v.name_token.location));
+                    getter->addToken(Token(tok_identifier, removeTypeModifiers(v.type), v.name_token.location));
+                    getter->addToken(Token(tok_return, "return", v.name_token.location));
                     return getter;
                 };
 
                 auto makeSetter = [](const Variable& v, const std::string& unionName, int n) {
-                    Function* setter = new Function(unionName + "$" + v.name, *(v.name_token));
+                    Function* setter = new Function(unionName + "$" + v.name, v.name_token);
                     setter->member_type = unionName;
                     setter->return_type = unionName;
                     setter->addModifier("static");
@@ -2080,16 +2080,16 @@ namespace sclc {
                     if (removed != "none" && removed != "nothing") {
                         setter->addArgument(Variable("what", v.type));
                     }
-                    setter->addToken(Token(tok_number, std::to_string(n), v.name_token->location));
+                    setter->addToken(Token(tok_number, std::to_string(n), v.name_token.location));
                     if (removed != "none" && removed != "nothing") {
-                        setter->addToken(Token(tok_identifier, "what", v.name_token->location));
+                        setter->addToken(Token(tok_identifier, "what", v.name_token.location));
                     } else {
-                        setter->addToken(Token(tok_nil, "nil", v.name_token->location));
+                        setter->addToken(Token(tok_nil, "nil", v.name_token.location));
                     }
-                    setter->addToken(Token(tok_identifier, unionName, v.name_token->location));
-                    setter->addToken(Token(tok_double_column, "::", v.name_token->location));
-                    setter->addToken(Token(tok_identifier, "new", v.name_token->location));
-                    setter->addToken(Token(tok_return, "return", v.name_token->location));
+                    setter->addToken(Token(tok_identifier, unionName, v.name_token.location));
+                    setter->addToken(Token(tok_double_column, "::", v.name_token.location));
+                    setter->addToken(Token(tok_identifier, "new", v.name_token.location));
+                    setter->addToken(Token(tok_return, "return", v.name_token.location));
                     return setter;
                 };
 
@@ -2123,7 +2123,7 @@ namespace sclc {
                         type = name;
                     }
                     Variable v = Variable(name, type);
-                    v.name_token = new Token(tokens[start]);
+                    v.name_token = tokens[start];
                     v.isConst = true;
                     v.isVirtual = true;
                     currentStruct->addMember(v);
@@ -2724,7 +2724,7 @@ namespace sclc {
                 Variable& v = Variable::emptyVar();
                 if (currentStructs.back()->isStatic() || contains<std::string>(nextAttributes, "static")) {
                     v = Variable(currentStructs.back()->name + "$" + name, type, currentStructs.back()->name);
-                    v.name_token = new Token(name_token);
+                    v.name_token = name_token;
                     v.isPrivate = (isPrivate || contains<std::string>(nextAttributes, "private"));
                     nextAttributes.clear();
                     if (contains<std::string>(nextAttributes, "expect")) {
@@ -2754,7 +2754,7 @@ namespace sclc {
                         continue;
                     }
                     v = Variable(name, type, currentStructs.back()->name);
-                    v.name_token = new Token(name_token);
+                    v.name_token = name_token;
                     v.typeFromTemplate = fromTemplate;
                     v.isPrivate = (isPrivate || contains<std::string>(nextAttributes, "private"));
                     v.isVirtual = contains<std::string>(nextAttributes, "virtual");
