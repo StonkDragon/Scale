@@ -228,8 +228,15 @@ namespace sclc {
             }
         }
 
-        std::string symbol = (f->isMethod ? "_M" : (f->has_lambda ? "_L" : "_F")) + generateInternal(f);
-
+        std::string symbol;
+        if (f->isMethod) {
+            symbol = "_M";
+        } else if (f->has_lambda) {
+            symbol = "_L";
+        } else {
+            symbol = "_F";
+        }
+        symbol += generateInternal(f);
         return "_scl_macro_to_string(__USER_LABEL_PREFIX__) \"" + symbol + "\"";
     }
     
