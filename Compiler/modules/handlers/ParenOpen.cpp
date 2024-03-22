@@ -1,3 +1,5 @@
+#include <gc/gc_allocator.h>
+
 #include "../../headers/Common.hpp"
 #include "../../headers/TranspilerDefs.hpp"
 #include "../../headers/Types.hpp"
@@ -12,7 +14,7 @@ namespace sclc {
         safeInc();
         append("{\n");
         scopeDepth++;
-        append("scl_int begin_stack_size = ls_ptr;\n");
+        append("scl_uint64* begin_stack_size = _local_stack_ptr;\n");
         while (body[i].type != tok_paren_close) {
             if (body[i].type == tok_comma) {
                 commas++;
@@ -35,27 +37,16 @@ namespace sclc {
                         errors.push_back(err);
                         return;
                     }
-                    append("_scl_push(scl_any, ({\n");
+                    append("{\n");
                     scopeDepth++;
                     append("scl_Range tmp = ALLOC(Range);\n");
-                    append("_scl_popn(2);\n");
-                    if (!typeEquals(typeStackTop, "int")) {
-                        transpilerError("Range start must be an integer", i);
-                        errors.push_back(err);
-                        return;
-                    }
-                    typePop;
-                    if (!typeEquals(typeStackTop, "int")) {
-                        transpilerError("Range end must be an integer", i);
-                        errors.push_back(err);
-                        return;
-                    }
-                    typePop;
-                    append("mt_Range$init(tmp, _scl_positive_offset(0, scl_any), _scl_positive_offset(1, scl_any));\n");
-                    append("tmp;\n");
+                    append("_scl_push(scl_Range, tmp);\n");
+                    typeStack.push_back("Range");
+                    methodCall(getMethodByName(result, "init", "Range"), fp, result, warns, errors, body, i);
+                    append("_scl_push(scl_Range, tmp);\n");
                     typeStack.push_back("Range");
                     scopeDepth--;
-                    append("}));\n");
+                    append("}\n");
                 } else if (nelems == 1) {
                     Struct range = getStructByName(result, "PartialRange");
                     if (range == Struct::Null) {
@@ -74,18 +65,7 @@ namespace sclc {
                         errors.push_back(err);
                         return;
                     }
-                    append("_scl_top(scl_any, ({\n");
-                    scopeDepth++;
-                    if (!typeEquals(typeStackTop, "int")) {
-                        transpilerError("Range bound must be an integer", i);
-                        errors.push_back(err);
-                        return;
-                    }
-                    typePop;
-                    append("fn_PartialRange$%s(_scl_top(scl_int));\n", body[i - 1].type == tok_to ? "lowerBound" : "upperBound");
-                    typeStack.push_back("PartialRange");
-                    scopeDepth--;
-                    append("}));\n");
+                    functionCall(f, fp, result, warns, errors, body, i);
                 } else if (nelems == 0) {
                     Struct range = getStructByName(result, "UnboundRange");
                     if (range == Struct::Null) {
@@ -93,15 +73,16 @@ namespace sclc {
                         errors.push_back(err);
                         return;
                     }
-                    append("_scl_push(scl_any, ({\n");
+                    append("{\n");
                     scopeDepth++;
                     append("scl_UnboundRange tmp = ALLOC(UnboundRange);\n");
-                    append("_scl_popn(0);\n");
-                    append("mt_SclObject$init(tmp);\n");
-                    append("tmp;\n");
+                    append("_scl_push(scl_UnboundRange, tmp);\n");
+                    typeStack.push_back("UnboundRange");
+                    methodCall(getMethodByName(result, "init", "UnboundRange"), fp, result, warns, errors, body, i);
+                    append("_scl_push(scl_UnboundRange, tmp);\n");
                     typeStack.push_back("UnboundRange");
                     scopeDepth--;
-                    append("}));\n");
+                    append("}\n");
                 } else {
                     transpilerError("Range expression must have between 0 and 2 elements", i);
                     errors.push_back(err);
@@ -111,10 +92,11 @@ namespace sclc {
                 // Last-returns expression
                 if (typeStack.size() > stackSizeHere) {
                     std::string returns = typeStackTop;
-                    append("scl_int return_value = _scl_pop(scl_int);\n");
-                    append("ls_ptr = begin_stack_size;\n");
+                    std::string ctype = sclTypeToCType(result, returns);
+                    append("%s return_value = _scl_pop(%s);\n", ctype.c_str(), ctype.c_str());
+                    append("_local_stack_ptr = begin_stack_size;\n");
                     typeStack.erase(typeStack.begin() + stackSizeHere, typeStack.end());
-                    append("_scl_push(scl_int, return_value);\n");
+                    append("_scl_push(%s, return_value);\n", ctype.c_str());
                     typeStack.push_back(returns);
                 }
             }
@@ -125,17 +107,16 @@ namespace sclc {
                 errors.push_back(err);
                 return;
             }
-            append("_scl_push(scl_any, ({\n");
+            append("{\n");
             scopeDepth++;
             append("scl_Pair tmp = ALLOC(Pair);\n");
-            append("_scl_popn(2);\n");
-            typePop;
-            typePop;
-            append("mt_Pair$init(tmp, _scl_positive_offset(0, scl_any), _scl_positive_offset(1, scl_any));\n");
-            append("tmp;\n");
+            append("_scl_push(scl_Pair, tmp);\n");
+            typeStack.push_back("Pair");
+            methodCall(getMethodByName(result, "init", "Pair"), fp, result, warns, errors, body, i);
+            append("_scl_push(scl_Pair, tmp);\n");
             typeStack.push_back("Pair");
             scopeDepth--;
-            append("}));\n");
+            append("}\n");
         } else if (commas == 2) {
             Struct triple = getStructByName(result, "Triple");
             if (getStructByName(result, "Triple") == Struct::Null) {
@@ -143,18 +124,16 @@ namespace sclc {
                 errors.push_back(err);
                 return;
             }
-            append("_scl_push(scl_any, ({\n");
+            append("{\n");
             scopeDepth++;
             append("scl_Triple tmp = ALLOC(Triple);\n");
-            append("_scl_popn(3);\n");
-            typePop;
-            typePop;
-            typePop;
-            append("mt_Triple$init(tmp, _scl_positive_offset(0, scl_any), _scl_positive_offset(1, scl_any), _scl_positive_offset(2, scl_any));\n");
-            append("tmp;\n");
+            append("_scl_push(scl_Triple, tmp);\n");
+            typeStack.push_back("Triple");
+            methodCall(getMethodByName(result, "init", "Triple"), fp, result, warns, errors, body, i);
+            append("_scl_push(scl_Triple, tmp);\n");
             typeStack.push_back("Triple");
             scopeDepth--;
-            append("}));\n");
+            append("}\n");
         } else {
             transpilerError("Unsupported tuple-like literal", i);
             errors.push_back(err);

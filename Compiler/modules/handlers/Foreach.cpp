@@ -1,3 +1,5 @@
+#include <gc/gc_allocator.h>
+
 #include "../../headers/Common.hpp"
 #include "../../headers/TranspilerDefs.hpp"
 #include "../../headers/Types.hpp"
@@ -54,7 +56,7 @@ namespace sclc {
             safeInc();
         } else {
             iter_var_tok = body[i];
-            checkShadow(iter_var_tok.value, body, i, function, result, warns);
+            checkShadow(iter_var_tok.value, body[i], function, result, warns);
             safeInc();
             if (body[i].type == tok_column) {
                 safeInc();

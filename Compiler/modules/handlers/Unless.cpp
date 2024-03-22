@@ -1,3 +1,5 @@
+#include <gc/gc_allocator.h>
+
 #include "../../headers/Common.hpp"
 #include "../../headers/TranspilerDefs.hpp"
 #include "../../headers/Types.hpp"
@@ -5,11 +7,9 @@
 
 namespace sclc {
     handler(Unless) {
-        for (long t = typeStack.size() - 1; t >= 0; t--) {
-            typePop;
-        }
+        auto beginningStackSize = typeStack.size();
         noUnused;
-        append("if (!({\n");
+        append("if (({\n");
         scopeDepth++;
         safeInc();
         size_t typeStackSize = typeStack.size();
@@ -31,60 +31,54 @@ namespace sclc {
             errors.push_back(err);
             return;
         }
-        varScopePop();
-        append("_scl_pop(scl_int);\n");
+        append("!_scl_pop(scl_int);\n");
         scopeDepth--;
         append("})) {\n");
         scopeDepth++;
         typePop;
-        varScopePush();
         auto tokenEndsIfBlock = [body](TokenType type) {
             return type == tok_elif ||
                    type == tok_elunless ||
                    type == tok_fi ||
                    type == tok_else;
         };
-        std::string invalidType = "---------";
-        std::string ifBlockReturnType = invalidType;
         bool exhaustive = false;
-        auto beginningStackSize = typeStack.size();
-        std::string problematicType = "";
+        std::vector<std::string> returnedTypes;
     nextIfPart:
         while (!tokenEndsIfBlock(body[i].type)) {
             handle(Token);
             safeInc();
         }
-        if (ifBlockReturnType == invalidType && typeStackTop.size()) {
-            ifBlockReturnType = typeStackTop;
-        } else if (typeStackTop.size() && ifBlockReturnType != typeStackTop) {
-            problematicType = "[ " + ifBlockReturnType + ", " + typeStackTop + " ]";
-            ifBlockReturnType = "---";
-        }
-        if (body[i].type != tok_fi) {
-            handle(Token);
-        }
-        if (body[i].type == tok_else) {
-            exhaustive = true;
+        if (typeStack.size() > beginningStackSize) {
+            returnedTypes.push_back(typeStackTop);
         }
         while (typeStack.size() > beginningStackSize) {
             typePop;
         }
         if (body[i].type != tok_fi) {
+            if (body[i].type == tok_else) {
+                exhaustive = true;
+            }
+            handle(Token);
             safeInc();
+            while (typeStack.size() > beginningStackSize) {
+                typePop;
+            }
             goto nextIfPart;
         }
-        if (ifBlockReturnType == "---") {
-            transpilerError("Not every branch of this if-statement returns the same type! Types are: " + problematicType, i);
-            errors.push_back(err);
-            return;
-        }
-        bool sizeDecreased = false;
         while (typeStack.size() > beginningStackSize) {
             typePop;
-            sizeDecreased = true;
         }
-        if (exhaustive && sizeDecreased) {
-            typeStack.push_back(ifBlockReturnType);
+        if (exhaustive && returnedTypes.size() > 0) {
+            std::string returnType = returnedTypes[0];
+            for (std::string& type : returnedTypes) {
+                if (type != returnType) {
+                    transpilerError("Not every branch of this unless-statement returns the same type! Types are: [ " + returnType + ", " + type + " ]", i);
+                    errors.push_back(err);
+                    return;
+                }
+            }
+            typeStack.push_back(returnType);
         }
         handle(Fi);
     }

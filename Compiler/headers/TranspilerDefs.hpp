@@ -14,33 +14,42 @@
     err.value = (tok).value;         \
     err.type = (tok).type;           \
     err.message = msg
-#define LOAD_PATH(path, type)                                                                 \
-    if (removeTypeModifiers(type) == "none" || removeTypeModifiers(type) == "nothing")        \
-    {                                                                                         \
-        append("%s;\n", path.c_str());                                                        \
-    }                                                                                         \
-    else if (type.front() == '@')                                                             \
-    {                                                                                         \
-        append("{\n");                                                                        \
-        scopeDepth++;                                                                         \
-        append("%s tmp = %s;\n", sclTypeToCType(result, type).c_str(), path.c_str());         \
-        append("_scl_push(scl_any, _scl_alloc_struct(tmp.$statics));\n");                     \
-        append("memcpy(_scl_top(scl_any), &tmp, tmp.$statics->size);\n");                     \
-        scopeDepth--;                                                                         \
-        append("}\n");                                                                        \
-    }                                                                                         \
-    else                                                                                      \
-    {                                                                                         \
-        std::string ctype = sclTypeToCType(result, type);                                     \
-        if (isPrimitiveIntegerType(type))                                                     \
-        {                                                                                     \
-            append("_scl_push(scl_int, %s);\n", path.c_str());                                \
-        }                                                                                     \
-        else                                                                                  \
-        {                                                                                     \
-            append("_scl_push(%s, %s);\n", ctype.c_str(), path.c_str());                      \
-        }                                                                                     \
-    }                                                                                         \
+#define LOAD_PATH(path, type)                                                                                                      \
+    if (removeTypeModifiers(type) == "none" || removeTypeModifiers(type) == "nothing")                                             \
+    {                                                                                                                              \
+        append("%s;\n", path.c_str());                                                                                             \
+    }                                                                                                                              \
+    else if (type.front() == '@')                                                                                                  \
+    {                                                                                                                              \
+        append("{\n");                                                                                                             \
+        scopeDepth++;                                                                                                              \
+        std::string ctype = sclTypeToCType(result, type);                                                                          \
+        const Struct &s = getStructByName(result, type);                                                                           \
+        append("%s tmp = %s;\n", ctype.c_str(), path.c_str());                                                                     \
+        append("_scl_push(scl_any, alloca(sizeof(memory_layout_t) + sizeof(%s)));\n", ctype.c_str());                              \
+        append("_scl_top(memory_layout_t*)->size = sizeof(%s);\n", ctype.c_str());                                                 \
+        if (s != Struct::Null)                                                                                                     \
+        {                                                                                                                          \
+            append("extern TypeInfo ti_%s __asm(\"__T%s\");\n", s.name.c_str(), s.name.c_str());                                   \
+            append("_scl_init_struct(_scl_top(scl_any) + sizeof(memory_layout_t), &ti_%s, _scl_top(scl_any));\n", s.name.c_str()); \
+        }                                                                                                                          \
+        append("memcpy(_scl_top(scl_any) + sizeof(memory_layout_t), &tmp, sizeof(%s));\n", ctype.c_str());                         \
+        append("_scl_top(scl_any) += sizeof(memory_layout_t);\n");                                                                 \
+        scopeDepth--;                                                                                                              \
+        append("}\n");                                                                                                             \
+    }                                                                                                                              \
+    else                                                                                                                           \
+    {                                                                                                                              \
+        std::string ctype = sclTypeToCType(result, type);                                                                          \
+        if (isPrimitiveIntegerType(type))                                                                                          \
+        {                                                                                                                          \
+            append("_scl_push(scl_int, %s);\n", path.c_str());                                                                     \
+        }                                                                                                                          \
+        else                                                                                                                       \
+        {                                                                                                                          \
+            append("_scl_push(%s, %s);\n", ctype.c_str(), path.c_str());                                                           \
+        }                                                                                                                          \
+    }                                                                                                                              \
     typeStack.push_back(type);
 
 #define wasRepeat()     (whatWasIt.size() > 0 && whatWasIt.back() == 1)
@@ -82,7 +91,7 @@
 #define handler(_tok) extern "C" void handle ## _tok (std::vector<Token>& body, Function* function, std::vector<FPResult>& errors, std::vector<FPResult>& warns, std::ostream& fp, TPResult& result)
 #define handle(_tok) handle ## _tok (body, function, errors, warns, fp, result)
 #define handlerRef(_tok) (&handle ## _tok)
-#define handleRef(ref) (ref)(body, function, errors, warns, fp, result)
+#define handleRef(ref) if (ref) { (ref)(body, function, errors, warns, fp, result); } else { transpilerError("Unexpected token:", i); errors.push_back(err); }
 #define noUnused \
         (void) body; \
         (void) function; \
@@ -184,4 +193,5 @@ namespace sclc {
     handler(BracketOpen);
     handler(ParenOpen);
     handler(Identifier);
+    handler(StackOp);
 } // namespace sclc

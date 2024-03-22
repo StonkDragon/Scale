@@ -1,4 +1,3 @@
-#include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -17,10 +16,8 @@ extern "C" {
 #define unlikely(x) _scl_expect(!!(x), 0)
 
 typedef struct Struct {
-	// Actual function ptrs for this object
-	_scl_lambda*	vtable;
 	// Typeinfo for this object
-	TypeInfo*		statics;
+	TypeInfo*		type;
 	// Mutex for this object
 	scl_any			mutex;
 } Struct;
@@ -28,8 +25,7 @@ typedef struct Struct {
 typedef struct Struct_Exception {
 	Struct rtFields;
 	scl_str msg;
-	struct Struct_Array* stackTrace;
-	scl_str errno_str;
+	scl_str* stackTrace;
 }* scl_Exception;
 
 typedef struct Struct_RuntimeError {
@@ -55,15 +51,18 @@ typedef struct Struct_IndexOutOfBoundsException {
 typedef struct Struct_AssertError {
 	Struct rtFields;
 	scl_str msg;
-	struct Struct_Array* stackTrace;
-	scl_str errno_str;
+	scl_str* stackTrace;
 }* scl_AssertError;
+typedef struct Struct_SignalError {
+	Struct rtFields;
+	scl_str msg;
+	scl_str* stackTrace;
+}* scl_SignalError;
 
 typedef struct Struct_UnreachableError {
 	Struct rtFields;
 	scl_str msg;
-	struct Struct_Array* stackTrace;
-	scl_str errno_str;
+	scl_str* stackTrace;
 }* scl_UnreachableError;
 
 struct Struct_str {
@@ -73,6 +72,8 @@ struct Struct_str {
 typedef struct Struct_InvalidArgumentException {
 	struct Struct_Exception self;
 }* scl_InvalidArgumentException;
+
+tls scl_int8* thread_name;
 
 _scl_symbol_hidden static memory_layout_t* _scl_get_memory_layout(scl_any ptr) {
 	if (likely(GC_is_heap_ptr(ptr))) {
@@ -99,12 +100,10 @@ scl_any _scl_alloc(scl_int size) {
 
 	scl_any ptr = GC_malloc(size + sizeof(memory_layout_t));
 	if (unlikely(ptr == nil)) {
-		_scl_runtime_error(EX_BAD_PTR, "allocate() failed!");
+		raise(SIGSEGV);
 	}
 
-	memory_layout_t x = {0};
-	x.size = orig_size;
-	*(memory_layout_t*) ptr = x;
+	((memory_layout_t*) ptr)->size = orig_size;
 
 	return ptr + sizeof(memory_layout_t);
 }
@@ -119,20 +118,13 @@ scl_any _scl_realloc(scl_any ptr, scl_int size) {
 	size = ((size + 7) >> 3) << 3;
 	if (unlikely(size == 0)) size = 8;
 
-	memory_layout_t* layout = _scl_get_memory_layout(ptr);
-
 	ptr = GC_realloc(ptr - sizeof(memory_layout_t), size + sizeof(memory_layout_t));
 	if (unlikely(ptr == nil)) {
-		_scl_runtime_error(EX_BAD_PTR, "realloc() failed!");
+		raise(SIGSEGV);
 	}
 
-	memory_layout_t x = {0};
-	x.size = orig_size;
-	if (likely(layout)) {
-		x.flags = layout->flags;
-	}
-	*(memory_layout_t*) ptr = x;
-
+	((memory_layout_t*) ptr)->size = orig_size;
+	
 	return ptr + sizeof(memory_layout_t);
 }
 
@@ -152,24 +144,19 @@ void _scl_free(scl_any ptr) {
 
 void _scl_assert(scl_int b, const scl_int8* msg, ...) {
 	if (unlikely(!b)) {
+		scl_AssertError e = ALLOC(AssertError);
 		va_list list;
 		va_start(list, msg);
-		size_t len = vsnprintf(NULL, 0, msg, list);
-		scl_int8 cmsg[len + 1];
-		vsnprintf(cmsg, len, msg, list);
+		virtual_call(e, "init(s;)V;", str_of_exact(strformat("Assertion failed: %s", vstrformat(msg, list))));
 		va_end(list);
-
-		fprintf(stderr, "Assertion failed: %s\n", cmsg);
-		abort();
+		_scl_throw(e);
 	}
 }
 
 void builtinUnreachable(void) {
-#if __has_builtin(__builtin_unreachable)
-	__builtin_unreachable();
-#else
-	abort();
-#endif
+	scl_UnreachableError e = ALLOC(UnreachableError);
+	virtual_call(e, "init(s;)V;", str_of_exact("Unreachable"));
+	_scl_throw(e);
 }
 
 scl_int builtinIsInstanceOf(scl_any obj, scl_str type) {
@@ -178,19 +165,29 @@ scl_int builtinIsInstanceOf(scl_any obj, scl_str type) {
 
 _scl_symbol_hidden static void native_trace(void);
 
+char* vstrformat(const char* fmt, va_list args) {
+	size_t len = vsnprintf(NULL, 0, fmt, args);
+	char* s = _scl_alloc(len + 1);
+	vsnprintf(s, len + 1, fmt, args);
+	return s;
+}
+
+char* strformat(const char* fmt, ...) {
+	va_list args;
+	va_start(args, fmt);
+	char* str = vstrformat(fmt, args);
+	va_end(args);
+	return str;
+}
+
 _scl_no_return void _scl_runtime_error(int code, const scl_int8* msg, ...) {
 	va_list args;
 	va_start(args, msg);
-	size_t len = strlen(msg) * 8;
-	scl_int8 str[len];
-	vsnprintf(str, len, msg, args);
-	scl_int size = 22 + strlen(str);
-	scl_int8 cmsg[size];
-	snprintf(cmsg, size, "Exception: %s\n", str);
+	char* str = vstrformat(msg, args);
 	va_end(args);
 
 	scl_RuntimeError ex = ALLOC(RuntimeError);
-	virtual_call(ex, "init(s;)V;", _scl_create_string(cmsg));
+	virtual_call(ex, "init(s;)V;", _scl_create_string(str));
 	
 	_scl_throw(ex);
 }
@@ -203,31 +200,44 @@ scl_any _scl_cvarargs_to_array(va_list args, scl_int count) {
 	return arr;
 }
 
-_scl_symbol_hidden static void _scl_sigaction_handler(scl_int sig_num, siginfo_t* sig_info, void* ucontext) {
-	const scl_int8* signalString = strsignal(sig_num);
-
-	fprintf(stderr, "Signal: %s\n", signalString);
-	fprintf(stderr, ((sig_num == SIGSEGV) ? "Tried read/write of faulty address %p\n" : "Faulty address: %p\n"), sig_info->si_addr);
-	if (unlikely(sig_info->si_errno)) {
-		fprintf(stderr, "Error code: %d\n", sig_info->si_errno);
-	}
-	native_trace();
-	fprintf(stderr, "\n");
-	exit(sig_num);
-}
-
 _scl_symbol_hidden static void _scl_signal_handler(scl_int sig_num) {
-	const scl_int8* signalString = strsignal(sig_num);
+	static int handling_signal = 0;
+	static int with_errno = 0;
+	const scl_int8* signalString = NULL;
 
-	printf("\n");
+	if (handling_signal) {
+		signalString = strsignal(handling_signal);
+		fprintf(stderr, "\n");
 
-	printf("Signal: %s\n", signalString);
-	if (errno) {
-		printf("errno: %s\n", strerror(errno));
+		fprintf(stderr, "Signal: %s\n", signalString);
+		if (errno) {
+			fprintf(stderr, "errno: %s\n", strerror(with_errno));
+		}
+		native_trace();
+
+		exit(handling_signal);
 	}
-	native_trace();
 
-	exit(sig_num);
+	signalString = strsignal(sig_num);
+	handling_signal = sig_num;
+	with_errno = errno;
+
+	struct {
+		memory_layout_t layout;
+		struct Struct_SignalError error;
+	} data = {
+		.layout = {
+			.size = sizeof(struct Struct_SignalError),
+			.flags = MEM_FLAG_INSTANCE
+		}
+	};
+
+	scl_SignalError sigErr = ALLOC(SignalError);
+	virtual_call(sigErr, "init(s;)V;", _scl_create_string(signalString));
+
+	handling_signal = 0;
+	with_errno = 0;
+	_scl_throw(sigErr);
 }
 
 void _scl_sleep(scl_int millis) {
@@ -252,7 +262,7 @@ void _scl_unlock(scl_any obj) {
 #define __pure2
 #endif
 
-__pure2 const ID_t type_id(const scl_int8* data) {
+__pure2 ID_t type_id(const scl_int8* data) {
 	ID_t h = 3323198485UL;
 	for (;*data;++data) {
 		h ^= *data;
@@ -307,7 +317,7 @@ _scl_lambda _scl_get_method_on_type(scl_any type, ID_t method, ID_t signature, i
 		_scl_runtime_error(EX_CAST_ERROR, "Tried getting method on non-struct type (%p)", type);
 	}
 
-	const struct TypeInfo* ti = likely(!onSuper) ? ((Struct*) type)->statics : ((Struct*) type)->statics->super;
+	const struct TypeInfo* ti = likely(!onSuper) ? ((Struct*) type)->type : ((Struct*) type)->type->super;
 	const struct _scl_methodinfo* mi = ti->vtable_info;
 	const _scl_lambda* vtable = ti->vtable;
 
@@ -355,26 +365,23 @@ scl_any _scl_get_vtable_function(scl_int onSuper, scl_any instance, const scl_in
 
 	_scl_lambda m = _scl_get_method_on_type(instance, methodNameHash, signatureHash, onSuper);
 	if (unlikely(m == nil)) {
-		_scl_runtime_error(EX_BAD_PTR, "Method '%s%s' not found on type '%s'", methodName, signature, ((Struct*) instance)->statics->type_name);
+		_scl_runtime_error(EX_BAD_PTR, "Method '%s%s' not found on type '%s'", methodName, signature, ((Struct*) instance)->type->type_name);
 	}
 	return m;
 }
 
-scl_any _scl_alloc_struct(const TypeInfo* statics) {
-	scl_any ptr = _scl_alloc(statics->size);
-
-	memory_layout_t* layout = _scl_get_memory_layout(ptr);
-	if (unlikely(layout == nil)) {
+scl_any _scl_init_struct(scl_any ptr, const TypeInfo* statics, memory_layout_t* layout) {
+	if (unlikely(layout == nil || ptr == nil)) {
 		_scl_runtime_error(EX_BAD_PTR, "Tried to access nil pointer");
 	}
 	layout->flags |= MEM_FLAG_INSTANCE;
-	Struct s = {
-		.statics = (TypeInfo*) statics,
-		.vtable = (_scl_lambda*) statics->vtable
-	};
-	*(Struct*) ptr = s;
-
+	((Struct*) ptr)->type = (TypeInfo*) statics;
 	return ptr;
+}
+
+scl_any _scl_alloc_struct(const TypeInfo* statics) {
+	scl_any p = _scl_alloc(statics->size);
+	return _scl_init_struct(p, statics, _scl_get_memory_layout(p));
 }
 
 scl_int _scl_is_instance(scl_any ptr) {
@@ -388,7 +395,7 @@ scl_int _scl_is_instance_of(scl_any ptr, ID_t type_id) {
 
 	Struct* ptrStruct = (Struct*) ptr;
 
-	for (const TypeInfo* super = ptrStruct->statics; super != nil; super = super->super) {
+	for (const TypeInfo* super = ptrStruct->type; super != nil; super = super->super) {
 		if (super->type == type_id) return 1;
 	}
 
@@ -407,34 +414,24 @@ _scl_symbol_hidden static scl_int _scl_search_method_index(const struct _scl_met
 }
 
 _scl_symbol_hidden static void _scl_set_up_signal_handler(void) {
-#if !defined(_WIN32)
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-W#pragma-messages"
-_scl_symbol_hidden 
-	static struct sigaction act = {
-		.sa_sigaction = (void(*)(int, siginfo_t*, void*)) _scl_sigaction_handler,
-		.sa_flags = SA_SIGINFO,
-		.sa_mask = sigmask(SIGINT) | sigmask(SIGILL) | sigmask(SIGTRAP) | sigmask(SIGABRT) | sigmask(SIGBUS) | sigmask(SIGSEGV)
-	};
-	#define SIGACTION(_sig) if (sigaction(_sig, &act, NULL) == -1) { fprintf(stderr, "Failed to set up signal handler\n"); fprintf(stderr, "Error: %s (%d)\n", strerror(errno), errno); }
-	
-	SIGACTION(SIGINT);
-	SIGACTION(SIGILL);
-	SIGACTION(SIGTRAP);
-	SIGACTION(SIGABRT);
-	SIGACTION(SIGBUS);
-	SIGACTION(SIGSEGV);
-
-	#undef SIGACTION
-#pragma clang diagnostic pop
-#else
 #define SIGACTION(_sig) signal(_sig, (void(*)(int)) _scl_signal_handler)
 	
+#ifdef SIGINT
 	SIGACTION(SIGINT);
+#endif
+#ifdef SIGILL
 	SIGACTION(SIGILL);
+#endif
+#ifdef SIGTRAP
 	SIGACTION(SIGTRAP);
+#endif
+#ifdef SIGABRT
 	SIGACTION(SIGABRT);
+#endif
+#ifdef SIGBUS
 	SIGACTION(SIGBUS);
+#endif
+#ifdef SIGSEGV
 	SIGACTION(SIGSEGV);
 #endif
 }
@@ -456,41 +453,31 @@ scl_any _scl_checked_cast(scl_any instance, ID_t target_type, const scl_int8* ta
 		typedef struct Struct_CastError {
 			Struct rtFields;
 			scl_str msg;
-			struct Struct_Array* stackTrace;
-			scl_str errno_str;
+			scl_str* stackTrace;
 		}* scl_CastError;
 
+		scl_CastError e = ALLOC(CastError);
 		if (instance == nil) {
-			scl_int size = 96 + strlen(target_type_name);
-			scl_int8 cmsg[size];
-			snprintf(cmsg, size - 1, "Cannot cast nil to type '%s'\n", target_type_name);
-			_scl_assert(0, cmsg);
+			virtual_call(e, "init(s;)V;", str_of_exact(strformat("Cannot cast nil to type '%s'", target_type_name)));
+			_scl_throw(e);
 		}
 
 		memory_layout_t* layout = _scl_get_memory_layout(instance);
 
-		scl_int size;
 		scl_bool is_instance = layout && (layout->flags & MEM_FLAG_INSTANCE);
 		if (is_instance) {
-			size = 64 + strlen(((Struct*) instance)->statics->type_name) + strlen(target_type_name);
+			virtual_call(e, "init(s;)V;", str_of_exact(strformat("Cannot cast instance of struct '%s' to type '%s'\n", ((Struct*) instance)->type->type_name, target_type_name)));
 		} else {
-			size = 96 + strlen(target_type_name);
+			virtual_call(e, "init(s;)V;", str_of_exact(strformat("Cannot cast non-object to type '%s'\n", target_type_name)));
 		}
-
-		char cmsg[size];
-		if (is_instance) {
-			snprintf(cmsg, size - 1, "Cannot cast instance of struct '%s' to type '%s'\n", ((Struct*) instance)->statics->type_name, target_type_name);
-		} else {
-			snprintf(cmsg, size - 1, "Cannot cast non-object to type '%s'\n", target_type_name);
-		}
-		_scl_assert(0, cmsg);
+		_scl_throw(e);
 	}
 	return instance;
 }
 
 scl_int8* _scl_typename_or_else(scl_any instance, const scl_int8* else_) {
 	if (likely(_scl_is_instance(instance))) {
-		return (scl_int8*) ((Struct*) instance)->statics->type_name;
+		return (scl_int8*) ((Struct*) instance)->type->type_name;
 	}
 	return (scl_int8*) else_;
 }
@@ -566,7 +553,9 @@ scl_int _scl_array_elem_size(scl_any* arr) {
 void _scl_array_check_bounds_or_throw_unchecked(scl_any* arr, scl_int index) {
 	scl_int size = _scl_array_size_unchecked(arr);
 	if (index < 0 || index >= size) {
-		_scl_runtime_error(EX_INVALID_ARGUMENT, "Index " SCL_INT_FMT " out of bounds for array of size " SCL_INT_FMT, index, size);
+		scl_IndexOutOfBoundsException e = ALLOC(IndexOutOfBoundsException);
+		virtual_call(e, "init(s;)V;", _scl_create_string(strformat("Index " SCL_INT_FMT " out of bounds for array of size " SCL_INT_FMT, index, size)));
+		_scl_throw(e);
 	}
 }
 
@@ -581,7 +570,7 @@ scl_any* _scl_array_resize(scl_int new_size, scl_any* arr) {
 	if (unlikely(!_scl_is_array(arr))) {
 		_scl_runtime_error(EX_INVALID_ARGUMENT, "Array must be initialized with 'new[]'");
 	}
-	if (unlikely(new_size < 1)) {
+	if (unlikely(new_size < 0)) {
 		_scl_runtime_error(EX_INVALID_ARGUMENT, "Array size must not be less than 1");
 	}
 	scl_int elem_size = _scl_get_memory_layout(arr)->array_elem_size;
@@ -590,108 +579,6 @@ scl_any* _scl_array_resize(scl_int new_size, scl_any* arr) {
 	layout->flags |= MEM_FLAG_ARRAY;
 	layout->array_elem_size = elem_size;
 	return new_arr;
-}
-
-#define NBYTES_TO_MASK(nbytes) ((1 << (nbytes * 8)) - 1)
-
-static inline void write_int8(scl_any ptr, scl_int8 value) { *(scl_int8*) ptr = value; }
-static inline void write_int16(scl_any ptr, scl_int16 value) { *(scl_int16*) ptr = value; }
-static inline void write_int32(scl_any ptr, scl_int32 value) { *(scl_int32*) ptr = value; }
-static inline void write_int64(scl_any ptr, scl_int64 value) { *(scl_int64*) ptr = value; }
-static inline void write_sized(scl_any ptr, scl_int value, scl_int size) {
-	switch (size) {
-		case 1: write_int8(ptr, value); break;
-		case 2: write_int16(ptr, value); break;
-		case 4: write_int32(ptr, value); break;
-		case 8: write_int64(ptr, value); break;
-		default: _scl_runtime_error(EX_INVALID_ARGUMENT, "Invalid size: " SCL_INT_FMT, size);
-	}
-}
-
-static inline scl_int8 read_int8(scl_any ptr) { return *(scl_int8*) ptr; }
-static inline scl_int16 read_int16(scl_any ptr) { return *(scl_int16*) ptr; }
-static inline scl_int32 read_int32(scl_any ptr) { return *(scl_int32*) ptr; }
-static inline scl_int64 read_int64(scl_any ptr) { return *(scl_int64*) ptr; }
-static inline scl_int read_sized(scl_any ptr, scl_int size) {
-	switch (size) {
-		case 1: return read_int8(ptr);
-		case 2: return read_int16(ptr);
-		case 4: return read_int32(ptr);
-		case 8: return read_int64(ptr);
-		default: _scl_runtime_error(EX_INVALID_ARGUMENT, "Invalid size: " SCL_INT_FMT, size);
-	}
-}
-
-void _scl_array_set(scl_any arr, scl_int index, scl_int value) {
-	if (unlikely(!_scl_is_array(arr))) {
-		_scl_runtime_error(EX_INVALID_ARGUMENT, "Array must be initialized with 'new[]'");
-	}
-
-	scl_int size = _scl_array_size_unchecked(arr);
-	_scl_array_check_bounds_or_throw_unchecked(arr, index);
-	scl_int elem_size = _scl_array_elem_size_unchecked(arr);
-	write_sized(arr + index * elem_size, value, elem_size);
-}
-
-scl_any _scl_array_get(scl_any arr, scl_int index) {
-	if (unlikely(!_scl_is_array(arr))) {
-		_scl_runtime_error(EX_INVALID_ARGUMENT, "Array must be initialized with 'new[]'");
-	}
-
-	scl_int size = _scl_array_size_unchecked(arr);
-	_scl_array_check_bounds_or_throw_unchecked(arr, index);
-	scl_int elem_size = _scl_array_elem_size_unchecked(arr);
-	return (scl_any) read_sized(arr + index * elem_size, elem_size);
-}
-
-void _scl_array_setf(scl_any arr, scl_int index, scl_float value) {
-	_scl_array_set(arr, index, REINTERPRET_CAST(scl_int, value));
-}
-
-scl_float _scl_array_getf(scl_any arr, scl_int index) {
-	return REINTERPRET_CAST(scl_float, _scl_array_get(arr, index));
-}
-
-scl_any* _scl_array_sort(scl_any* arr) {
-	if (unlikely(!_scl_is_array(arr))) {
-		_scl_runtime_error(EX_INVALID_ARGUMENT, "Array must be initialized with 'new[]'");
-	}
-	scl_int size = _scl_array_size_unchecked(arr);
-	scl_int elem_size = _scl_array_elem_size_unchecked(arr);
-	scl_int8* tmpArr = (scl_int8*) arr;
-	const scl_uint mask = NBYTES_TO_MASK(elem_size);
-	for (scl_int i = 0; i < size; i++) {
-		scl_int tmp = read_sized(tmpArr + i * elem_size, elem_size);
-		scl_int j = i - 1;
-		while (j >= 0) {
-			scl_int jTmp = read_sized(tmpArr + j * elem_size, elem_size);
-			if (tmp < jTmp) {
-				write_sized(tmpArr + (j + 1) * elem_size, read_sized(tmpArr + j * elem_size, elem_size), elem_size);
-				write_sized(tmpArr + j * elem_size, tmp, elem_size);
-			} else {
-				write_sized(tmpArr + (j + 1) * elem_size, tmp, elem_size);
-				break;
-			}
-			j--;
-		}
-	}
-	return arr;
-}
-
-scl_any* _scl_array_reverse(scl_any* arr) {
-	if (unlikely(!_scl_is_array(arr))) {
-		_scl_runtime_error(EX_INVALID_ARGUMENT, "Array must be initialized with 'new[]'");
-	}
-	scl_int size = _scl_array_size_unchecked(arr);
-	scl_int elem_size = _scl_array_elem_size_unchecked(arr);
-	scl_int half = size / 2;
-	scl_int8* tmpArr = (scl_int8*) arr;
-	for (scl_int i = 0; i < half; i++) {
-		scl_int tmp = read_sized(tmpArr + i * elem_size, elem_size);
-		write_sized(tmpArr + i * elem_size, read_sized(tmpArr + (size - i - 1) * elem_size, elem_size), elem_size);
-		write_sized(tmpArr + (size - i - 1) * elem_size, tmp, elem_size);
-	}
-	return arr;
 }
 
 void _scl_trace_remove(struct _scl_backtrace* bt) {
@@ -707,27 +594,33 @@ void _scl_delete_ptr(void* ptr) {
 }
 
 void _scl_throw(scl_any ex) {
-	ID_t error_type = type_id("Error");
+	scl_bool is_error = _scl_is_instance_of(ex, type_id("Error"));
+	if (is_error) {
+		_scl_runtime_catch(ex);
+	}
 
-	if (likely(!_scl_is_instance_of(ex, error_type))) {
-		scl_uint* stack_top = (scl_uint*) &stack_top;
-		struct GC_stack_base sb;
-		GC_get_my_stackbottom(&sb);
-		scl_uint* stack_bottom = sb.mem_base;
+	scl_uint* stack_top = (scl_uint*) &stack_top;
+	struct GC_stack_base sb;
+	GC_get_my_stackbottom(&sb);
+	scl_uint* stack_bottom = sb.mem_base;
 
-		scl_int iteration_direction = stack_top < stack_bottom ? 1 : -1;
-		while (stack_top != stack_bottom) {
-			if (likely(*stack_top != EXCEPTION_HANDLER_MARKER)) {
-				stack_top += iteration_direction;
-				continue;
-			}
-
-			struct _scl_exception_handler* handler = (struct _scl_exception_handler*) stack_top;
-			handler->exception = ex;
-			handler->marker = 0;
-
-			longjmp(handler->jmp, 666);
+	scl_int iteration_direction = stack_top < stack_bottom ? 1 : -1;
+	while (stack_top != stack_bottom) {
+		if (likely(*stack_top != EXCEPTION_HANDLER_MARKER)) {
+			stack_top += iteration_direction;
+			continue;
 		}
+
+		struct _scl_exception_handler* handler = (struct _scl_exception_handler*) stack_top;
+
+		if (handler->finalizer) {
+			handler->finalizer(handler->finalization_data);
+		}
+
+		handler->exception = ex;
+		handler->marker = 0;
+
+		longjmp(handler->jmp, 666);
 	}
 
 	_scl_runtime_catch(ex);
@@ -737,6 +630,7 @@ _scl_symbol_hidden static void native_trace(void) {
 #if !defined(_WIN32) && !defined(__wasm__)
 	void* callstack[1024];
 	int frames = backtrace(callstack, 1024);
+	int write(int, char*, size_t);
 	write(2, "Backtrace:\n", 11);
 	backtrace_symbols_fd(callstack, frames, 2);
 	write(2, "\n", 1);
@@ -744,19 +638,41 @@ _scl_symbol_hidden static void native_trace(void) {
 }
 
 _scl_symbol_hidden static inline void print_stacktrace_of(scl_Exception e) {
-	for (scl_int i = e->stackTrace->count - 1; i >= 0; i--) {
-		fprintf(stderr, "    %s\n", ((scl_str*) e->stackTrace->values)[i]->data);
+	#ifndef _WIN32
+	int write(int, char*, size_t);
+	#else
+	#define write _write
+	#endif
+	const char* do_print = getenv("SCL_BACKTRACE");
+	if (do_print) {
+		if (strcmp(do_print, "full") == 0) {
+			native_trace();
+		} else if (atoi(do_print) == 1) {
+			if (_scl_is_array((scl_any*) e->stackTrace)) {
+				for (scl_int i = 0; i < _scl_array_size_unchecked((scl_any*) e->stackTrace); i++) {
+					fprintf(stderr, "    %s\n", e->stackTrace[i]->data);
+				}
+				fprintf(stderr, "Some information was omitted. Run with 'SCL_BACKTRACE=full' environment variable set to display full information\n");
+			}
+		}
+	} else {
+		fprintf(stderr, "Run with 'SCL_BACKTRACE=1' environment variable set to display a backtrace\n");
 	}
-
-	fprintf(stderr, "\n");
-	native_trace();
+	#ifdef _WIN32
+	#undef write
+	#endif
 }
 
 _scl_no_return void _scl_runtime_catch(scl_any _ex) {
 	scl_Exception ex = (scl_Exception) _ex;
 	scl_str msg = ex->msg;
 
-	fprintf(stderr, "Uncaught %s: %s\n", ex->rtFields.statics->type_name, msg->data);
+	fprintf(stderr, "Unexpected %s", ex->rtFields.type->type_name);
+	if (thread_name) {
+		fprintf(stderr, " in '%s'", thread_name);
+	}
+	fprintf(stderr, ": %s\n", msg->data);	
+	
 	print_stacktrace_of(ex);
 	exit(EX_THROWN);
 }

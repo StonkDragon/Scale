@@ -1,3 +1,5 @@
+#include <gc/gc_allocator.h>
+
 #include <array>
 
 #include "../headers/Common.hpp"
@@ -183,7 +185,7 @@ namespace sclc {
     }
 
     bool typeEquals(const std::string& a, const std::string& b) {
-        if (b == "any" || b == "[any]") {
+        if (b == "any") {
             return true;
         }
         if (removeTypeModifiers(a) == removeTypeModifiers(b)) {
@@ -244,7 +246,7 @@ namespace sclc {
             return allowIntPromotion || (typeIsSigned(arg) == typeIsSigned(stack) && intBitWidth(arg) == intBitWidth(stack));
         }
 
-        if (arg == "any" || arg == "[any]" || (argIsNilable && arg != "float" && (stack == "any" || stack == "[any]"))) {
+        if (arg == "any" || (argIsNilable && arg != "float" && arg != "float32" && (stack == "any" || stack == "[any]"))) {
             return true;
         }
 
@@ -322,9 +324,9 @@ namespace sclc {
         return false;
     }
 
-    std::map<std::string, std::string> getTemplates(TPResult& result, Function* func) {
+    std::map<std::string, Token> getTemplates(TPResult& result, Function* func) {
         if (!func->isMethod) {
-            return std::map<std::string, std::string>();
+            return std::map<std::string, Token>();
         }
         Struct s = getStructByName(result, func->member_type);
         return s.templates;
@@ -374,12 +376,23 @@ namespace sclc {
         if (t == "none") return "void";
         if (t == "nothing") return "_scl_no_return void";
         if (t == "int") return "scl_int";
+        if (t == "int8") return "scl_int8";
+        if (t == "int16") return "scl_int16";
+        if (t == "int32") return "scl_int32";
+        if (t == "int64") return "scl_int64";
         if (t == "uint") return "scl_uint";
+        if (t == "uint8") return "scl_uint8";
+        if (t == "uint16") return "scl_uint16";
+        if (t == "uint32") return "scl_uint32";
+        if (t == "uint64") return "scl_uint64";
         if (t == "float") return "scl_float";
         if (t == "bool") return "scl_bool";
         if (t == "varargs") return "...";
         if (!(getStructByName(result, t) == Struct::Null)) {
             if (valueType) {
+                if (t == "str") {
+                    return "struct scale_string";
+                }
                 return "struct Struct_" + t;
             }
             return "scl_" + t;
@@ -485,9 +498,42 @@ namespace sclc {
         if (type == "uint32") return "u32;";
         if (type == "uint64") return "u64;";
         if (currentStruct.templates.find(type) != currentStruct.templates.end()) {
-            return typeToRTSig(currentStruct.templates[type]);
+            return typeToRTSig(currentStruct.templates[type].value);
         }
         return "L" + type + ";";
+    }
+
+    std::string typeToSymbol(std::string type) {
+        if (type.size() && type.front() == '@') {
+            type = removeTypeModifiers(type.substr(1, type.size() - 1));
+            return "P" + typeToSymbol(type);
+        }
+        type = removeTypeModifiers(type);
+        if (type == "any") return "a";
+        if (type == "int" || type == "bool") return "l";
+        if (type == "int8") return "b";
+        if (type == "int16") return "s";
+        if (type == "int32") return "i";
+        if (type == "int64") return "k";
+        if (type == "float") return "d";
+        if (type == "float32") return "f";
+        if (type == "str") return "E";
+        if (type == "none") return "v";
+        if (type == "[int8]") return "c";
+        if (type == "[any]") return "p";
+        if (type == "lambda" || strstarts(type, "lambda(")) return "F";
+        if (type.size() > 2 && type.front() == '[' && type.back() == ']') {
+            return "A" + typeToSymbol(type.substr(1, type.size() - 2));
+        }
+        if (type == "uint") return capitalize(typeToSymbol(type.substr(1)));
+        if (type == "uint8") return capitalize(typeToSymbol(type.substr(1)));
+        if (type == "uint16") return capitalize(typeToSymbol(type.substr(1)));
+        if (type == "uint32") return capitalize(typeToSymbol(type.substr(1)));
+        if (type == "uint64") return capitalize(typeToSymbol(type.substr(1)));
+        if (currentStruct.templates.find(type) != currentStruct.templates.end()) {
+            return typeToSymbol(currentStruct.templates[type].value);
+        }
+        return std::to_string(type.length()) + type;
     }
 
     std::string argsToRTSignature(Function* f) {
@@ -526,7 +572,7 @@ namespace sclc {
         if (type == "uint32") return "u32$";
         if (type == "uint64") return "u64$";
         if (currentStruct.templates.find(type) != currentStruct.templates.end()) {
-            return typeToRTSigIdent(currentStruct.templates[type]);
+            return typeToRTSigIdent(currentStruct.templates[type].value);
         }
         return "L" + type + "$";
     }

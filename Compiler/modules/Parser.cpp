@@ -1,3 +1,5 @@
+#include <gc/gc_allocator.h>
+
 #include <memory>
 #include <iostream>
 #include <string>
@@ -32,7 +34,7 @@ namespace sclc
     std::string sclFunctionNameToFriendlyString(std::string name);
     std::string argsToRTSignature(Function* f);
 
-    FPResult Parser::parse(std::string func_file, std::string rt_file, std::string header_file, std::string main_file) {
+    FPResult Parser::parse(std::string func_file, std::string rt_file, std::string header_file) {
         std::vector<FPResult> errors;
         std::vector<FPResult> warns;
         std::vector<Variable> globals;
@@ -156,6 +158,63 @@ namespace sclc
 
         t.writeFunctions(header_file);
 
+        scopeDepth = 0;
+
+        for (Variable& s : result.globals) {
+            if (!Main::options::noLinkScale && strstarts(s.name_token.location.file, scaleFolder + "/Frameworks/Scale.framework") && !Main::options::noMain) {
+                const std::string& file = s.name_token.location.file;
+                if (!strcontains(file, "/compiler/") && !strcontains(file, "/macros/") && !strcontains(file, "/__")) {
+                    continue;
+                }
+            }
+            if (!s.isExtern) {
+                append("%s Var_%s;\n", sclTypeToCType(result, s.type).c_str(), s.name.c_str());
+            }
+        }
+
+        append("\n");
+        append("_scl_constructor void init_this%llx() {\n", random());
+        scopeDepth++;
+        append("_scl_setup();\n");
+        if (initFuncs.size()) {
+            append("TRY {\n");
+            for (auto&& f : initFuncs) {
+                if (!Main::options::noLinkScale && strstarts(f->name_token.location.file, scaleFolder + "/Frameworks/Scale.framework") && !Main::options::noMain) {
+                    const std::string& file = f->name_token.location.file;
+                    if (!strcontains(file, "/compiler/") && !strcontains(file, "/macros/") && !strcontains(file, "/__")) {
+                        continue;
+                    }
+                }
+                append("  fn_%s();\n", f->name.c_str());
+            }
+            append("} else {\n");
+            append("  _scl_runtime_catch(_scl_exception_handler.exception);\n");
+            append("}\n");
+        }
+        scopeDepth--;
+        append("}\n");
+
+        if (destroyFuncs.size()) {
+            append("\n");
+            append("_scl_destructor void destroy_this%llx() {\n", random());
+            scopeDepth++;
+            append("TRY {\n");
+            for (auto&& f : destroyFuncs) {
+                if (!Main::options::noLinkScale && strstarts(f->name_token.location.file, scaleFolder + "/Frameworks/Scale.framework") && !Main::options::noMain) {
+                    const std::string& file = f->name_token.location.file;
+                    if (!strcontains(file, "/compiler/") && !strcontains(file, "/macros/") && !strcontains(file, "/__")) {
+                        continue;
+                    }
+                }
+                append("  fn_%s();\n", f->name.c_str());
+            }
+            append("} else {\n");
+            append("  _scl_runtime_catch(_scl_exception_handler.exception);\n");
+            append("}\n");
+            scopeDepth--;
+            append("}\n");
+        }
+
         std::ofstream func(func_file, std::ios::out);
         fp.flush();
         func << fp.str();
@@ -169,10 +228,10 @@ namespace sclc
                 if (s.isStatic() || s.isExtern() || s.templateInstance) {
                     return;
                 }
-                if (!Main::options::noLinkScale && s.templates.size() == 0 && strstarts(s.name_token.location.file, "/opt/Scale/24.0/Frameworks/Scale.framework") && !Main::options::noMain) {
+                if (!Main::options::noLinkScale && s.templates.size() == 0 && strstarts(s.name_token.location.file, scaleFolder + "/Frameworks/Scale.framework") && !Main::options::noMain) {
                     const std::string& file = s.name_token.location.file;
                     if (!strcontains(file, "/compiler/") && !strcontains(file, "/macros/") && !strcontains(file, "/__")) {
-                        append("extern const TypeInfo _scl_ti_%s __asm(\"typeinfo for %s\");\n", s.name.c_str(), s.name.c_str());
+                        append("extern const TypeInfo _scl_ti_%s __asm(\"__T%s\");\n", s.name.c_str(), s.name.c_str());
                         return;
                     }
                 }
@@ -207,16 +266,21 @@ namespace sclc
                 append("}\n");
                 scopeDepth--;
                 append("};\n");
-                append("static const _scl_vtable _scl_vtable_%s = {\n", vtable->first.c_str());
+
+                append("const TypeInfo _scl_ti_%s __asm(\"__T%s\") = {\n", s.name.c_str(), s.name.c_str());
                 scopeDepth++;
-                append(".layout = {\n");
+                append(".type = 0x%lxUL,\n", id(s.name.c_str()));
+                append(".type_name = \"%s\",\n", s.name.c_str());
+                append(".vtable_info = (&_scl_vtable_info_%s)->infos,\n", s.name.c_str());
+                // append(".vtable = (&_scl_vtable_%s)->funcs,\n", s.name.c_str());
+                if (s.super.size()) {
+                    append(".super = &_scl_ti_%s,\n", s.super.c_str());
+                } else {
+                    append(".super = 0,\n");
+                }
+                append(".size = sizeof(struct Struct_%s),\n", s.name.c_str());
+                append(".vtable = {\n");
                 scopeDepth++;
-                append(".size = %zu * sizeof(_scl_lambda),\n", vtable->second.size());
-                append(".flags = MEM_FLAG_ARRAY,\n");
-                append(".array_elem_size = sizeof(_scl_lambda)\n");
-                scopeDepth--;
-                append("},\n");
-                append(".funcs = {\n");
                 for (auto&& m : vtable->second) {
                     append("(const _scl_lambda) mt_%s$%s,\n", m->member_type.c_str(), m->name.c_str());
                 }
@@ -225,91 +289,12 @@ namespace sclc
                 append("}\n");
                 scopeDepth--;
                 append("};\n");
-
-                append("const TypeInfo _scl_ti_%s __asm(\"typeinfo for %s\") = {\n", s.name.c_str(), s.name.c_str());
-                scopeDepth++;
-                append(".type = 0x%lxUL,\n", id(s.name.c_str()));
-                append(".type_name = \"%s\",\n", s.name.c_str());
-                append(".vtable_info = (&_scl_vtable_info_%s)->infos,\n", s.name.c_str());
-                append(".vtable = (&_scl_vtable_%s)->funcs,\n", s.name.c_str());
-                if (s.super.size()) {
-                    append(".super = &_scl_ti_%s,\n", s.super.c_str());
-                } else {
-                    append(".super = 0,\n");
-                }
-                append(".size = sizeof(struct Struct_%s),\n", s.name.c_str());
-                scopeDepth--;
-                append("};\n");
             });
 
             std::ofstream rt(rt_file, std::ios::out);
             fp.flush();
             rt << fp.str();
         }
-
-        fp = std::ostringstream();
-        append("#include \"%s\"\n\n", header_file.c_str());
-
-        scopeDepth = 0;
-
-        for (Variable& s : result.globals) {
-            if (!Main::options::noLinkScale && strstarts(s.name_token->location.file, "/opt/Scale/24.0/Frameworks/Scale.framework") && !Main::options::noMain) {
-                const std::string& file = s.name_token->location.file;
-                if (!strcontains(file, "/compiler/") && !strcontains(file, "/macros/") && !strcontains(file, "/__")) {
-                    continue;
-                }
-            }
-            if (!s.isExtern) {
-                append("%s Var_%s;\n", sclTypeToCType(result, s.type).c_str(), s.name.c_str());
-            }
-        }
-
-        append("\n");
-        append("_scl_constructor void init_this() {\n");
-        scopeDepth++;
-        append("_scl_setup();\n");
-        if (initFuncs.size()) {
-            append("TRY {\n");
-            for (auto&& f : initFuncs) {
-                if (!Main::options::noLinkScale && strstarts(f->name_token.location.file, "/opt/Scale/24.0/Frameworks/Scale.framework") && !Main::options::noMain) {
-                    const std::string& file = f->name_token.location.file;
-                    if (!strcontains(file, "/compiler/") && !strcontains(file, "/macros/") && !strcontains(file, "/__")) {
-                        continue;
-                    }
-                }
-                append("  fn_%s();\n", f->name.c_str());
-            }
-            append("} else {\n");
-            append("  _scl_runtime_catch(_scl_exception_handler.exception);\n");
-            append("}\n");
-        }
-        scopeDepth--;
-        append("}\n");
-
-        if (destroyFuncs.size()) {
-            append("\n");
-            append("_scl_destructor void destroy_this() {\n");
-            scopeDepth++;
-            append("TRY {\n");
-            for (auto&& f : destroyFuncs) {
-                if (!Main::options::noLinkScale && strstarts(f->name_token.location.file, "/opt/Scale/24.0/Frameworks/Scale.framework") && !Main::options::noMain) {
-                    const std::string& file = f->name_token.location.file;
-                    if (!strcontains(file, "/compiler/") && !strcontains(file, "/macros/") && !strcontains(file, "/__")) {
-                        continue;
-                    }
-                }
-                append("  fn_%s();\n", f->name.c_str());
-            }
-            append("} else {\n");
-            append("  _scl_runtime_catch(_scl_exception_handler.exception);\n");
-            append("}\n");
-            scopeDepth--;
-            append("}\n");
-        }
-
-        std::ofstream main(main_file, std::ios::out);
-        fp.flush();
-        main << fp.str();
 
         if (Main::options::Werror) {
             errors.insert(errors.end(), warns.begin(), warns.end());

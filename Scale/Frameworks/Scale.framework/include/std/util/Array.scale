@@ -6,7 +6,7 @@ import std.util.TypedArray
 import std.util.ReadOnlyArray
 
 sealed struct Array is Iterable
-  decl values:  readonly [any]
+  decl values:      readonly [any]
   decl count:       readonly int
   decl capacity:    readonly int
   decl initCap:     readonly int
@@ -235,8 +235,10 @@ sealed struct Array is Iterable
   end
 
   function clone(): Array
-    self builtinAtomicClone as Array => decl obj: Array
-    self.values builtinAtomicClone => obj.values
+    self.count Array::new => decl obj: Array
+    for i in 0 to self.count do
+      self.values[i] => obj[i]
+    done
     obj return
   end
 
@@ -255,7 +257,7 @@ sealed struct Array is Iterable
   static function fromPointerCollection(count: int, values: [any]) arr: Array
     count Array::new => arr
     for i in 0 to count do
-      values i sizeof any * + @ arr:push
+      values i sizeof any * + as [any] @ arr:push
     done
     return
   end

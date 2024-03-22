@@ -1,3 +1,5 @@
+#include <gc/gc_allocator.h>
+
 #include <iostream>
 #include <string>
 #include <vector>
@@ -37,7 +39,7 @@ const std::vector<std::string> intrinsics({
 });
 
 namespace sclc {
-    std::map<std::string, std::string> templateArgs;
+    std::map<std::string, Token> templateArgs;
 
     extern std::unordered_map<std::string, std::vector<std::string>> usingStructs;
 
@@ -45,6 +47,35 @@ namespace sclc {
     std::string argsToRTSignatureIdent(Function* f);
 
     bool isSelfType(std::string type);
+
+    std::vector<std::string> parseReifiedParams(std::vector<FPResult>& errors, size_t& i, std::vector<Token>& tokens) {
+        std::vector<std::string> params;
+        if (tokens[i].type != tok_identifier || tokens[i].value != "<") {
+            return params;
+        }
+        i++;
+        while (tokens[i].type != tok_identifier || tokens[i].value != ">") {
+            if (tokens[i].type == tok_comma || (tokens[i].type == tok_identifier && tokens[i].value == ">")) {
+                params.push_back("");
+            } else {
+                FPResult r = parseType(tokens, &i);
+                if (!r.success) {
+                    errors.push_back(r);
+                    return params;
+                }
+                params.push_back(r.value);
+                i++;
+            }
+            if (tokens[i].type == tok_comma) {
+                i++;
+                if (tokens[i].type == tok_identifier && tokens[i].value == ">") {
+                    params.push_back("");
+                }
+            }
+        }
+        i++;
+        return params;
+    }
 
     Function* parseFunction(std::string name, Token& name_token, std::vector<FPResult>& errors, size_t& i, std::vector<Token>& tokens) {
         if (name == "=>") {
@@ -96,6 +127,9 @@ namespace sclc {
 
         Function* func = new Function(name, name_token);
         i += 2;
+        if (tokens[i].type == tok_identifier && tokens[i].value == "<") {
+            func->reified_parameters = parseReifiedParams(errors, i, tokens);
+        }
         if (tokens[i].type == tok_paren_open) {
             i++;
             while (i < tokens.size() && tokens[i].type != tok_paren_close) {
@@ -356,12 +390,19 @@ namespace sclc {
             method->addModifier("<constructor>");
         }
         i += 2;
+        if (tokens[i].type == tok_identifier && tokens[i].value == "<") {
+            method->reified_parameters = parseReifiedParams(errors, i, tokens);
+            method->reified_parameters.push_back("");
+        }
         bool memberByValue = false;
         if (tokens[i].type == tok_paren_open) {
             i++;
-            if (tokens[i].type == tok_identifier && tokens[i].value == "@") {
+            if (tokens[i].type == tok_addr_of) {
                 memberByValue = true;
                 i++;
+                if (tokens[i].type == tok_comma) {
+                    i++;
+                }
             }
             while (i < tokens.size() && tokens[i].type != tok_paren_close) {
                 std::string fromTemplate = "";
@@ -402,6 +443,9 @@ namespace sclc {
                         errors.push_back(result);
                         i++;
                         continue;
+                    }
+                    if (type == "varargs" && name.size()) {
+                        method->addArgument(Variable(name + "$size", "const int"));
                     }
                     method->addArgument(Variable(name, type).also([fromTemplate](Variable& v) {
                         v.typeFromTemplate = fromTemplate;
@@ -598,7 +642,7 @@ namespace sclc {
 
     struct Instanciable {
         std::string structName;
-        std::map<std::string, std::string> arguments;
+        std::map<std::string, Token> arguments;
 
         std::string toString() {
             std::string stringName = this->structName + "<";
@@ -606,7 +650,7 @@ namespace sclc {
                 if (it != this->arguments.begin()) {
                     stringName += ", ";
                 }
-                stringName += it->first + ": " + it->second;
+                stringName += it->first + ": " + it->second.uncolored_formatted();
             }
             stringName += ">";
             return stringName;
@@ -637,34 +681,54 @@ namespace sclc {
 
     const std::array<std::string, 3> removableTypeModifiers = {"mut ", "const ", "readonly "};
 
-    std::string reparseArgType(std::string type, const std::map<std::string, std::string>& templateArgs) {
+    std::string reparseArgType(std::string type, const std::unordered_map<std::string, std::string>& templateArgs) {
         std::string mods = "";
         bool isVal = type.front() == '@';
         if (isVal) {
             type = type.substr(1);
         }
-        for (std::string mod : removableTypeModifiers) {
-            if (strstarts(type, mod)) {
-                type = type.substr(mod.size());
-                if (mod == "mut") {
-                    mods += "mut ";
-                } else if (mod == "const") {
-                    mods += "const ";
-                } else if (mod == "readonly") {
-                    mods += "readonly ";
-                }
-            }
-        }
+        bool isNil = type.back() == '?';
+        type = removeTypeModifiers(type);
         if (isVal) {
-            return "@" + mods + reparseArgType(type.substr(1), templateArgs);
+            return "@" + mods + reparseArgType(type.substr(1), templateArgs) + (isNil ? "?" : "");
         } else if (type.front() == '[') {
             std::string inner = type.substr(1, type.size() - 2);
-            return "[" + reparseArgType(inner, templateArgs) + "]";
+            return "[" + reparseArgType(inner, templateArgs) + "]" + (isNil ? "?" : "");
+        }
+        if (strstarts(type, "lambda(")) {
+            std::string lt = type.substr(0, type.find(':'));
+            std::string ret = type.substr(type.find(':') + 1);
+            type = lt + ":" + reparseArgType(ret, templateArgs);
         }
         if (templateArgs.find(type) != templateArgs.end()) {
-            return mods + templateArgs.at(type);
+            return mods + templateArgs.at(type) + (isNil ? "?" : "");
         }
-        return mods + type;
+        return mods + type + (isNil ? "?" : "");
+    }
+
+    std::string reparseArgType(std::string type, const std::map<std::string, Token>& templateArgs) {
+        std::string mods = "";
+        bool isVal = type.front() == '@';
+        if (isVal) {
+            type = type.substr(1);
+        }
+        bool isNil = type.back() == '?';
+        type = removeTypeModifiers(type);
+        if (isVal) {
+            return "@" + mods + reparseArgType(type.substr(1), templateArgs) + (isNil ? "?" : "");
+        } else if (type.front() == '[') {
+            std::string inner = type.substr(1, type.size() - 2);
+            return "[" + reparseArgType(inner, templateArgs) + "]" + (isNil ? "?" : "");
+        }
+        if (strstarts(type, "lambda(")) {
+            std::string lt = type.substr(0, type.find(':'));
+            std::string ret = type.substr(type.find(':') + 1);
+            type = lt + ":" + reparseArgType(ret, templateArgs);
+        }
+        if (templateArgs.find(type) != templateArgs.end()) {
+            return mods + templateArgs.at(type).value + (isNil ? "?" : "");
+        }
+        return mods + type + (isNil ? "?" : "");
     }
 
     std::vector<Token> parseString(std::string s);
@@ -674,7 +738,7 @@ namespace sclc {
 
         std::string structName;
         Token instantiatingToken;
-        std::map<std::string, std::string> arguments;
+        std::map<std::string, Token> arguments;
 
         void copyTo(const Struct& src, Struct& dest, TPResult& result) {
             dest.super = src.super;
@@ -707,34 +771,18 @@ namespace sclc {
                 for (size_t i = 0; i < mt->body.size(); i++) {
                     if (mt->body[i].type != tok_identifier) continue;
                     if (this->arguments.find(mt->body[i].value) != this->arguments.end()) {
-                        SourceLocation loc = mt->body[i].location;
-                        std::string type = this->arguments.at(mt->body[i].value);
-                        if (type.find('$') != std::string::npos) {
-                            mt->body[i] = Token(tok_identifier, type, loc);
-                            continue;
-                        }
-                        auto toks = parseString(type);
-                        std::vector<Token> toks2;
-                        toks2.reserve(toks.size());
-                        for (auto&& tok : toks) {
-                            if (tok.type != tok_eof) {
-                                tok.location = loc;
-                                toks2.push_back(tok);
-                            }
-                        }
-                        mt->body.erase(mt->body.begin() + i);
-                        mt->body.insert(mt->body.begin() + i, toks2.begin(), toks2.end());
+                        mt->body[i] = this->arguments.at(mt->body[i].value);
                     }
                 }
                 result.functions.push_back(mt);
             }
         }
 
-        std::string& operator[](std::string key) {
+        Token& operator[](std::string key) {
             return this->arguments[key];
         }
 
-        std::string& operator[](size_t index) {
+        Token& operator[](size_t index) {
             auto it = this->arguments.begin();
             for (size_t i = 0; i < index; i++) {
                 it++;
@@ -742,7 +790,7 @@ namespace sclc {
             return it->second;
         }
 
-        void setNth(size_t index, std::string value) {
+        void setNth(size_t index, Token value) {
             std::string key = "";
             for (auto&& arg : this->arguments) {
                 if (index == 0) {
@@ -767,7 +815,8 @@ namespace sclc {
                 if (it != this->arguments.begin()) {
                     instanceName += "$$n";
                 }
-                instanceName += it->second;
+                if (it->second.type == tok_identifier)
+                    instanceName += it->second.value;
             }
             return instanceName + "$$e";
         }
@@ -778,7 +827,7 @@ namespace sclc {
                 if (it != this->arguments.begin()) {
                     stringName += ", ";
                 }
-                stringName += it->first + ": " + it->second;
+                stringName += it->first + ": " + it->second.uncolored_formatted();
             }
             stringName += ">";
             return stringName;
@@ -815,7 +864,7 @@ namespace sclc {
                         return Template::empty;
                     }
                     TemplateInstances::addTemplate(parsedArg.value());
-                    t.setNth(parameterCount++, parsedArg.value().nameForInstance());
+                    t.setNth(parameterCount++, Token(tok_identifier, parsedArg.value().nameForInstance()));
                     i++;
                     if (tokens[i].type == tok_comma) {
                         i++;
@@ -825,10 +874,10 @@ namespace sclc {
                 size_t start = i;
                 FPResult r = parseType(tokens, &i, {});
                 if (r.success) {
-                    t.setNth(parameterCount++, r.value);
+                    t.setNth(parameterCount++, Token(tok_identifier, r.value));
                 } else {
                     i = start;
-                    t.setNth(parameterCount++, tokens[i].value);
+                    t.setNth(parameterCount++, tokens[i]);
                 }
                 i++;
                 if (tokens[i].type == tok_comma) {
@@ -1069,6 +1118,43 @@ namespace sclc {
         void* (*str$of)(char*) = nullptr;
         char* (*str$view)(void* str) = nullptr;
 
+        template<typename Func>
+        Func getFunction(void* lib, const char* name) {
+        #ifdef _WIN32
+            Func f = (Func) GetProcAddress(lib, name);
+            if (!f) {
+                std::cout << "Failed to load function '" << name << "': " << GetLastError() << std::endl;
+                exit(1);
+            }
+            return f;
+        #else
+            Func f = (Func) dlsym(lib, name);
+            if (!f) {
+                std::cout << "Failed to load function '" << name << "': " << dlerror() << std::endl;
+                exit(1);
+            }
+            return f;
+        #endif
+        }
+
+        void* openLibrary(const char* name) {
+        #ifdef _WIN32
+            void* lib = LoadLibraryA(name);
+            if (!lib) {
+                std::cout << "Failed to load library '" << name << "': " << GetLastError() << std::endl;
+                exit(1);
+            }
+            return lib;
+        #else
+            void* lib = dlopen(name, RTLD_LAZY);
+            if (!lib) {
+                std::cout << "Failed to load library '" << name << "': " << dlerror() << std::endl;
+                exit(1);
+            }
+            return lib;
+        #endif
+        }
+
         NativeMacro(std::string library, std::string name) : Macro() {
             this->type = Native;
             FPResult res = findFileInIncludePath(library);
@@ -1078,27 +1164,17 @@ namespace sclc {
             }
             library = res.location.file;
 
-            this->lib = dlopen(library.c_str(), RTLD_LAZY);
-            if (!this->lib) {
-                std::cout << "Failed to load library '" << library << "': " << dlerror() << std::endl;
-                exit(1);
-            }
-            this->func = (CToken** (*)(CSourceLocation*, SclParser*)) dlsym(this->lib, name.c_str());
-            if (!this->func) {
-                std::cout << "Failed to load function '" << name << "': " << dlerror() << std::endl;
-                exit(1);
-            }
-
-            Result$getErr = (typeof(Result$getErr)) dlsym(this->lib, "Result:getErr(): any");
-            Result$getOk = (typeof(Result$getOk)) dlsym(this->lib, "Result:getOk(): any");
-            Result$isErr = (typeof(Result$isErr)) dlsym(this->lib, "Result:isErr(): bool");
-            Result$isOk = (typeof(Result$isOk)) dlsym(this->lib, "Result:isOk(): bool");
-            scl_migrate_array = (typeof(scl_migrate_array)) dlsym(this->lib, "_scl_migrate_foreign_array");
-            scl_array_size = (typeof(scl_array_size)) dlsym(this->lib, "_scl_array_size");
-            alloc = (typeof(alloc)) dlsym(this->lib, "_scl_alloc");
-
-            str$of = (typeof(str$of)) dlsym(this->lib, "str::=>(:[int8]): str");
-            str$view = (typeof(str$view)) dlsym(this->lib, "str:view(): [int8]");
+            lib = openLibrary(library.c_str());
+            func = getFunction<typeof(func)>(this->lib, name.c_str());
+            Result$getErr = getFunction<typeof(Result$getErr)>(this->lib, "_M6Result6getErra");
+            Result$getOk = getFunction<typeof(Result$getOk)>(this->lib, "_M6Result5getOka");
+            Result$isErr = getFunction<typeof(Result$isErr)>(this->lib, "_M6Result5isErrl");
+            Result$isOk = getFunction<typeof(Result$isOk)>(this->lib, "_M6Result4isOkl");
+            scl_migrate_array = getFunction<typeof(scl_migrate_array)>(this->lib, "_scl_migrate_foreign_array");
+            scl_array_size = getFunction<typeof(scl_array_size)>(this->lib, "_scl_array_size");
+            alloc = getFunction<typeof(alloc)>(this->lib, "_scl_alloc");
+            str$of = getFunction<typeof(str$of)>(this->lib, "_F3str14operator$storecE");
+            str$view = getFunction<typeof(str$view)>(this->lib, "_M3str4viewc");
         }
 
         ~NativeMacro() {
@@ -1452,7 +1528,7 @@ namespace sclc {
             Function* builtinUnreachable = new Function("builtinUnreachable", Token(tok_identifier, "builtinUnreachable"));
             builtinUnreachable->addModifier("expect");
             builtinUnreachable->addModifier("foreign");
-            builtinUnreachable->return_type = "none";
+            builtinUnreachable->return_type = "nothing";
 
             functions.push_back(builtinUnreachable);
         }
@@ -1538,7 +1614,7 @@ namespace sclc {
                     if (tokens[i].value == ",") {
                         i++;
                     }
-                    inst.arguments[parameterName] = "any";
+                    inst.arguments[parameterName] = Token(tok_identifier, "any");
                     continue;
                 }
                 if (tokens[i].type != tok_column) {
@@ -1558,7 +1634,7 @@ namespace sclc {
                     break;
                 }
                 i++;
-                inst.arguments[parameterName] = result.value;
+                inst.arguments[parameterName] = Token(tok_identifier, result.value);
                 if (i < tokens.size() && tokens[i].value == ",") {
                     i++;
                 }
@@ -2000,30 +2076,30 @@ namespace sclc {
                     name += (char) std::toupper(varName[0]);
                     name += varName.substr(1);
 
-                    Method* getter = new Method(unionName, name, *(v.name_token));
+                    Method* getter = new Method(unionName, name, v.name_token);
                     getter->return_type = v.type;
                     getter->addModifier("@getter");
                     getter->addModifier(varName);
                     getter->addArgument(Variable("self", unionName));
-                    getter->addToken(Token(tok_number, std::to_string(n), v.name_token->location));
-                    getter->addToken(Token(tok_identifier, "self", v.name_token->location));
-                    getter->addToken(Token(tok_column, ":", v.name_token->location));
-                    getter->addToken(Token(tok_identifier, "expected", v.name_token->location));
+                    getter->addToken(Token(tok_number, std::to_string(n), v.name_token.location));
+                    getter->addToken(Token(tok_identifier, "self", v.name_token.location));
+                    getter->addToken(Token(tok_column, ":", v.name_token.location));
+                    getter->addToken(Token(tok_identifier, "expected", v.name_token.location));
                     std::string removed = removeTypeModifiers(v.type);
                     if (removed == "none" || removed == "nothing") {
                         return getter;
                     }
-                    getter->addToken(Token(tok_identifier, "self", v.name_token->location));
-                    getter->addToken(Token(tok_dot, ".", v.name_token->location));
-                    getter->addToken(Token(tok_identifier, "__value", v.name_token->location));
-                    getter->addToken(Token(tok_as, "as", v.name_token->location));
-                    getter->addToken(Token(tok_identifier, removeTypeModifiers(v.type), v.name_token->location));
-                    getter->addToken(Token(tok_return, "return", v.name_token->location));
+                    getter->addToken(Token(tok_identifier, "self", v.name_token.location));
+                    getter->addToken(Token(tok_dot, ".", v.name_token.location));
+                    getter->addToken(Token(tok_identifier, "__value", v.name_token.location));
+                    getter->addToken(Token(tok_as, "as", v.name_token.location));
+                    getter->addToken(Token(tok_identifier, removeTypeModifiers(v.type), v.name_token.location));
+                    getter->addToken(Token(tok_return, "return", v.name_token.location));
                     return getter;
                 };
 
                 auto makeSetter = [](const Variable& v, const std::string& unionName, int n) {
-                    Function* setter = new Function(unionName + "$" + v.name, *(v.name_token));
+                    Function* setter = new Function(unionName + "$" + v.name, v.name_token);
                     setter->member_type = unionName;
                     setter->return_type = unionName;
                     setter->addModifier("static");
@@ -2031,16 +2107,16 @@ namespace sclc {
                     if (removed != "none" && removed != "nothing") {
                         setter->addArgument(Variable("what", v.type));
                     }
-                    setter->addToken(Token(tok_number, std::to_string(n), v.name_token->location));
+                    setter->addToken(Token(tok_number, std::to_string(n), v.name_token.location));
                     if (removed != "none" && removed != "nothing") {
-                        setter->addToken(Token(tok_identifier, "what", v.name_token->location));
+                        setter->addToken(Token(tok_identifier, "what", v.name_token.location));
                     } else {
-                        setter->addToken(Token(tok_nil, "nil", v.name_token->location));
+                        setter->addToken(Token(tok_nil, "nil", v.name_token.location));
                     }
-                    setter->addToken(Token(tok_identifier, unionName, v.name_token->location));
-                    setter->addToken(Token(tok_double_column, "::", v.name_token->location));
-                    setter->addToken(Token(tok_identifier, "new", v.name_token->location));
-                    setter->addToken(Token(tok_return, "return", v.name_token->location));
+                    setter->addToken(Token(tok_identifier, unionName, v.name_token.location));
+                    setter->addToken(Token(tok_double_column, "::", v.name_token.location));
+                    setter->addToken(Token(tok_identifier, "new", v.name_token.location));
+                    setter->addToken(Token(tok_return, "return", v.name_token.location));
                     return setter;
                 };
 
@@ -2074,7 +2150,7 @@ namespace sclc {
                         type = name;
                     }
                     Variable v = Variable(name, type);
-                    v.name_token = new Token(tokens[start]);
+                    v.name_token = tokens[start];
                     v.isConst = true;
                     v.isVirtual = true;
                     currentStruct->addMember(v);
@@ -2104,7 +2180,7 @@ namespace sclc {
                     structs.push_back(*currentStruct);
                 }
                 currentStructs.pop_back();
-            } else if (token.type == tok_struct_def && (i == 0 || (i > 0 && (tokens[i - 1].type != tok_identifier || tokens[i - 1].value != "using")))) {
+            } else if (token.type == tok_struct_def && (i == 0 || tokens[i - 1].type != tok_using)) {
                 if (currentFunction != nullptr) {
                     FPResult result;
                     result.message = "Cannot define a struct inside of a function. Maybe you forgot an 'end' somewhere? Current function: " + currentFunction->name;
@@ -2186,8 +2262,8 @@ namespace sclc {
                                 i++;
                             }
                             currentStruct->required_typed_arguments++;
-                            currentStruct->addTemplateArgument(key, "any");
-                            templateArgs[key] = "any";
+                            currentStruct->addTemplateArgument(key, Token(tok_identifier, "any"));
+                            templateArgs[key] = Token(tok_identifier, "any");
                             continue;
                         }
                         if (tokens[i].type != tok_column) {
@@ -2207,8 +2283,8 @@ namespace sclc {
                             break;
                         }
                         currentStruct->required_typed_arguments++;
-                        currentStruct->addTemplateArgument(key, value.value);
-                        templateArgs[key] = value.value;
+                        currentStruct->addTemplateArgument(key, Token(tok_identifier, value.value));
+                        templateArgs[key] = Token(tok_identifier, value.value);
                         i++;
                         if (tokens[i].value == ",") {
                             i++;
@@ -2354,7 +2430,7 @@ namespace sclc {
                 if (std::find(layouts.begin(), layouts.end(), layout) == layouts.end()) {
                     layouts.push_back(layout);
                 }
-            } else if (token.type == tok_identifier && token.value == "using" && currentFunction == nullptr && i + 1 < tokens.size() && tokens[i + 1].type == tok_struct_def) {
+            } else if (token.type == tok_using && currentFunction == nullptr && i + 1 < tokens.size() && tokens[i + 1].type == tok_struct_def) {
                 if (usingStructs.find(token.location.file) == usingStructs.end()) {
                     usingStructs[token.location.file] = std::vector<std::string>();
                 }
@@ -2515,10 +2591,10 @@ namespace sclc {
                 }
             } else if (currentFunction != nullptr) {
                 if (
-                    token.type == tok_identifier &&
-                    token.value == "lambda" &&
+                    token.type == tok_lambda &&
                     (((ssize_t) i) - 3 >= 0 && tokens[i - 3].type != tok_declare) &&
                     (((ssize_t) i) - 1 >= 0 && tokens[i - 1].type != tok_as) &&
+                    (((ssize_t) i) - 1 >= 0 && tokens[i - 1].type != tok_column) &&
                     (((ssize_t) i) - 1 >= 0 && tokens[i - 1].type != tok_bracket_open) &&
                     (((ssize_t) i) - 2 >= 0 && tokens[i - 2].type != tok_new)
                 ) isInLambda++;
@@ -2675,7 +2751,7 @@ namespace sclc {
                 Variable& v = Variable::emptyVar();
                 if (currentStructs.back()->isStatic() || contains<std::string>(nextAttributes, "static")) {
                     v = Variable(currentStructs.back()->name + "$" + name, type, currentStructs.back()->name);
-                    v.name_token = new Token(name_token);
+                    v.name_token = name_token;
                     v.isPrivate = (isPrivate || contains<std::string>(nextAttributes, "private"));
                     nextAttributes.clear();
                     if (contains<std::string>(nextAttributes, "expect")) {
@@ -2705,7 +2781,7 @@ namespace sclc {
                         continue;
                     }
                     v = Variable(name, type, currentStructs.back()->name);
-                    v.name_token = new Token(name_token);
+                    v.name_token = name_token;
                     v.typeFromTemplate = fromTemplate;
                     v.isPrivate = (isPrivate || contains<std::string>(nextAttributes, "private"));
                     v.isVirtual = contains<std::string>(nextAttributes, "virtual");
@@ -2734,6 +2810,7 @@ namespace sclc {
                            t.value == "virtual" ||
                            t.value == "default" ||
                            t.value == "private" ||
+                           t.value == "reified" ||
                            t.value == "static" ||
                            t.value == "export" ||
                            t.value == "expect" ||
@@ -2763,7 +2840,7 @@ namespace sclc {
                             warns.push_back(result);
                             i++;
                         }
-                        if (tokens[i + 1].type == tok_identifier && tokens[i + 1].value == "lambda") {
+                        if (tokens[i + 1].type == tok_identifier && tokens[i + 1].type == tok_lambda) {
                             i++;
                         }
                         
@@ -2795,7 +2872,7 @@ namespace sclc {
                             warns.push_back(result);
                             i++;
                         }
-                        if (tokens[i + 1].type == tok_identifier && tokens[i + 1].value == "lambda") {
+                        if (tokens[i + 1].type == tok_identifier && tokens[i + 1].type == tok_lambda) {
                             i++;
                         }
 
@@ -3078,21 +3155,65 @@ namespace sclc {
             toString->force_add = true;
             return toString;
         };
+        auto createToStringMethodLayout = [&](Layout& s) -> Method* {
+            Token t(tok_identifier, "toString", s.name_token.location);
+            Method* toString = new Method(s.name, std::string("toString"), t);
+            std::string retemplate(std::string type);
+            std::string stringify = retemplate(s.name) + " {";
+            toString->return_type = "str";
+            toString->addModifier("<generated>");
+            toString->addArgument(Variable("self", s.name));
+            toString->addToken(Token(tok_string_literal, stringify));
 
-        auto indexOfFirstMethodOnType = [&](std::string type) -> size_t {
-            for (size_t i = 0; i < result.functions.size(); i++) {
-                if (result.functions[i]->member_type == type) return i;
+            size_t membersAdded = 0;
+
+            for (size_t i = 0; i < s.members.size(); i++) {
+                auto member = s.members[i];
+                if (member.name.front() == '$') continue;
+                if (membersAdded) {
+                    toString->addToken(Token(tok_string_literal, ", "));
+                    toString->addToken(Token(tok_identifier, "+"));
+                }
+                membersAdded++;
+
+                toString->addToken(Token(tok_string_literal, member.name + ": "));
+                toString->addToken(Token(tok_identifier, "+"));
+                toString->addToken(Token(tok_identifier, "self"));
+                toString->addToken(Token(tok_dot, "."));
+                toString->addToken(Token(tok_identifier, member.name));
+                bool canBeNil = typeCanBeNil(member.type);
+                std::string type = removeTypeModifiers(member.type);
+                if (canBeNil || isPointer(type) || hasEnum(result, type)) {
+                    if (type == "float") {
+                        toString->addToken(Token(tok_identifier, "float"));
+                        toString->addToken(Token(tok_double_column, "::"));
+                        toString->addToken(Token(tok_identifier, "toString"));
+                    } else {
+                        toString->addToken(Token(tok_identifier, "builtinToString"));
+                    }
+                } else if (hasTypeAlias(type) || strstarts(type, "lambda(") || type == "lambda") {
+                    toString->addToken(Token(tok_identifier, "any"));
+                    toString->addToken(Token(tok_double_column, "::"));
+                    toString->addToken(Token(tok_identifier, "toHexString"));
+                } else {
+                    toString->addToken(Token(tok_column, ":"));
+                    toString->addToken(Token(tok_identifier, "toString"));
+                }
+                toString->addToken(Token(tok_identifier, "+"));
             }
-            return result.functions.size();
+            toString->addToken(Token(tok_string_literal, "}"));
+            toString->addToken(Token(tok_identifier, "+"));
+            toString->addToken(Token(tok_return, "return"));
+            toString->force_add = true;
+            return toString;
         };
 
-        for (Struct s : result.structs) {
+        for (Struct& s : result.structs) {
             if (s.isStatic()) continue;
             bool hasImplementedToString = false;
             Method* toString = getMethodByName(result, "toString", s.name);
             if (toString == nullptr || contains<std::string>(toString->modifiers, "<generated>")) {
-                size_t index = indexOfFirstMethodOnType(s.name);
-                result.functions.insert(result.functions.begin() + index, createToStringMethod(s));
+                result.functions.push_back(createToStringMethod(s));
                 hasImplementedToString = true;
             }
 
@@ -3100,6 +3221,12 @@ namespace sclc {
                 if (!hasImplementedToString && toImplement == "toString") {
                     result.functions.push_back(createToStringMethod(s));
                 }
+            }
+        }
+        for (Layout& s : result.layouts) {
+            Method* toString = getMethodByName(result, "toString", s.name);
+            if (toString == nullptr || contains<std::string>(toString->modifiers, "<generated>")) {
+                result.functions.push_back(createToStringMethodLayout(s));
             }
         }
 

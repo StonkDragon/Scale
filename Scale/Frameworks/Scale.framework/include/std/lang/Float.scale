@@ -1,6 +1,8 @@
 construct function float_scale_init(): none
     1023  => float::maxExponent
     -1022 => float::minExponent
+    127   => float32::maxExponent
+    -126  => float32::minExponent
 end
 
 cdecl "sprintf"
@@ -82,6 +84,83 @@ final static sealed struct float
 
     function fromBits(bits: any): float
         ref bits as [float] @ return
+    end
+end
+
+final static sealed struct float32
+    decl maxExponent: const int
+    decl minExponent: const int
+
+    function toString(x: float32): str
+        if x:isNaN then
+            "nan" return
+        elif x:isInfinite then
+            if x 0 < then
+                "-inf" return
+            else
+                "inf" return
+            fi
+        fi
+        new<int8>[100] => decl out: [int8]
+        unsafe
+            out c"%f" x __c_sprintf! 1 drop
+        end
+        out str::new return
+    end
+
+    function toPrecisionString(x: float32): str
+        if x:isNaN then
+            "nan" return
+        elif x:isInfinite then
+            if x 0 < then
+                "-inf" return
+            else
+                "inf" return
+            fi
+        fi
+        new<int8>[100] => decl out: [int8]
+        unsafe
+            out c"%.17f" x __c_sprintf! 1 drop
+        end
+        out str::new return
+    end
+
+    function toHexString(x: float32): str
+        new<int8>[19] => decl out: [int8]
+        unsafe
+            out "0x%016lx" x:bits __c_sprintf! 1 drop
+        end
+        out str::new return
+    end
+
+    function parse(s: str): float32
+        unsafe
+            s:view __c_atof as float32 return
+        end
+    end
+
+    function bits(x: float32): int
+        ref x as [int32] @ return
+    end
+
+    expect foreign function isInfinite(x: float32): bool
+
+    expect foreign function isNaN(x: float32): bool
+
+    function isFinite(x: float32): bool
+        x float32::isInfinite ! x float32::isNaN ! && return
+    end
+
+    function isNotNaN(x: float32): bool
+        x float32::isNaN ! return
+    end
+
+    function asReference(f: float32): Float
+        f as float Float::new return
+    end
+
+    function fromBits(bits: any): float32
+        ref bits as [float32] @ return
     end
 end
 

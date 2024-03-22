@@ -1,3 +1,5 @@
+#include <gc/gc_allocator.h>
+
 #include "../../headers/Common.hpp"
 #include "../../headers/TranspilerDefs.hpp"
 #include "../../headers/Types.hpp"
@@ -18,7 +20,7 @@ namespace sclc {
                         errors.push_back(err);
                         return;
                     }
-                    if (Main::options::debugBuild) append("_scl_array_check_bounds_or_throw(_scl_top(scl_any*), %s);\n", body[i - 1].value.c_str());
+                    append("_scl_array_check_bounds_or_throw(_scl_top(scl_any*), %s);\n", body[i - 1].value.c_str());
                     typePop;
                     typeStack.push_back(type.substr(1, type.size() - 2));
                     if (isPrimitiveIntegerType(typeStackTop)) {
@@ -53,12 +55,8 @@ namespace sclc {
             typePop;
             typeStack.push_back(type.substr(1, type.size() - 2));
             append("scl_int index = _scl_pop(scl_int);\n");
-            if (Main::options::debugBuild) append("_scl_array_check_bounds_or_throw((scl_any*) tmp, index);\n");
-            if (isPrimitiveIntegerType(typeStackTop)) {
-                append("_scl_push(scl_int, tmp[index]);\n");
-            } else {
-                append("_scl_push(%s, tmp[index]);\n", sclTypeToCType(result, typeStackTop).c_str());
-            }
+            append("_scl_array_check_bounds_or_throw((scl_any*) tmp, index);\n");
+            append("_scl_push(%s, tmp[index]);\n", sclTypeToCType(result, typeStackTop).c_str());
             scopeDepth--;
             append("}\n");
         } else if (hasMethod(result, "[]", typeStackTop)) {

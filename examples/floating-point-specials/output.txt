@@ -1,5 +1,4 @@
 nan
 inf
 -inf
-1
 inf

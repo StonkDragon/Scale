@@ -7,6 +7,8 @@
 #include <regex>
 #include <unordered_map>
 
+#include <gc_cpp.h>
+
 #include "Variable.hpp"
 #include "Token.hpp"
 
@@ -14,7 +16,7 @@ namespace sclc
 {
     typedef std::unordered_map<std::string, std::string> Deprecation;
 
-    struct Function {
+    struct Function : public gc_cleanup {
         size_t lambdaIndex;
         std::string name;
         std::string name_without_overload;
@@ -29,7 +31,7 @@ namespace sclc
         Deprecation deprecated;
         std::vector<Function*> overloads;
         std::string templateArg;
-
+        
         long has_expect;
         long has_export;
         long has_private;
@@ -51,6 +53,13 @@ namespace sclc
         long has_binary_inherited;
         long has_nonvirtual;
         long has_async;
+        long has_reified;
+        
+        std::vector<Variable> captures;
+        std::vector<Variable> ref_captures;
+        std::vector<std::string> reified_parameters;
+
+        Function* container;
 
         Function(std::string name, Token name_token);
         Function(std::string name, bool isMethod, Token name_token);
@@ -65,6 +74,7 @@ namespace sclc
         virtual void clearArgs();
         virtual bool isCVarArgs();
         virtual Variable& varArgsParam();
+        virtual Function* clone();
 
         virtual bool operator==(const Function& other) const;
         virtual bool operator!=(const Function& other) const;

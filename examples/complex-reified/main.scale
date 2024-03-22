@@ -1,0 +1,44 @@
+struct Foo
+    nonvirtual reified function test<T>(a: T): T
+        a return
+    end
+
+    nonvirtual reified function test2<[T], >(arr: [T], x: int): T
+        arr[x] return
+    end
+end
+
+layout Vec3
+    decl x: int
+    decl y: int
+    decl z: int
+end
+
+function foo(): none
+    "Hello!" puts
+end
+
+function main(): none
+    Vec3 {
+        1 => x
+        2 => y
+        3 => z
+    } puts
+    foo
+    "Hello!" do 'also puts::<int8>
+
+    Foo::new => decl x: Foo
+
+    "a" x:test puts
+    1 x:test puts
+
+    new<str> {
+        "A",
+        "B",
+        "C",
+    } 1 x:test2 puts
+
+    1d => decl f: float
+    nil as [float]?
+    ref f ?: @ puts
+end

@@ -1,3 +1,5 @@
+#include <gc/gc_allocator.h>
+
 #include "../../headers/Common.hpp"
 #include "../../headers/TranspilerDefs.hpp"
 #include "../../headers/Types.hpp"
@@ -47,7 +49,7 @@ namespace sclc {
         else if (suffix == "u64") typeStack.push_back("uint64");
         else typeStack.push_back("int");
 
-        append("_scl_push(scl_int, %s & SCL_%s_MASK);\n", stringValue.c_str(), typeStackTop.c_str());
+        append("_scl_push(%s, %s & SCL_%s_MASK);\n", sclTypeToCType(result, typeStackTop).c_str(), stringValue.c_str(), typeStackTop.c_str());
     }
 } // namespace sclc
 

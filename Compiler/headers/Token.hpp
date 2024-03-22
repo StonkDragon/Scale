@@ -61,6 +61,7 @@ namespace sclc {
         Token& operator=(Token&& other);
         ~Token();
         std::string formatted() const;
+        std::string uncolored_formatted() const;
         bool isKeyword() const;
         CToken* toC(void*(*alloc)(size_t), void* (*toString)(char*)) const;
         std::string color() const;

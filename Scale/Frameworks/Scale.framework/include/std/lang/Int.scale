@@ -14,120 +14,106 @@ private expect foreign unsafe function __c_atoll(:[int8]): int64
 cdecl "sprintf"
 private expect foreign unsafe function __c_sprintf(:[int8], :[int8], :varargs): int
 
-construct function inttypes_scale_init(): none
-  0x80 => int8::minValue
-  0x7f => int8::maxValue
-  0x8000000000000000 => int::minValue
-  0x7fffffffffffffff => int::maxValue
-end
+macro! IntStruct(type) {
+  final static sealed struct $type
+    decl minValue: const $type
+    decl maxValue: const $type
 
-final static sealed struct int8
-  decl minValue: const int8
-  decl maxValue: const int8
-
-  function toString(x: int8): str
-    new<int8>[2] => decl out: [int8]
-    unsafe
-      out c"%c" x __c_sprintf! 1 drop
+    construct function init(): none
+      1 sizeof $type 8 * 1 - << => $type::minValue
+      if sizeof $type 8 == then
+        0x7fffffffffffffff => $type::maxValue
+      else
+        1 sizeof $type 8 * 1 - << 1 - => $type::maxValue
+      fi
     end
-    out str::new return
-  end
 
-  function toHexString(x: int8): str
-    new<int8>[5] => decl out: [int8]
-    unsafe
-      out c"0x%02x" x __c_sprintf! 1 drop
+    function toString(x: $type): str
+      new<int8>[2] => decl out: [int8]
+      unsafe
+        if sizeof $type 1 == then
+          out c"%c" x __c_sprintf! 1 drop
+        else
+          out c"%ld" x __c_sprintf! 1 drop
+        fi
+      end
+      out str::new return
     end
-    out str::new return
-  end
-end
 
-final static sealed struct int
-  decl minValue: const int
-  decl maxValue: const int
-
-  function toString(x: int): str
-    new<int8>[25] => decl out: [int8]
-    unsafe
-      out c"%ld" x __c_sprintf! 1 drop
+    function toHexString(x: $type): str
+      new<int8>[5] => decl out: [int8]
+      unsafe
+        out "0x%0" sizeof $type 2 * + "lx" +:view x __c_sprintf! 1 drop
+      end
+      out str::new return
     end
-    out str::new return
-  end
 
-  function toHexString(x: int): str
-    new<int8>[19] => decl out: [int8]
-    unsafe
-      out c"0x%016lx" x __c_sprintf! 1 drop
+    function parse(s: str): $type
+      unsafe
+        s:view __c_atoll as $type return
+      end
     end
-    out str::new return
-  end
 
-  function parse(s: str): int
-    unsafe
-      s:view __c_atoll as int return
+    function asReference(i: int): Int
+      i Int::new return
     end
   end
+}
+macro! UIntStruct(type) {
+  final static sealed struct $type
+    decl minValue: const $type
+    decl maxValue: const $type
 
-  function toInt8(value: any): int8
-    value as int8 return
-  end
+    construct function $type(): none
+      0 => $type::minValue
+      -1 => $type::maxValue
+    end
 
-  function toInt16(value: any): int16
-    value as int16 return
-  end
+    function toString(x: $type): str
+      new<int8>[2] => decl out: [int8]
+      unsafe
+        if sizeof $type 1 == then
+          out c"%c" x __c_sprintf! 1 drop
+        else
+          out c"%lu" x __c_sprintf! 1 drop
+        fi
+      end
+      out str::new return
+    end
 
-  function toInt32(value: any): int32
-    value as int32 return
-  end
+    function toHexString(x: $type): str
+      new<int8>[5] => decl out: [int8]
+      unsafe
+        out "0x%0" sizeof $type 2 * + "lx" +:view x __c_sprintf! 1 drop
+      end
+      out str::new return
+    end
 
-  function toInt(value: any): int
-    value as int return
-  end
+    function parse(s: str): $type
+      unsafe
+        s:view __c_atoll as $type return
+      end
+    end
 
-  function toUInt8(value: any): uint8
-    value as uint8 return
+    function asReference(i: int): Int
+      i Int::new return
+    end
   end
+}
 
-  function toUInt16(value: any): uint16
-    value as uint16 return
-  end
+IntStruct! int8
+IntStruct! int16
+IntStruct! int32
+IntStruct! int64
+IntStruct! int
+UIntStruct! uint8
+UIntStruct! uint16
+UIntStruct! uint32
+UIntStruct! uint64
+UIntStruct! uint
 
-  function toUInt32(value: any): uint32
-    value as uint32 return
-  end
-
-  function toUInt(value: any): uint
-    value as uint return
-  end
-
-  function isValidInt8(val: any): bool
-    val val:toInt8 == return
-  end
-
-  function isValidInt16(val: any): bool
-    val val:toInt16 == return
-  end
-
-  function isValidInt32(val: any): bool
-    val val:toInt32 == return
-  end
-
-  function isValidUInt8(val: any): bool
-    val val:toUInt8 == return
-  end
-
-  function isValidUInt16(val: any): bool
-    val val:toUInt16 == return
-  end
-
-  function isValidUInt32(val: any): bool
-    val val:toUInt32 == return
-  end
-
-  function asReference(i: int): Int
-    i Int::new return
-  end
-end
+delmacro! IntStruct
+delmacro! UIntStruct
 
 struct Int
   decl value: readonly int
@@ -261,6 +247,13 @@ expect foreign operator "ge" function >=(:float32, :float): bool
 expect foreign operator "lt" function <(:float32, :float): bool
 expect foreign operator "le" function <=(:float32, :float): bool
 
+expect foreign operator "eq" function ==(:float32, :float32): bool
+expect foreign operator "ne" function !=(:float32, :float32): bool
+expect foreign operator "gt" function >(:float32, :float32): bool
+expect foreign operator "ge" function >=(:float32, :float32): bool
+expect foreign operator "lt" function <(:float32, :float32): bool
+expect foreign operator "le" function <=(:float32, :float32): bool
+
 expect foreign operator "eq" function ==(:int, :float32): bool
 expect foreign operator "ne" function !=(:int, :float32): bool
 expect foreign operator "gt" function >(:int, :float32): bool
@@ -277,6 +270,10 @@ expect foreign operator "le" function <=(:float32, :int): bool
 
 expect foreign operator "eq" function ==(:any, :any): bool
 expect foreign operator "ne" function !=(:any, :any): bool
+expect foreign operator "gt" function >(:any, :any): bool
+expect foreign operator "ge" function >=(:any, :any): bool
+expect foreign operator "lt" function <(:any, :any): bool
+expect foreign operator "le" function <=(:any, :any): bool
 
 expect foreign operator "and" function &&(:int, :int): bool
 expect foreign operator "or" function ||(:int, :int): bool
@@ -292,7 +289,6 @@ expect foreign operator "lsr" function >>(:int, :int): int
 expect foreign operator "rol" function <<<(:int, :int): int
 expect foreign operator "ror" function >>>(:int, :int): int
 
-expect foreign operator "at" function @(:[any]): self
 expect foreign operator "inc" function ++(:int): int
 expect foreign operator "inc" function ++(:float): float
 expect foreign operator "inc" function ++(:float32): float32
@@ -300,8 +296,9 @@ expect foreign operator "dec" function --(:int): int
 expect foreign operator "dec" function --(:float): float
 expect foreign operator "dec" function --(:float32): float32
 
-expect foreign operator "ann" function !!(:any?): self
-expect foreign operator "elvis" function ?:(:any?, :any): self
+expect foreign reified operator "at" function @<[T]>(:[T]): T
+expect foreign reified operator "ann" function !!<T?>(:T?): T
+expect foreign reified operator "elvis" function ?:<T?, >(:T?, :T): T
 
 function isnil(x: any): bool
   x nil == return

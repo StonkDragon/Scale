@@ -68,20 +68,54 @@ Returns the value of `a` incremented by 1.
 ### operator function --(a: int | float | float32): int | float | float32
 Returns the value of `a` decremented by 1.
 
-### operator function !!(a: any?): any
+### operator function @<[T]>(a: [T]): T
+Dereferences the pointer `a`.
+This operator does not do a `nil` check. Also use `!!` or `?:` if you want that.
+
+### operator function !!<T?>(a: T?): T
 Returns `a` if `a` is not nil, otherwise throws an error.
 
-### operator function ?:(a: any?, b: any): any
+### operator function ?:<T?, >(a: T?, b: T): T
 Returns `a` if `a` is not nil, otherwise returns `b`.
 
 ### final static struct int8
 The static struct `int8` provides utility functions for working with the `int8` type.
+All functions available on the `int` type are also available on this type.
 
-### static function int8::toString(x: int8): str
-Returns a string representation of `x`.
+### final static struct int16
+The static struct `int16` provides utility functions for working with the `int16` type.
+All functions available on the `int` type are also available on this type.
+
+### final static struct int32
+The static struct `int32` provides utility functions for working with the `int32` type.
+All functions available on the `int` type are also available on this type.
+
+### final static struct int64
+The static struct `int64` provides utility functions for working with the `int64` type.
+All functions available on the `int` type are also available on this type.
 
 ### final static struct int
 The static struct `int` provides utility functions for working with the `int` type.
+
+### final static struct uint8
+The static struct `uint8` provides utility functions for working with the `uint8` type.
+All functions available on the `int` type are also available on this type.
+
+### final static struct uint16
+The static struct `uint16` provides utility functions for working with the `uint16` type.
+All functions available on the `int` type are also available on this type.
+
+### final static struct uint32
+The static struct `uint32` provides utility functions for working with the `uint32` type.
+All functions available on the `int` type are also available on this type.
+
+### final static struct uint64
+The static struct `uint64` provides utility functions for working with the `uint64` type.
+All functions available on the `int` type are also available on this type.
+
+### final static struct uint
+The static struct `uint` provides utility functions for working with the `uint` type.
+All functions available on the `int` type are also available on this type.
 
 ### static function int::toString(x: int): str
 Returns a string representation of `x`.
@@ -91,48 +125,6 @@ Returns a hexadecimal string representation of `x`.
 
 ### static function int::parse(s: str): int
 Parses `s` as an int and returns the result.
-
-### static function int::toInt8(value: any): int8
-Cast `value` to an int8.
-
-### static function int::toInt16(value: any): int16
-Cast `value` to an int16.
-
-### static function int::toInt32(value: any): int32
-Cast `value` to an int32.
-
-### static function int::toInt(value: any): int
-Cast `value` to an int.
-
-### static function int::toUInt8(value: any): uint8
-Cast `value` to a uint8.
-
-### static function int::toUInt16(value: any): uint16
-Cast `value` to a uint16.
-
-### static function int::toUInt32(value: any): uint32
-Cast `value` to a uint32.
-
-### static function int::toUInt(value: any): uint
-Cast `value` to a uint.
-
-### static function int::isValidInt8(val: any): bool
-Returns true if `val` can be safely cast to an int8 without loss of precision.
-
-### static function int::isValidInt16(val: any): bool
-Returns true if `val` can be safely cast to an int16 without loss of precision.
-
-### static function int::isValidInt32(val: any): bool
-Returns true if `val` can be safely cast to an int32 without loss of precision.
-
-### static function int::isValidUInt8(val: any): bool
-Returns true if `val` can be safely cast to a uint8 without loss of precision.
-
-### static function int::isValidUInt16(val: any): bool
-Returns true if `val` can be safely cast to a uint16 without loss of precision.
-
-### static function int::isValidUInt32(val: any): bool
-Returns true if `val` can be safely cast to a uint32 without loss of precision.
 
 ### static function int::asReference(i: int): Int
 Returns a new instance of `Int` that represents the value `i`.

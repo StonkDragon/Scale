@@ -6,9 +6,9 @@ end
 function Option:expected(id: int): none
     assert (id __tag ==) else (
         if __tag 1 == then
-            "Unexpected Union value: Some {" self.Some:toString + "}" +
+            "Expected None, got " self:toString +
         else
-            "Unexpected Union value: None"
+            "Expected Some, got None"
         fi
         AssertError::new throw
     )

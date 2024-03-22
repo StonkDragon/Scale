@@ -1,0 +1,25 @@
+function main(): none
+    0 => decl x: int
+
+    lambda[ref x](): none
+        x 1 + => x
+        x puts
+    end => decl foo: lambda(): none
+
+    lambda[x](): none
+        x 1 + => x
+        x puts
+    end => decl bar: lambda(): none
+
+    foo:accept
+    bar:accept
+
+    foo:accept
+    bar:accept
+    
+    foo:accept
+    bar:accept
+
+    foo:accept
+    bar:accept
+end

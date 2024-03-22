@@ -31,14 +31,17 @@ final static sealed struct FmtIO
         fmt[i] => c
         if c '%' == then
           '%' FmtIO::putchar
+          continue
         fi
         if current size >= then
           "Not enough arguments for format string" InvalidArgumentException::new throw
         fi
         args[current] => decl arg: any
         current++ => current
-        if c 's' == c 'i' == || then
-          arg builtinToString FmtIO::printStrNoNewline
+        if c 'i' == then
+          arg int::toString FmtIO::printStrNoNewline
+        elif c 's' == then
+          arg as str FmtIO::printStrNoNewline
         elif c '@' == then
           if arg then
             arg as SclObject:toString FmtIO::printStrNoNewline
@@ -46,7 +49,7 @@ final static sealed struct FmtIO
             "(nil)" FmtIO::printStrNoNewline
           fi
         elif c 'f' == then
-          arg float::fromBits float::toString FmtIO::printStrNoNewline
+          arg float::fromBits:toString FmtIO::printStrNoNewline
         elif c 'p' == then
           arg int::toHexString FmtIO::printStrNoNewline
         elif c 'b' == then

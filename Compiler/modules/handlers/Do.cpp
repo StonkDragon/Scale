@@ -1,3 +1,5 @@
+#include <gc/gc_allocator.h>
+
 #include "../../headers/Common.hpp"
 #include "../../headers/TranspilerDefs.hpp"
 #include "../../headers/Types.hpp"
@@ -26,7 +28,7 @@ namespace sclc {
         append("{\n");
         scopeDepth++;
 
-        if (body[i].type == tok_identifier && body[i].value != "lambda") {
+        if (body[i].type == tok_identifier) {
             if (hasFunction(result, body[i].value)) {
                 i--;
                 handle(AddrRef);
@@ -104,7 +106,7 @@ namespace sclc {
                     append("%s executor = %s%s;\n", sclTypeToCType(result, lambdaType).c_str(), !isMember ? "" : "Var_self->", path.c_str());
                 });
             }
-        } else if (body[i].type == tok_identifier && body[i].value == "lambda") {
+        } else if (body[i].type == tok_lambda) {
             handle(Lambda);
             lambdaType = typeStackTop;
             typePop;
@@ -164,12 +166,6 @@ namespace sclc {
 
         functionCall(f, fp, result, warns, errors, body, i);
         
-        if (mode == "transform") {
-            typePop;
-            std::string returnType = lambdaReturnType(lambdaType);
-            typeStack.push_back(returnType);
-        }
-
         scopeDepth--;
         append("}\n");
         if (i + 1 < body.size() && body[i + 1].type == tok_ticked) {

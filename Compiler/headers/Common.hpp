@@ -1,6 +1,8 @@
 #ifndef COMMON_H
 #define COMMON_H
 
+#include <gc/gc_allocator.h>
+
 #include <iostream>
 #include <string>
 #include <vector>
@@ -10,14 +12,22 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <stack>
-#include <sys/stat.h>
 #include <chrono>
+
+#ifdef _WIN32
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
+#else
 #include <dlfcn.h>
+#endif
+
+#include <gc.h>
+#include <gc_cpp.h>
 
 #define TOKEN(x, y, line, file) if (value == x) return Token(y, value, line, file, begin)
 
 // optimize this :
-#define append(...) do { for (int j = 0; j < scopeDepth; j++) { fp << "  "; } fp << sclc::format(__VA_ARGS__); } while (0)
+#define append(...) do { for (int j = 0; j < scopeDepth; j++) { fp << "  "; } fp << sclc::format(__VA_ARGS__); fp.flush(); } while (0)
 #define append2(...) fp << sclc::format(__VA_ARGS__)
 
 #if __has_builtin(__builtin_expect)
@@ -90,7 +100,7 @@ namespace sclc {
     public:
         Parser(TPResult& result);
         ~Parser() {}
-        FPResult parse(std::string func_file, std::string rt_file, std::string header_file, std::string main_file);
+        FPResult parse(std::string func_file, std::string rt_file, std::string header_file);
         TPResult& getResult();
     };
 
@@ -158,7 +168,6 @@ namespace sclc {
             static bool Werror;
             static bool dumpInfo;
             static bool printDocs;
-            static bool debugBuild;
             static bool printCflags;
             static bool noLinkScale;
             static size_t stackSize;
@@ -227,7 +236,7 @@ namespace sclc {
     std::vector<Method*> methodsOnType(TPResult& res, std::string type);
     bool hasMethod(TPResult& result, const std::string& name, const std::string& type);
     bool hasGlobal(TPResult& result, std::string name);
-    FPResult parseType(std::vector<Token>& tokens, size_t* i, const std::map<std::string, std::string>& typeReplacements = std::map<std::string, std::string>());
+    FPResult parseType(std::vector<Token>& tokens, size_t* i, const std::map<std::string, Token>& typeReplacements = std::map<std::string, Token>());
     bool sclIsProhibitedInit(std::string s);
     bool typeCanBeNil(std::string s, bool doRemoveMods = true);
     bool typeIsConst(std::string s);
@@ -258,7 +267,7 @@ namespace sclc {
     std::string retemplate(std::string type);
     bool isAllowed1ByteChar(char c);
     bool checkUTF8(const std::string& str);
-    void checkShadow(std::string name, std::vector<Token>& body, size_t i, Function* function, TPResult& result, std::vector<FPResult>& warns);
+    void checkShadow(std::string name, Token& body, Function* function, TPResult& result, std::vector<FPResult>& warns);
 
     template<typename T>
     static inline bool contains(std::vector<T> v, T val) {
@@ -302,7 +311,7 @@ namespace sclc {
         return -1;
     }
 
-    static inline ID_t ror(const ID_t value, ID_t shift) {
+    static inline constexpr ID_t ror(const ID_t value, ID_t shift) {
         return (value >> shift) | (value << ((sizeof(ID_t) << 3) - shift));
     }
 
@@ -319,7 +328,16 @@ namespace sclc {
         static StructTreeNode* fromArrayOfStructs(TPResult& result);
     };
 
-    ID_t id(const char* data);
+    static constexpr ID_t id(const char data[]) {
+        if (data[0] == 0) return 0;
+        ID_t h = 3323198485UL;
+        for (size_t i = 0; data[i]; i++) {
+            h ^= data[i];
+            h *= 0x5BD1E995;
+            h ^= h >> 15;
+        }
+        return h;
+    }
 }
 
 #endif // COMMON_H

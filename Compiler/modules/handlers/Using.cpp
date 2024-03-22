@@ -1,3 +1,5 @@
+#include <gc/gc_allocator.h>
+
 #include "../../headers/Common.hpp"
 #include "../../headers/TranspilerDefs.hpp"
 #include "../../headers/Types.hpp"
@@ -57,7 +59,7 @@ namespace sclc {
                 return;
             }
         }
-        checkShadow(name, body, i, function, result, warns);
+        checkShadow(name, body[i], function, result, warns);
         vars.push_back(Variable(name, type));
         type = sclTypeToCType(result, type);
         append("%s Var_%s = _scl_pop(%s);\n", type.c_str(), name.c_str(), type.c_str());

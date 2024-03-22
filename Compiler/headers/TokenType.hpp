@@ -58,6 +58,9 @@ namespace sclc
         tok_interface_def,          // interface
         tok_as,                     // as
         tok_enum,                   // enum
+        tok_using,                  // using
+        tok_lambda,                 // lambda
+        tok_pragma,                 // pragma!
 
         // operators
         tok_question_mark,          // ?
@@ -94,6 +97,7 @@ namespace sclc
         tok_utf_string_literal,     // u"foo"
         tok_char_literal,           // 'a'
         tok_dollar,                 // $
+        tok_stack_op,               // stack operation
 
         tok_MAX                     // ADD NOTHING AFTER THIS
     };

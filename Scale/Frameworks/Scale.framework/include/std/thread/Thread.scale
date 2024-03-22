@@ -28,7 +28,7 @@ final sealed struct Thread
         1 TypedArray<Thread>::new => Thread::threads
     end
 
-    static function stackTrace(): Array
+    static function stackTrace(): [str]
         Process::stackTrace return
     end
 

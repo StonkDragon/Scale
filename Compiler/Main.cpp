@@ -1,3 +1,5 @@
+#include <gc/gc_allocator.h>
+
 #include <iostream>
 #include <string>
 #include <chrono>
@@ -19,7 +21,6 @@
 #endif
 #else
 #include <process.h>
-#define execv _execv
 #endif
 
 #include "headers/Common.hpp"
@@ -46,7 +47,7 @@
 #endif
 
 #ifndef FRAMEWORK_VERSION_REQ
-#define FRAMEWORK_VERSION_REQ "24.0"
+#define FRAMEWORK_VERSION_REQ "24.1"
 #endif
 
 #ifndef SCL_ROOT_DIR
@@ -78,6 +79,7 @@ namespace sclc
     std::string scaleLatestFolder;
     std::vector<std::string> nonScaleFiles;
     std::vector<std::string> cflags;
+    std::vector<std::regex> disabledDiagnostics;
 
     void usage(std::string programName) {
         std::cout << "Usage: " << programName << " <filename> [args]" << std::endl;
@@ -94,8 +96,8 @@ namespace sclc
         std::cout << "  -makelib             Compile as a library (implies -no-main)" << std::endl;
         std::cout << "  -create-module       Create a Scale module" << std::endl;
         std::cout << "  -cflags              Print c compiler flags and exit" << std::endl;
-        std::cout << "  -debug               Run in debug mode" << std::endl;
         std::cout << "  -no-error-location   Do not print an overview of the file on error" << std::endl;
+        std::cout << "  -nowarn <regex>      Do not print any diagnostics where the message matches the given regular expression" << std::endl;
         std::cout << "  -doc                 Print documentation" << std::endl;
         std::cout << "  -doc-for <framework> Print documentation for Framework" << std::endl;
         std::cout << "  -stack-size <sz>     Sets the starting stack size. Must be a multiple of 2" << std::endl;
@@ -537,7 +539,7 @@ namespace sclc
         DragonConfig::CompoundEntry* framework = new DragonConfig::CompoundEntry();
         framework->setKey("framework");
 
-        framework->addString("version", "24.0");
+        framework->addString("version", "24.1");
         framework->addString("headerDir", "include");
         framework->addString("implDir", "impl");
         framework->addString("implHeaderDir", "impl");
@@ -565,9 +567,23 @@ namespace sclc
     void logWarns(std::vector<FPResult>& warns);
     void logErrors(std::vector<FPResult>& errors);
 
+    bool diagDisabled(std::string& diag) {
+        for (auto&& r : disabledDiagnostics) {
+            if (std::regex_search(diag, r)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     void logWarns(std::vector<FPResult>& warns) {
         for (FPResult error : warns) {
             if (error.type >= tok_MAX) continue;
+            if (diagDisabled(error.message)) {
+                logWarns(error.warns);
+                logErrors(error.errors);
+                continue;
+            }
             if (error.location.line == 0) {
                 std::cout << Color::BOLDRED << "Fatal Error: " << error.location.file << ": " << error.message << Color::RESET << std::endl;
                 continue;
@@ -577,7 +593,7 @@ namespace sclc
                 std::cout << Color::BOLDRED << "Fatal Error: Could not open file " << error.location.file << ": " << std::strerror(errno) << Color::RESET << std::endl;
                 continue;
             }
-            char* line = (char*) malloc(sizeof(char) * 500);
+            char* line = (char*) GC_malloc(sizeof(char) * 500);
             int i = 1;
             if (f) fseek(f, 0, SEEK_SET);
             std::string colString;
@@ -608,7 +624,7 @@ namespace sclc
                 i++;
             }
             fclose(f);
-            free(line);
+            GC_free(line);
             logWarns(error.warns);
             logErrors(error.errors);
         }
@@ -620,6 +636,11 @@ namespace sclc
             if (errorCount >= Main::options::errorLimit) {
                 std::cout << Color::BOLDRED << "Too many errors (" << errors.size() << "), aborting" << Color::RESET << std::endl;
                 break;
+            }
+            if (diagDisabled(error.message)) {
+                logWarns(error.warns);
+                logErrors(error.errors);
+                continue;
             }
             if (error.type >= tok_MAX) continue;
             std::string colorStr;
@@ -696,7 +717,7 @@ namespace sclc
 
         std::vector<std::string> frameworks;
         std::vector<std::string> tmpFlags;
-        std::string optimizer   = "O0";
+        std::string optimizer   = "O2";
         bool hasCppFiles        = false;
         bool hasFilesFromArgs   = false;
         bool outFileSpecified   = false;
@@ -827,9 +848,6 @@ namespace sclc
                     std::cerr << "Error: " << args[i] << " requires an argument" << std::endl;
                     return 1;
                 }
-            } else if (args[i] == "-debug") {
-                Main::options::debugBuild = true;
-                tmpFlags.push_back("-DSCL_DEBUG=1");
             } else if (args[i] == "-cflags") {
                 Main::options::printCflags = true;
                 Main::options::noMain = true;
@@ -861,6 +879,15 @@ namespace sclc
                     std::string name = args[i + 1];
                     i++;
                     return makeFramework(name);
+                } else {
+                    std::cerr << "Error: " << args[i] << " requires an argument" << std::endl;
+                    return 1;
+                }
+            } else if (args[i] == "-nowarn") {
+                if (i + 1 < args.size()) {
+                    std::string regex = args[i + 1];
+                    i++;
+                    disabledDiagnostics.push_back(std::regex(regex));
                 } else {
                     std::cerr << "Error: " << args[i] << " requires an argument" << std::endl;
                     return 1;
@@ -934,11 +961,8 @@ namespace sclc
         cflags.push_back("-" + optimizer);
         cflags.push_back("-DVERSION=\"" + std::string(VERSION) + "\"");
         cflags.push_back("-std=" + std::string(C_VERSION));
-        if (Main::options::debugBuild) {
-            cflags.push_back("-DSCL_DEBUG");
-            cflags.push_back("-g");
-            cflags.push_back("-O0");
-        }
+        cflags.push_back("-ftrapv");
+        cflags.push_back("-fno-inline");
 #if !defined(_WIN32)
         cflags.push_back("-fPIC");
 #endif
@@ -1097,17 +1121,18 @@ namespace sclc
             }
             cflags.push_back(s);
         }
+
+        std::string code_file = "scl_code.c";
+        std::string types_file = "scl_types.c";
+        std::string headers_file = "scl_headers.h";
         
-        std::string source = "out.c";
         FPResult parseResult = Main::parser->parse(
-            "scl_out.c",
-            "scl_rt.c",
-            "scl_head.h",
-            "scl_main.c"
+            code_file,
+            types_file,
+            headers_file
         );
-        cflags.push_back("scl_out.c");
-        cflags.push_back("scl_rt.c");
-        cflags.push_back("scl_main.c");
+        cflags.push_back(code_file);
+        cflags.push_back(types_file);
         
         logWarns(parseResult.warns);
         logErrors(parseResult.errors);
@@ -1170,9 +1195,6 @@ namespace sclc
         for (std::string& s : cflags) {
             cmd += s + " ";
         }
-        if (Main::options::debugBuild) {
-            cmd += "-DSCL_DEBUG ";
-        }
 
         if (Main::options::printCflags) {
             std::cout << cmd << std::endl;
@@ -1186,26 +1208,22 @@ namespace sclc
             }
         }
 
-        remove("scl_out.c");
-        remove("scl_rt.c");
-        remove("scl_head.h");
-        remove("scl_main.c");
-        remove("scale_interop.h");
-
-        if (Main::options::debugBuild) {
-            auto end = clock::now();
-            double duration = (double) std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count() / 1000000000.0;
-            std::cout << "Took " << duration << " seconds." << std::endl;
-        }
+        std::remove(headers_file.c_str());
+        std::remove(code_file.c_str());
+        std::remove(types_file.c_str());
+        std::remove("scale_interop.h");
 
         return 0;
     }
 }
 
 int main(int argc, char const *argv[]) {
+    GC_INIT();
+
     signal(SIGSEGV, sclc::signalHandler);
     signal(SIGABRT, sclc::signalHandler);
 
+#ifndef _WIN32
     if (!isatty(fileno(stdout))) {
         sclc::Color::RESET = "";
         sclc::Color::BLACK = "";
@@ -1229,6 +1247,7 @@ int main(int argc, char const *argv[]) {
         sclc::Color::BOLDGRAY = "";
         sclc::Color::GRAY = "";
     }
+#endif
 
     std::vector<std::string> args;
     for (int i = 0; i < argc; i++) {

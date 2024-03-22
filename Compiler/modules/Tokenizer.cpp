@@ -1,3 +1,5 @@
+#include <gc/gc_allocator.h>
+
 #include <iostream>
 #include <string.h>
 #include <string>
@@ -424,6 +426,19 @@ namespace sclc
         TOKEN("interface",  tok_interface_def, line, filename);
         TOKEN("as",         tok_as, line, filename);
         TOKEN("enum",       tok_enum, line, filename);
+
+        TOKEN("swap",       tok_stack_op, line, filename);
+        TOKEN("dup",        tok_stack_op, line, filename);
+        TOKEN("drop",       tok_stack_op, line, filename);
+        TOKEN("over",       tok_stack_op, line, filename);
+        TOKEN("sdup2",      tok_stack_op, line, filename);
+        TOKEN("swap2",      tok_stack_op, line, filename);
+        TOKEN("rot",        tok_stack_op, line, filename);
+        TOKEN("unrot",      tok_stack_op, line, filename);
+
+        TOKEN("using",      tok_using, line, filename);
+        TOKEN("pragma!",    tok_pragma, line, filename);
+        TOKEN("lambda",     tok_lambda, line, filename);
         
         if (value == "+>" || value == "->" || value == "*>" || value == "/>" || value == "&>" || value == "|>" || value == "^>" || value == "%>") {
             additional = true;
@@ -467,6 +482,7 @@ namespace sclc
     }
 
     FPResult Tokenizer::tokenize(std::string source) {
+        current = 0;
         FILE *fp;
 
         std::string data = "";
@@ -545,8 +561,6 @@ namespace sclc
         fclose(fp);
 
         this->source = (char*) data.c_str();
-
-        current = 0;
 
         token = nextToken();
         while (token.type != tok_eof) {

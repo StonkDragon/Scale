@@ -1,2 +1,3 @@
+The alphabet starts with: 
 3
 [a, b, c]

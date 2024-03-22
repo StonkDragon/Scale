@@ -1,4 +1,4 @@
-#include <assert.h>
+#include <gc/gc_allocator.h>
 
 #include "../headers/Common.hpp"
 
@@ -67,6 +67,7 @@ Function::Function(std::string name, bool isMethod, Token name_token) : namedRet
     this->has_binary_inherited = 0;
     this->has_nonvirtual = 0;
     this->has_async = 0;
+    this->has_reified = 0;
 }
 Function::~Function() {}
 std::vector<Token>& Function::getBody() {
@@ -100,6 +101,10 @@ void Function::addModifier(std::string modifier) {
     else if (has_binary_inherited == 0 && modifier == "<binary-inherited>") has_binary_inherited = modifiers.size();
     else if (has_nonvirtual == 0 && modifier == "nonvirtual") has_nonvirtual = modifiers.size();
     else if (has_async == 0 && modifier == "async") has_async = modifiers.size();
+    else if (has_reified == 0 && modifier == "reified") {
+        has_reified = modifiers.size();
+        has_nonvirtual = modifiers.size();
+    }
 }
 void Function::addArgument(Variable arg) {
     args.push_back(arg);
@@ -107,9 +112,18 @@ void Function::addArgument(Variable arg) {
 bool Function::operator!=(const Function& other) const {
     return !this->operator==(other);
 }
+bool hasCompatibleArgs(const std::vector<Variable>& argsA, const std::vector<Variable>& argsB) {
+    if (argsA.size() != argsB.size()) return false;
+    for (size_t i = 0; i < argsB.size(); i++) {
+        if (!typeEquals(argsA[i].type, argsB[i].type)) return false;
+    }
+    return true;
+}
 bool Function::operator==(const Function& other) const {
     if (isMethod != other.isMethod) return false;
     if (name != other.name) return false;
+    // if (has_reified != other.has_reified) return false;
+    // if (hasCompatibleArgs(args, other.args)) return false;
     return member_type == other.member_type;
 }
 bool Function::operator!=(const Function* other) const {
@@ -140,6 +154,27 @@ const std::string& Function::getModifier(size_t index) {
     }
     return this->modifiers.at(index - 1);
 }
+Function* Function::clone() {
+    Function* f = new Function(name, isMethod, name_token);
+    f->isMethod = isMethod;
+    f->return_type = return_type;
+    f->member_type = member_type;
+    for (auto s : modifiers) {
+        f->addModifier(s);
+    }
+    for (Token t : this->getBody()) {
+        f->addToken(t);
+    }
+    for (Variable& v : args) {
+        f->addArgument(v);
+    }
+    f->namedReturnValue = namedReturnValue;
+    f->templateArg = templateArg;
+    f->container = container;
+    f->overloads.insert(f->overloads.end(), overloads.begin(), overloads.end());
+    overloads.push_back(f);
+    return f;
+}
 
 Method::Method(std::string member_type, std::string name, Token name_token) : Function(name, true, name_token) {
     this->member_type = member_type;
@@ -163,5 +198,6 @@ Method* Method::cloneAs(std::string memberType) {
     }
     m->namedReturnValue = namedReturnValue;
     m->templateArg = templateArg;
+    m->container = container;
     return m;
 }
