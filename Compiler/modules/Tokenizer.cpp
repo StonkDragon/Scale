@@ -690,7 +690,6 @@ namespace sclc
             return r;
         }
         for (std::string& path : Main::options::includePaths) {
-            std::cout << path + PATH_SEPARATOR + file << "?" << std::endl;
             if (!std::filesystem::exists(path + PATH_SEPARATOR + file)) continue;
             FPResult r;
             r.success = true;
