@@ -133,14 +133,29 @@ int main(int argc, char const *argv[]) {
         }
     }
 
-    std::string scl_root_dir = std::filesystem::absolute(SCL_ROOT_DIR);
+#ifdef _WIN32
+    std::filesystem::path home = std::filesystem::path(std::getenv("UserProfile"));
+#else
+    std::filesystem::path home = std::filesystem::path(std::getenv("HOME"));
+#endif
 
-    std::string path = scl_root_dir + ("/Scale/" STR(VERSION));
-    std::string binary = "sclc";
-
+    std::filesystem::path scl_root_dir;
+#ifdef _WIN32
     if (is_root()) {
-        std::filesystem::create_directories("/opt/Scale/");
+        scl_root_dir = std::filesystem::absolute("C:/");
+    } else {
+        scl_root_dir = std::filesystem::absolute(home);
     }
+#else
+    if (is_root()) {
+        scl_root_dir = std::filesystem::absolute("/opt");
+    } else {
+        scl_root_dir = std::filesystem::absolute(home);
+    }
+#endif
+
+    std::string path = scl_root_dir / "Scale" / STR(VERSION);
+    std::string binary = "sclc";
 
     if (!isDevBuild) {
         std::filesystem::remove_all(path);
@@ -154,10 +169,10 @@ int main(int argc, char const *argv[]) {
             path,
             std::filesystem::perms::all
         );
-        std::filesystem::remove_all("/opt/Scale/latest");
-        std::filesystem::create_directory_symlink(std::filesystem::path(path), "/opt/Scale/latest");
+        std::filesystem::remove_all(scl_root_dir / "Scale/latest");
+        std::filesystem::create_directory_symlink(std::filesystem::path(path), scl_root_dir / "Scale/latest");
         std::filesystem::permissions(
-            "/opt/Scale/latest",
+            scl_root_dir / "Scale/latest",
             std::filesystem::perms::all
         );
     }
@@ -243,7 +258,7 @@ int main(int argc, char const *argv[]) {
         "clang++",
         ("-DVERSION=\\\"" STR(VERSION) "\\\""),
         "-DC_VERSION=\\\"gnu17\\\"",
-        "-DSCL_ROOT_DIR=\\\"" + scl_root_dir + "\\\"",
+        "-DSCL_ROOT_DIR=\\\"" + scl_root_dir.string() + "\\\"",
         "-std=gnu++17",
         "-Wall",
         "-Wextra",
@@ -313,12 +328,6 @@ int main(int argc, char const *argv[]) {
     exec_command(library);
 
     exec_command(create_command<std::string>(link_command));
-
-#ifdef _WIN32
-    std::filesystem::path home = std::filesystem::path(std::getenv("UserProfile"));
-#else
-    std::filesystem::path home = std::filesystem::path(std::getenv("HOME"));
-#endif
 
     std::vector<std::filesystem::path> paths = {
         "/usr/local/bin",
