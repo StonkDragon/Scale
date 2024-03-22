@@ -813,11 +813,13 @@ namespace sclc {
         std::string sigident = argsToRTSignatureIdent(f);
         f->name = f->name_without_overload + sigident;
         bool contains = false;
+        debugDump(sigident);
         for (Function* f2 : result.functions) {
             if (f2->isMethod != f->isMethod) continue;
             if (f2->name_without_overload != f->name_without_overload) continue;
             if (f2->has_reified) continue;
             std::string ident = argsToRTSignatureIdent(f2);
+            debugDump(ident);
             if (sigident == ident) {
                 contains = true;
             }
