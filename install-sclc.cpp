@@ -265,7 +265,7 @@ int main(int argc, char const *argv[]) {
 #ifdef __linux__
         "-Wl,--export-dynamic",
         "-Wl,-R",
-        "-Wl," + scaleFolder + "/Internal/lib",
+        "-Wl," + path + "/Internal/lib",
 #endif
         "-L" + path + "/Internal/lib",
         "-lgc",
