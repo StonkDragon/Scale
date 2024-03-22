@@ -80,6 +80,18 @@ namespace sclc {
         }
         Struct s = getStructByName(result, type);
         if (s == Struct::Null) {
+            if (hasLayout(result, type)) {
+                Layout l = getLayout(result, type);
+                safeInc();
+                Method* f = getMethodByName(result, body[i].value, l.name);
+                if (f->has_private && function->member_type != f->member_type) {
+                    transpilerError("'" + body[i].value + "' has private access in Struct '" + s.name + "'", i);
+                    errors.push_back(err);
+                    return;
+                }
+                methodCall(f, fp, result, warns, errors, body, i, false, true, false);
+                return;
+            }
             if (getInterfaceByName(result, type) != nullptr) {
                 handle(ColumnOnInterface);
                 return;

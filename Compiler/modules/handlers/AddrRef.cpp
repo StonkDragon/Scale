@@ -4,6 +4,8 @@
 #include "../../headers/Functions.hpp"
 
 namespace sclc {
+    Function* generateReifiedFunction(Function* self, std::ostream& fp, TPResult& result, std::vector<FPResult>& errors, std::vector<Token>& body, size_t& i, std::vector<std::string>& types);
+
     handler(AddrRef) {
         noUnused;
         safeInc();
@@ -67,12 +69,21 @@ namespace sclc {
                 };
 
                 bool found = false;
+                Function* have_reified = nullptr;
                 for (auto&& overload : f->overloads) {
+                    if (overload->has_reified && !have_reified) {
+                        have_reified = overload;
+                        break;
+                    }
                     if (argsEqual(overload->args)) {
                         f = overload;
                         found = true;
                         break;
                     }
+                }
+                if (have_reified) {
+                    found = true;
+                    f = generateReifiedFunction(have_reified, fp, result, errors, body, i, argTypes);
                 }
                 if (!found) {
                     transpilerError("No overload of '" + f->name + "' with arguments [ " + argVectorToString(argTypes) + " ] found", begin);

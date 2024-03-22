@@ -103,14 +103,8 @@ namespace sclc {
         } else if (body[i].value == "sizeof") {
             safeInc();
             auto templates = getTemplates(result, function);
-            if (body[i].value == "int") {
-                append("_scl_push(scl_int, sizeof(scl_int));\n");
-            } else if (body[i].value == "float") {
-                append("_scl_push(scl_int, sizeof(scl_float));\n");
-            } else if (body[i].value == "str") {
-                append("_scl_push(scl_int, sizeof(scl_str));\n");
-            } else if (body[i].value == "any") {
-                append("_scl_push(scl_int, sizeof(scl_any));\n");
+            if (isPrimitiveType(body[i].value)) {
+                append("_scl_push(scl_int, sizeof(%s));\n", sclTypeToCType(result, body[i].value).c_str());
             } else if (body[i].value == "none" || body[i].value == "nothing") {
                 append("_scl_push(scl_int, 0);\n");
             } else if (hasVar(body[i].value)) {
@@ -496,26 +490,51 @@ namespace sclc {
             });
         } else if (function->isMethod) {
             Struct s = getStructByName(result, function->member_type);
-            Method* method = getMethodByName(result, body[i].value, s.name);
-            Function* f;
-            if (method != nullptr) {
-                append("_scl_push(typeof(Var_self), Var_self);\n");
-                typeStack.push_back(method->member_type);
-                methodCall(method, fp, result, warns, errors, body, i);
-            } else if ((f = getFunctionByName(result, s.name + "$" + body[i].value)) != nullptr) {
-                functionCall(f, fp, result, warns, errors, body, i);
-            } else if (s.hasMember(body[i].value)) {
-                Token here = body[i];
-                body.insert(body.begin() + i, Token(tok_dot, ".", here.location));
-                body.insert(body.begin() + i, Token(tok_identifier, "self", here.location));
-                goto normalVar;
-            } else if (hasGlobal(result, s.name + "$" + body[i].value)) {
-                Variable v = getVar(s.name + "$" + body[i].value);
-                makePath(result, v, false, body, i, errors, false, function, warns, fp, [&](auto path, auto lastType) {
-                    LOAD_PATH(path, lastType);
-                });
+            if (s == Struct::Null && hasLayout(result, function->member_type)) {
+                Layout l = getLayout(result, function->member_type);
+                Method* method = getMethodByName(result, body[i].value, l.name);
+                Function* f;
+                if (method != nullptr) {
+                    append("_scl_push(typeof(Var_self), Var_self);\n");
+                    typeStack.push_back(method->member_type);
+                    methodCall(method, fp, result, warns, errors, body, i);
+                } else if ((f = getFunctionByName(result, l.name + "$" + body[i].value)) != nullptr) {
+                    functionCall(f, fp, result, warns, errors, body, i);
+                } else if (l.hasMember(body[i].value)) {
+                    Token here = body[i];
+                    body.insert(body.begin() + i, Token(tok_dot, ".", here.location));
+                    body.insert(body.begin() + i, Token(tok_identifier, "self", here.location));
+                    goto normalVar;
+                } else if (hasGlobal(result, l.name + "$" + body[i].value)) {
+                    Variable v = getVar(l.name + "$" + body[i].value);
+                    makePath(result, v, false, body, i, errors, false, function, warns, fp, [&](auto path, auto lastType) {
+                        LOAD_PATH(path, lastType);
+                    });
+                } else {
+                    goto unknownIdent;
+                }
             } else {
-                goto unknownIdent;
+                Method* method = getMethodByName(result, body[i].value, s.name);
+                Function* f;
+                if (method != nullptr) {
+                    append("_scl_push(typeof(Var_self), Var_self);\n");
+                    typeStack.push_back(method->member_type);
+                    methodCall(method, fp, result, warns, errors, body, i);
+                } else if ((f = getFunctionByName(result, s.name + "$" + body[i].value)) != nullptr) {
+                    functionCall(f, fp, result, warns, errors, body, i);
+                } else if (s.hasMember(body[i].value)) {
+                    Token here = body[i];
+                    body.insert(body.begin() + i, Token(tok_dot, ".", here.location));
+                    body.insert(body.begin() + i, Token(tok_identifier, "self", here.location));
+                    goto normalVar;
+                } else if (hasGlobal(result, s.name + "$" + body[i].value)) {
+                    Variable v = getVar(s.name + "$" + body[i].value);
+                    makePath(result, v, false, body, i, errors, false, function, warns, fp, [&](auto path, auto lastType) {
+                        LOAD_PATH(path, lastType);
+                    });
+                } else {
+                    goto unknownIdent;
+                }
             }
         } else {
         unknownIdent:

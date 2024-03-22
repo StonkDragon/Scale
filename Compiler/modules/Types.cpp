@@ -183,7 +183,7 @@ namespace sclc {
     }
 
     bool typeEquals(const std::string& a, const std::string& b) {
-        if (b == "any" || b == "[any]") {
+        if (b == "any") {
             return true;
         }
         if (removeTypeModifiers(a) == removeTypeModifiers(b)) {
@@ -244,7 +244,7 @@ namespace sclc {
             return allowIntPromotion || (typeIsSigned(arg) == typeIsSigned(stack) && intBitWidth(arg) == intBitWidth(stack));
         }
 
-        if (arg == "any" || arg == "[any]" || (argIsNilable && arg != "float" && arg != "float32" && (stack == "any" || stack == "[any]"))) {
+        if (arg == "any" || (argIsNilable && arg != "float" && arg != "float32" && (stack == "any" || stack == "[any]"))) {
             return true;
         }
 

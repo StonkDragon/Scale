@@ -496,6 +496,7 @@ namespace sclc {
         append("#pragma clang diagnostic ignored \"-Wincompatible-pointer-types\"\n");
         append("#pragma clang diagnostic ignored \"-Wint-conversion\"\n");
         append("#pragma clang diagnostic ignored \"-Winteger-overflow\"\n");
+        append("#pragma clang diagnostic ignored \"-Wout-of-scope-function\"\n");
         append("#endif\n\n");
     }
 
@@ -515,6 +516,22 @@ namespace sclc {
             vars.push_back(g);
         }
 
+        for (size_t f = 0; f < result.functions.size(); f++) {
+            Function* function = currentFunction = result.functions[f];
+            if (function->isMethod) {
+                if (function->has_reified && !contains<std::string>(function->modifiers, "nonvirtual")) {
+                    transpilerErrorTok("'reified' modifier implies 'nonvirtual' modifier on methods", function->name_token);
+                    warns.push_back(err);
+                }
+                currentStruct = getStructByName(result, function->member_type);
+                if (currentStruct == Struct::Null) {
+                    if (hasLayout(result, function->member_type)) {
+                        function->has_nonvirtual = true;
+                    }
+                }
+            }
+        }
+
         int n_captures = 0;
         for (size_t f = 0; f < result.functions.size(); f++) {
             Function* function = currentFunction = result.functions[f];
@@ -530,9 +547,11 @@ namespace sclc {
             if (function->isMethod) {
                 currentStruct = getStructByName(result, function->member_type);
                 if (UNLIKELY(currentStruct == Struct::Null)) {
-                    transpilerErrorTok("Method '" + function->name + "' is member of unknown Struct '" + function->member_type + "'", function->name_token);
-                    errors.push_back(err);
-                    continue;
+                    if (!hasLayout(result, function->member_type)) {
+                        transpilerErrorTok("Method '" + function->name + "' is member of unknown Struct '" + function->member_type + "'", function->name_token);
+                        errors.push_back(err);
+                        continue;
+                    }
                 } else if (UNLIKELY(currentStruct.templateInstance)) {
                     continue;
                 }

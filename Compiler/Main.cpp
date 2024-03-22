@@ -77,6 +77,7 @@ namespace sclc
     std::string scaleLatestFolder;
     std::vector<std::string> nonScaleFiles;
     std::vector<std::string> cflags;
+    std::vector<std::regex> disabledDiagnostics;
 
     void usage(std::string programName) {
         std::cout << "Usage: " << programName << " <filename> [args]" << std::endl;
@@ -93,8 +94,8 @@ namespace sclc
         std::cout << "  -makelib             Compile as a library (implies -no-main)" << std::endl;
         std::cout << "  -create-module       Create a Scale module" << std::endl;
         std::cout << "  -cflags              Print c compiler flags and exit" << std::endl;
-        std::cout << "  -debug               Run in debug mode" << std::endl;
         std::cout << "  -no-error-location   Do not print an overview of the file on error" << std::endl;
+        std::cout << "  -nowarn <regex>      Do not print any diagnostics where the message matches the given regular expression" << std::endl;
         std::cout << "  -doc                 Print documentation" << std::endl;
         std::cout << "  -doc-for <framework> Print documentation for Framework" << std::endl;
         std::cout << "  -stack-size <sz>     Sets the starting stack size. Must be a multiple of 2" << std::endl;
@@ -564,9 +565,23 @@ namespace sclc
     void logWarns(std::vector<FPResult>& warns);
     void logErrors(std::vector<FPResult>& errors);
 
+    bool diagDisabled(std::string& diag) {
+        for (auto&& r : disabledDiagnostics) {
+            if (std::regex_search(diag, r)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     void logWarns(std::vector<FPResult>& warns) {
         for (FPResult error : warns) {
             if (error.type >= tok_MAX) continue;
+            if (diagDisabled(error.message)) {
+                logWarns(error.warns);
+                logErrors(error.errors);
+                continue;
+            }
             if (error.location.line == 0) {
                 std::cout << Color::BOLDRED << "Fatal Error: " << error.location.file << ": " << error.message << Color::RESET << std::endl;
                 continue;
@@ -619,6 +634,11 @@ namespace sclc
             if (errorCount >= Main::options::errorLimit) {
                 std::cout << Color::BOLDRED << "Too many errors (" << errors.size() << "), aborting" << Color::RESET << std::endl;
                 break;
+            }
+            if (diagDisabled(error.message)) {
+                logWarns(error.warns);
+                logErrors(error.errors);
+                continue;
             }
             if (error.type >= tok_MAX) continue;
             std::string colorStr;
@@ -826,9 +846,6 @@ namespace sclc
                     std::cerr << "Error: " << args[i] << " requires an argument" << std::endl;
                     return 1;
                 }
-            } else if (args[i] == "-debug") {
-                Main::options::debugBuild = true;
-                tmpFlags.push_back("-DSCL_DEBUG=1");
             } else if (args[i] == "-cflags") {
                 Main::options::printCflags = true;
                 Main::options::noMain = true;
@@ -860,6 +877,15 @@ namespace sclc
                     std::string name = args[i + 1];
                     i++;
                     return makeFramework(name);
+                } else {
+                    std::cerr << "Error: " << args[i] << " requires an argument" << std::endl;
+                    return 1;
+                }
+            } else if (args[i] == "-nowarn") {
+                if (i + 1 < args.size()) {
+                    std::string regex = args[i + 1];
+                    i++;
+                    disabledDiagnostics.push_back(std::regex(regex));
                 } else {
                     std::cerr << "Error: " << args[i] << " requires an argument" << std::endl;
                     return 1;
@@ -933,11 +959,8 @@ namespace sclc
         cflags.push_back("-" + optimizer);
         cflags.push_back("-DVERSION=\"" + std::string(VERSION) + "\"");
         cflags.push_back("-std=" + std::string(C_VERSION));
-        if (Main::options::debugBuild) {
-            cflags.push_back("-DSCL_DEBUG");
-            cflags.push_back("-g");
-            cflags.push_back("-O0");
-        }
+        cflags.push_back("-ftrapv");
+        cflags.push_back("-fno-inline");
 #if !defined(_WIN32)
         cflags.push_back("-fPIC");
 #endif
@@ -1170,9 +1193,6 @@ namespace sclc
         for (std::string& s : cflags) {
             cmd += s + " ";
         }
-        if (Main::options::debugBuild) {
-            cmd += "-DSCL_DEBUG ";
-        }
 
         if (Main::options::printCflags) {
             std::cout << cmd << std::endl;
@@ -1190,12 +1210,6 @@ namespace sclc
         std::remove(code_file.c_str());
         std::remove(types_file.c_str());
         std::remove("scale_interop.h");
-
-        if (Main::options::debugBuild) {
-            auto end = clock::now();
-            double duration = (double) std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count() / 1000000000.0;
-            std::cout << "Took " << duration << " seconds." << std::endl;
-        }
 
         return 0;
     }

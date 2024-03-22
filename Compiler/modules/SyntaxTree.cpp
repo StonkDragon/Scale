@@ -390,6 +390,7 @@ namespace sclc {
         i += 2;
         if (tokens[i].type == tok_identifier && tokens[i].value == "<") {
             method->reified_parameters = parseReifiedParams(errors, i, tokens);
+            method->reified_parameters.push_back("");
         }
         bool memberByValue = false;
         if (tokens[i].type == tok_paren_open) {
@@ -684,23 +685,13 @@ namespace sclc {
         if (isVal) {
             type = type.substr(1);
         }
-        for (std::string mod : removableTypeModifiers) {
-            if (strstarts(type, mod)) {
-                type = type.substr(mod.size());
-                if (mod == "mut") {
-                    mods += "mut ";
-                } else if (mod == "const") {
-                    mods += "const ";
-                } else if (mod == "readonly") {
-                    mods += "readonly ";
-                }
-            }
-        }
+        bool isNil = type.back() == '?';
+        type = removeTypeModifiers(type);
         if (isVal) {
-            return "@" + mods + reparseArgType(type.substr(1), templateArgs);
+            return "@" + mods + reparseArgType(type.substr(1), templateArgs) + (isNil ? "?" : "");
         } else if (type.front() == '[') {
             std::string inner = type.substr(1, type.size() - 2);
-            return "[" + reparseArgType(inner, templateArgs) + "]";
+            return "[" + reparseArgType(inner, templateArgs) + "]" + (isNil ? "?" : "");
         }
         if (strstarts(type, "lambda(")) {
             std::string lt = type.substr(0, type.find(':'));
@@ -708,9 +699,9 @@ namespace sclc {
             type = lt + ":" + reparseArgType(ret, templateArgs);
         }
         if (templateArgs.find(type) != templateArgs.end()) {
-            return mods + templateArgs.at(type).value;
+            return mods + templateArgs.at(type).value + (isNil ? "?" : "");
         }
-        return mods + type;
+        return mods + type + (isNil ? "?" : "");
     }
 
     std::vector<Token> parseString(std::string s);
@@ -1510,7 +1501,7 @@ namespace sclc {
             Function* builtinUnreachable = new Function("builtinUnreachable", Token(tok_identifier, "builtinUnreachable"));
             builtinUnreachable->addModifier("expect");
             builtinUnreachable->addModifier("foreign");
-            builtinUnreachable->return_type = "none";
+            builtinUnreachable->return_type = "nothing";
 
             functions.push_back(builtinUnreachable);
         }
@@ -3137,21 +3128,65 @@ namespace sclc {
             toString->force_add = true;
             return toString;
         };
+        auto createToStringMethodLayout = [&](Layout& s) -> Method* {
+            Token t(tok_identifier, "toString", s.name_token.location);
+            Method* toString = new Method(s.name, std::string("toString"), t);
+            std::string retemplate(std::string type);
+            std::string stringify = retemplate(s.name) + " {";
+            toString->return_type = "str";
+            toString->addModifier("<generated>");
+            toString->addArgument(Variable("self", s.name));
+            toString->addToken(Token(tok_string_literal, stringify));
 
-        auto indexOfFirstMethodOnType = [&](std::string type) -> size_t {
-            for (size_t i = 0; i < result.functions.size(); i++) {
-                if (result.functions[i]->member_type == type) return i;
+            size_t membersAdded = 0;
+
+            for (size_t i = 0; i < s.members.size(); i++) {
+                auto member = s.members[i];
+                if (member.name.front() == '$') continue;
+                if (membersAdded) {
+                    toString->addToken(Token(tok_string_literal, ", "));
+                    toString->addToken(Token(tok_identifier, "+"));
+                }
+                membersAdded++;
+
+                toString->addToken(Token(tok_string_literal, member.name + ": "));
+                toString->addToken(Token(tok_identifier, "+"));
+                toString->addToken(Token(tok_identifier, "self"));
+                toString->addToken(Token(tok_dot, "."));
+                toString->addToken(Token(tok_identifier, member.name));
+                bool canBeNil = typeCanBeNil(member.type);
+                std::string type = removeTypeModifiers(member.type);
+                if (canBeNil || isPointer(type) || hasEnum(result, type)) {
+                    if (type == "float") {
+                        toString->addToken(Token(tok_identifier, "float"));
+                        toString->addToken(Token(tok_double_column, "::"));
+                        toString->addToken(Token(tok_identifier, "toString"));
+                    } else {
+                        toString->addToken(Token(tok_identifier, "builtinToString"));
+                    }
+                } else if (hasTypeAlias(type) || strstarts(type, "lambda(") || type == "lambda") {
+                    toString->addToken(Token(tok_identifier, "any"));
+                    toString->addToken(Token(tok_double_column, "::"));
+                    toString->addToken(Token(tok_identifier, "toHexString"));
+                } else {
+                    toString->addToken(Token(tok_column, ":"));
+                    toString->addToken(Token(tok_identifier, "toString"));
+                }
+                toString->addToken(Token(tok_identifier, "+"));
             }
-            return result.functions.size();
+            toString->addToken(Token(tok_string_literal, "}"));
+            toString->addToken(Token(tok_identifier, "+"));
+            toString->addToken(Token(tok_return, "return"));
+            toString->force_add = true;
+            return toString;
         };
 
-        for (Struct s : result.structs) {
+        for (Struct& s : result.structs) {
             if (s.isStatic()) continue;
             bool hasImplementedToString = false;
             Method* toString = getMethodByName(result, "toString", s.name);
             if (toString == nullptr || contains<std::string>(toString->modifiers, "<generated>")) {
-                size_t index = indexOfFirstMethodOnType(s.name);
-                result.functions.insert(result.functions.begin() + index, createToStringMethod(s));
+                result.functions.push_back(createToStringMethod(s));
                 hasImplementedToString = true;
             }
 
@@ -3159,6 +3194,12 @@ namespace sclc {
                 if (!hasImplementedToString && toImplement == "toString") {
                     result.functions.push_back(createToStringMethod(s));
                 }
+            }
+        }
+        for (Layout& s : result.layouts) {
+            Method* toString = getMethodByName(result, "toString", s.name);
+            if (toString == nullptr || contains<std::string>(toString->modifiers, "<generated>")) {
+                result.functions.push_back(createToStringMethodLayout(s));
             }
         }
 

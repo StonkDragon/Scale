@@ -22,7 +22,7 @@
 #define TOKEN(x, y, line, file) if (value == x) return Token(y, value, line, file, begin)
 
 // optimize this :
-#define append(...) do { for (int j = 0; j < scopeDepth; j++) { fp << "  "; } fp << sclc::format(__VA_ARGS__); } while (0)
+#define append(...) do { for (int j = 0; j < scopeDepth; j++) { fp << "  "; } fp << sclc::format(__VA_ARGS__); fp.flush(); } while (0)
 #define append2(...) fp << sclc::format(__VA_ARGS__)
 
 #if __has_builtin(__builtin_expect)
@@ -163,7 +163,6 @@ namespace sclc {
             static bool Werror;
             static bool dumpInfo;
             static bool printDocs;
-            static bool debugBuild;
             static bool printCflags;
             static bool noLinkScale;
             static size_t stackSize;

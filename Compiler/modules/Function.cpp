@@ -99,7 +99,10 @@ void Function::addModifier(std::string modifier) {
     else if (has_binary_inherited == 0 && modifier == "<binary-inherited>") has_binary_inherited = modifiers.size();
     else if (has_nonvirtual == 0 && modifier == "nonvirtual") has_nonvirtual = modifiers.size();
     else if (has_async == 0 && modifier == "async") has_async = modifiers.size();
-    else if (has_reified == 0 && modifier == "reified") has_reified = modifiers.size();
+    else if (has_reified == 0 && modifier == "reified") {
+        has_reified = modifiers.size();
+        has_nonvirtual = modifiers.size();
+    }
 }
 void Function::addArgument(Variable arg) {
     args.push_back(arg);
@@ -166,6 +169,8 @@ Function* Function::clone() {
     f->namedReturnValue = namedReturnValue;
     f->templateArg = templateArg;
     f->container = container;
+    f->overloads.insert(f->overloads.end(), overloads.begin(), overloads.end());
+    overloads.push_back(f);
     return f;
 }
 

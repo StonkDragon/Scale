@@ -81,7 +81,6 @@ namespace sclc
     size_t Main::options::errorLimit = 20;
     bool Main::options::printDocs = false;
     long long Main::writeFunctionsTime = 0;
-    bool Main::options::debugBuild = false;
     long long Main::writeContainersTime = 0;
     bool Main::options::printCflags = false;
     bool Main::options::noLinkScale = false;

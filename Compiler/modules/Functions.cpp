@@ -747,6 +747,9 @@ namespace sclc {
         if (what.front() == '[' && what.back() == ']') {
             return declassifyReify(what.substr(1, what.size() - 2));
         }
+        if (what.back() == '?') {
+            return declassifyReify(what.substr(0, what.size() - 1));
+        }
         if (strstarts(what, "lambda(")) {
             return lambdaReturnType(what);
         }
@@ -762,26 +765,36 @@ namespace sclc {
             }
         } else if (strstarts(with, "lambda(") && strstarts(stack, "lambda(")) {
             return reifyType(lambdaReturnType(with), lambdaReturnType(stack));
+        } else if (with.back() == '?') {
+            return reifyType(with.substr(0, with.size() - 1), stack);
         }
         return Token(tok_identifier, stack);
     }
 
-    void createReifiedCall(Function* self, std::ostream& fp, TPResult& result, std::vector<FPResult>& warns, std::vector<FPResult>& errors, std::vector<Token>& body, size_t& i) {
-        if (self->reified_parameters.size() > typeStack.size()) {
-            transpilerError("Reified function requires more type parameters than are available", i);
+    Function* generateReifiedFunction(Function* self, std::ostream& fp, TPResult& result, std::vector<FPResult>& errors, std::vector<Token>& body, size_t& i, std::vector<std::string>& types) {
+        if (!self->has_reified) {
+            transpilerError("Non-reified function passed to generateReifiedFunction()", i);
             errors.push_back(err);
-            return;
+            return nullptr;
         }
-        size_t startIndex = typeStack.size() - self->reified_parameters.size();
+        if (self->reified_parameters.size() > types.size()) {
+            transpilerError("Wrong amount of parameters for reified function call. Expected " + std::to_string(self->reified_parameters.size()) + " but got " + std::to_string(types.size()), i);
+            errors.push_back(err);
+            return nullptr;
+        }
         std::map<std::string, Token> reified_mappings;
-        for (size_t i = startIndex; i < typeStack.size(); i++) {
-            const std::string& param = self->reified_parameters[i - startIndex];
+        for (size_t i = 0; i < self->reified_parameters.size(); i++) {
+            const std::string& param = self->reified_parameters[i];
             if (param.empty()) {
                 continue;
             }
-            reified_mappings[declassifyReify(param)] = reifyType(param, removeTypeModifiers(typeStack[i]));
+            reified_mappings[declassifyReify(param)] = reifyType(param, removeTypeModifiers(types[i]));
         }
         Function* f = self->clone();
+        if (f->isMethod) {
+            ((Method*) f)->force_add = true;
+            f->addModifier("nonvirtual");
+        }
         f->return_type = reparseArgType(f->return_type, reified_mappings);
         f->clearArgs();
         for (Variable arg : self->args) {
@@ -790,7 +803,16 @@ namespace sclc {
         }
         f->name_token.location = body[i].location;
         f->name = f->name_without_overload + argsToRTSignatureIdent(f);
-        if (!contains<Function*>(result.functions, f)) {
+        bool contains = false;
+        for (Function* f2 : result.functions) {
+            if (f2->isMethod != f->isMethod) continue;
+            if (f2->name_without_overload != f->name_without_overload) continue;
+            if (f2->has_reified) continue;
+            if (argsToRTSignatureIdent(f) == argsToRTSignatureIdent(f2)) {
+                contains = true;
+            }
+        }
+        if (!contains) {
             result.functions.push_back(f);
         }
         f->has_reified = 0;
@@ -831,8 +853,43 @@ namespace sclc {
                 f->body[i] = reified_mappings.at(f->body[i].value);
             }
         }
-        append("%s fn_%s(%s) __asm(%s);\n", sclTypeToCType(result, f->return_type).c_str(), f->name.c_str(), arguments.c_str(), generateSymbolForFunction(f).c_str());
-        functionCall(f, fp, result, warns, errors, body, i);
+        if (f->isMethod) {
+            append("%s mt_%s$%s(%s) __asm(%s);\n", sclTypeToCType(result, f->return_type).c_str(), f->member_type.c_str(), f->name.c_str(), arguments.c_str(), generateSymbolForFunction(f).c_str());
+        } else if (!f->has_operator) {
+            append("%s fn_%s(%s) __asm(%s);\n", sclTypeToCType(result, f->return_type).c_str(), f->name.c_str(), arguments.c_str(), generateSymbolForFunction(f).c_str());
+        }
+        return f;
+    }
+
+    Function* reifiedPreamble(Function* self, std::ostream& fp, TPResult& result, std::vector<FPResult>& errors, std::vector<Token>& body, size_t& i) {
+        std::vector<std::string> types;
+        if (typeStack.size() < self->reified_parameters.size()) {
+            transpilerError("Wrong amount of parameters for reified function call. Expected " + std::to_string(self->reified_parameters.size()) + " but got " + std::to_string(typeStack.size()), i);
+            errors.push_back(err);
+            return nullptr;
+        }
+        size_t startIndex = typeStack.size() - self->reified_parameters.size();
+        types.reserve(typeStack.size() - startIndex);
+        for (size_t i = startIndex; i < typeStack.size(); i++) {
+            types.push_back(typeStack[i]);
+        }
+        Function* f = generateReifiedFunction(self, fp, result, errors, body, i, types);
+        if (f == nullptr) return nullptr;
+        if (f->has_reified) {
+            transpilerError("Generated function has 'reified' modifier!", i);
+            errors.push_back(err);
+            return nullptr;
+        }
+        return f;
+    }
+
+    void createReifiedCall(Function* self, std::ostream& fp, TPResult& result, std::vector<FPResult>& warns, std::vector<FPResult>& errors, std::vector<Token>& body, size_t& i) {
+        Function* f = reifiedPreamble(self, fp, result, errors, body, i);
+        if (f->isMethod) {
+            methodCall((Method*) f, fp, result, warns, errors, body, i);
+        } else {
+            functionCall(f, fp, result, warns, errors, body, i);
+        }
     }
 
     void functionCall(Function* self, std::ostream& fp, TPResult& result, std::vector<FPResult>& warns, std::vector<FPResult>& errors, std::vector<Token>& body, size_t& i, bool withIntPromotion, bool hasToCallStatic, bool checkOverloads) {
@@ -843,7 +900,7 @@ namespace sclc {
             createVariadicCall(self, fp, result, errors, body, i);
             return;
         }
-        if (self->has_reified) {
+        if (!self->has_operator && self->has_reified) {
             createReifiedCall(self, fp, result, warns, errors, body, i);
             return;
         }
@@ -921,12 +978,21 @@ namespace sclc {
             };
 
             bool found = false;
+            Function* have_reified = nullptr;
             for (auto&& overload : self->overloads) {
+                if (overload->has_reified && !have_reified) {
+                    have_reified = overload;
+                    break;
+                }
                 if (argsEqual(overload->args)) {
                     self = overload;
                     found = true;
                     break;
                 }
+            }
+            if (have_reified) {
+                found = true;
+                self = generateReifiedFunction(have_reified, fp, result, errors, body, i, argTypes);
             }
             if (!found) {
                 transpilerError("No overload of '" + self->name + "' with arguments [ " + argVectorToString(argTypes) + " ] found", begin);
@@ -961,9 +1027,13 @@ namespace sclc {
                     return;
                 }
 
+                if (self->has_reified) {
+                    self = reifiedPreamble(self, fp, result, errors, body, i);
+                }
+
                 if (!checkStackType(result, self->args, true)) {
                     {
-                        transpilerError("Arguments for operator '" + opToString(self->modifiers[sym]) + "' do not equal inferred stack", i);
+                        transpilerError("Arguments for operator '" + sclFunctionNameToFriendlyString(self->name_without_overload) + "' do not equal inferred stack", i);
                         errors.push_back(err);
                     }
                     std::string overloadedMatches = "";
@@ -989,61 +1059,41 @@ namespace sclc {
                     return;
                 }
 
-                std::string argType = "";
-                if (op == "at") {
-                    argType = typeStackTop;
-                }
+                // std::string argType = "";
+                // if (op == "at") {
+                //     argType = typeStackTop;
+                // }
 
                 std::string type = typeStackTop;
-                if (isSelfType(self->return_type)) {
-                    for (size_t m = 0; m < self->args.size(); m++) {
-                        if (!typesCompatible(result, typeStackTop, type, true)) {
-                            if (typeCanBeNil(self->args[m].type) && typeCanBeNil(typeStackTop)) {
-                                goto cont;
-                            }
-                            {
-                                transpilerError("Function returning 'self' requires all arguments to be of the same type", i);
-                                errors.push_back(err);
-                            }
-                            transpilerError("Expected '" + type + "', but got '" + typeStackTop + "'", i);
-                            err.isNote = true;
-                            errors.push_back(err);
-                            return;
-                        }
-                    cont:
-                        typePop;
-                    }
-                } else {
-                    for (size_t m = 0; m < self->args.size(); m++) {
-                        typePop;
-                    }
+                for (size_t m = 0; m < self->args.size(); m++) {
+                    typePop;
                 }
                 append("_scl_popn(%zu);\n", self->args.size());
                 std::string args = generateArgumentsForFunction(result, self);
 
-                if (op == "at") {
-                    args = "_scl_positive_offset(0, " + sclTypeToCType(result, argType) + ")";
-                    if (argType.front() == '[' && argType.back() == ']') {
-                        argType = argType.substr(1, argType.size() - 2);
-                    } else {
-                        argType = "any";
-                    }
-                    typeStack.push_back(argType);
-                } else {
-                    if (isSelfType(self->return_type)) {
-                        std::string retType = "";
-                        if (self->return_type.front() == '@') {
-                            retType += "@";
-                        }
-                        retType += removeTypeModifiers(type);
-                        if (typeCanBeNil(self->return_type)) {
-                            retType += "?";
-                        }
-                        typeStack.push_back(retType);
-                    } else {
-                        typeStack.push_back(self->return_type);
-                    }
-                }
+                // if (op == "at") {
+                //     args = "_scl_positive_offset(0, " + sclTypeToCType(result, argType) + ")";
+                //     if (argType.front() == '[' && argType.back() == ']') {
+                //         argType = argType.substr(1, argType.size() - 2);
+                //     } else {
+                //         argType = "any";
+                //     }
+                //     typeStack.push_back(argType);
+                // } else {
+                //     if (isSelfType(self->return_type)) {
+                //         std::string retType = "";
+                //         if (self->return_type.front() == '@') {
+                //             retType += "@";
+                //         }
+                //         retType += removeTypeModifiers(type);
+                //         if (typeCanBeNil(self->return_type)) {
+                //             retType += "?";
+                //         }
+                //         typeStack.push_back(retType);
+                //     } else {
+                //     }
+                // }
+                typeStack.push_back(self->return_type);
 
                 append("_scl_push(%s, _scl_%s(%s));\n", sclTypeToCType(result, typeStackTop).c_str(), op.c_str(), args.c_str());
                 
@@ -1313,6 +1363,7 @@ namespace sclc {
             }
         }
         for (auto&& m : methodsOnType(res, name)) {
+            if (m->has_reified) continue;
             long indexInVtable = -1;
             for (size_t i = 0; i < vtable.size(); i++) {
                 if (
