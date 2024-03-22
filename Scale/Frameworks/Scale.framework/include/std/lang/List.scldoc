@@ -1,104 +1,104 @@
 @std.lang.List
 @@{frameworkPath}/include/std/lang/List.scale
 ## List
-### static function List::filter(arr: [T], fn: lambda(T): bool): [T]
+### static function List::filter<[T], >(arr: [T], fn: lambda(T): bool): [T]
 Returns a new array containing only the elements of `arr` for which `fn` returns `true`.
 Provides compatibility with `do 'filter`.
 
-### static function List::map(arr: [T], fn: lambda(T): T): [T]
+### static function List::map<[T], lambda(T): U>(arr: [T], fn: lambda(T): U): [U]
 Returns a new array containing the results of applying `fn` to each element of `arr`.
 Provides compatibility with `do 'map`.
 
-### static function List::reduce(arr: [T], fn: lambda(T, T): T): T
+### static function List::reduce<[T], >(arr: [T], fn: lambda(T, T): T): T
 Returns the result of applying `fn` to each element of `arr` where the first argument is the accumulated value and the second argument is the current element.
 The accumulated value is initialized to `0`.
 Provides compatibility with `do 'reduce`.
 
-### static function List::count(arr: [T], fn: lambda(T): bool): int
+### static function List::count<[T], >(arr: [T], fn: lambda(T): bool): int
 Returns the number of elements in `arr` for which `fn` returns `true`.
 Provides compatibility with `do 'count`.
 
-### static function List::each(arr: [T], fn: lambda(T): none): none
+### static function List::each<[T], >(arr: [T], fn: lambda(T): none): none
 Applies `fn` to each element of `arr`.
 Provides compatibility with `do 'each`.
 
-### static function List::also(arr: [T], fn: lambda(T): none): [T]
+### static function List::also<[T], >(arr: [T], fn: lambda(T): none): [T]
 Applies `fn` to each element of `arr` and returns `arr`.
 Does not modify `arr`.
 Provides compatibility with `do 'also`.
 
-### static function List::transform(arr: [T], fn: lambda([T]): U): U
+### static function List::transform<[T], lambda([T]): U>(arr: [T], fn: lambda([T]): U): U
 Returns the result of applying `fn` to `arr`.
 Provides compatibility with `do 'transform`.
 
-### static function List::tail(arr: [T]): [T]
+### static function List::tail<[T]>(arr: [T]): [T]
 Returns a new array containing all but the first element of `arr`.
 
-### static function List::head(arr: [T]): T
+### static function List::head<[T]>(arr: [T]): T
 Returns the first element of `arr`.
 
-### static function List::last(arr: [T]): T
+### static function List::last<[T]>(arr: [T]): T
 Returns the last element of `arr`.
 
-### static function List::zip(arr1: [T], arr2: [T]): [[T]]
+### static function List::zip<[T]>(arr1: [T], arr2: [T]): [[T]]
 Returns a new array containing the elements of `arr1` and `arr2` interleaved.
 `arr1` and `arr2` must have the same length.
 Each element of the returned array is an array containing one element from `arr1` and one element from `arr2`.
 
-### static function List::slice(r: Range, arr: [T]): [T]
+### static function List::slice<[T]>(r: Range, arr: [T]): [T]
 Returns a new array containing the elements of `arr` in the range `r`.
 
-### static function List::resize(size: int, arr: [T]): [T]
+### static function List::resize<[T]>(size: int, arr: [T]): [T]
 Resizes the array `arr` to `size` elements.
 
-### static function List::sort(arr: [T]): [T]
+### static function List::sort<[T]>(arr: [T]): [T]
 Sorts the elements of `arr` in ascending order.
 
-### static function List::reverse(arr: [T]): [T]
+### static function List::reverse<[T]>(arr: [T]): [T]
 Reverse the order of the elements in `arr`.
 
-### static function List::toString(arr: [T]): str
+### static function List::toString<[T]>(arr: [T]): str
 Returns a string representation of `arr`.
 
-### static function List::size(arr: [T]): int
+### static function List::size<[T]>(arr: [T]): int
 Returns the number of elements in `arr`.
 
-### static function List::empty(arr: [T]): bool
+### static function List::empty<[T]>(arr: [T]): bool
 Returns `true` if `arr` is empty.
 
-### static function List::combine(arr1: [T], arr2: [T]): [T]
+### static function List::combine<[T]>(arr1: [T], arr2: [T]): [T]
 Returns a new array containing the elements of `arr1` followed by the elements of `arr2`.
 
-### static function List::append(elem: T, arr: [T]): [T]
+### static function List::append<[T]>(elem: T, arr: [T]): [T]
 Returns a new array containing the elements of `arr` followed by `elem`.
 The old array is not modified.
 
-### static function List::prepend(elem: T, arr: [T]): [T]
+### static function List::prepend<[T]>(elem: T, arr: [T]): [T]
 Returns a new array containing `elem` followed by the elements of `arr`.
 The old array is not modified.
 
-### static function List::insert(elem: T, index: int, arr: [T]): [T]
+### static function List::insert<[T]>(elem: T, index: int, arr: [T]): [T]
 Returns a new array containing the elements of `arr` with `elem` inserted at `index` and the following elements shifted to the right.
 The old array is not modified.
 
-### static function List::remove(index: int, arr: [T]): [T]
+### static function List::remove<[T]>(index: int, arr: [T]): [T]
 Returns a new array containing the elements of `arr` with the element at `index` removed.
 The old array is not modified.
 
-### static function List::intersect(arr1: [T], arr2: [T]): [T]
+### static function List::intersect<[T]>(arr1: [T], arr2: [T]): [T]
 Returns a new array containing all elements from `arr2` that are also in `arr1`.
 
-### static function List::excl(arr1: [T], arr2: [T]): [T]
+### static function List::excl<[T]>(arr1: [T], arr2: [T]): [T]
 Returns a new array containing all elements from `arr2` that are not in `arr1`.
 
-### static function List::contains(elem: T, arr: [T]): bool
+### static function List::contains<[T]>(elem: T, arr: [T]): bool
 Returns `true` if `arr` contains `elem`.
 
-### static function List::indexOf(elem: T, arr: [T]): int
+### static function List::indexOf<[T]>(elem: T, arr: [T]): int
 Returns the index of the first occurrence of `elem` in `arr` or `-1` if `elem` is not in `arr`.
 
-### static function List::lastIndexOf(elem: T, arr: [T]): int
+### static function List::lastIndexOf<[T]>(elem: T, arr: [T]): int
 Returns the index of the last occurrence of `elem` in `arr` or `-1` if `elem` is not in `arr`.
 
-### static function List::once(elem: T, arr: [T]): bool
+### static function List::once<[T]>(elem: T, arr: [T]): bool
 Returns `true` if `elem` occurs exactly once in `arr`.
