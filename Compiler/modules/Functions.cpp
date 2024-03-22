@@ -745,6 +745,7 @@ namespace sclc {
     }
 
     std::string reparseArgType(std::string type, const std::map<std::string, Token>& templateArgs);
+    std::string reparseArgType(std::string type, const std::unordered_map<std::string, Token>& templateArgs);
     std::string argsToRTSignatureIdent(Function* f);
 
     std::string declassifyReify(const std::string& what) {
@@ -789,24 +790,24 @@ namespace sclc {
             errors.push_back(err);
             return nullptr;
         }
-        std::map<std::string, Token>* reified_mappings = new std::map<std::string, Token>;
+        std::unordered_map<std::string, Token> reified_mappings;
         for (size_t i = 0; i < self->reified_parameters.size(); i++) {
             const std::string& param = self->reified_parameters[i];
             if (param.empty()) {
                 continue;
             }
             std::string decl = declassifyReify(param);
-            reified_mappings->insert({decl, reifyType(param, removeTypeModifiers(types[i]))});
+            reified_mappings[decl] = reifyType(param, removeTypeModifiers(types[i]));
         }
         Function* f = self->clone();
         if (f->isMethod) {
             ((Method*) f)->force_add = true;
             f->addModifier("nonvirtual");
         }
-        f->return_type = reparseArgType(f->return_type, *reified_mappings);
+        f->return_type = reparseArgType(f->return_type, reified_mappings);
         f->clearArgs();
         for (Variable arg : self->args) {
-            arg.type = reparseArgType(arg.type, *reified_mappings);
+            arg.type = reparseArgType(arg.type, reified_mappings);
             f->addArgument(arg);
         }
         f->name_token.location = body[i].location;
@@ -863,11 +864,10 @@ namespace sclc {
         debugDump(arguments);
         for (size_t i = 0; i < f->body.size(); i++) {
             if (f->body[i].type != tok_identifier) continue;
-            if (reified_mappings->find(f->body[i].value) != reified_mappings->end()) {
-                f->body[i] = reified_mappings->at(f->body[i].value);
+            if (reified_mappings.find(f->body[i].value) != reified_mappings.end()) {
+                f->body[i] = reified_mappings.at(f->body[i].value);
             }
         }
-        delete reified_mappings;
         if (f->isMethod) {
             append("%s mt_%s$%s(%s) __asm(%s);\n", sclTypeToCType(result, f->return_type).c_str(), f->member_type.c_str(), f->name.c_str(), arguments.c_str(), generateSymbolForFunction(f).c_str());
         } else if (!f->has_operator) {

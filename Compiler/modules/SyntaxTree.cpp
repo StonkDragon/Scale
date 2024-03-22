@@ -679,6 +679,30 @@ namespace sclc {
 
     const std::array<std::string, 3> removableTypeModifiers = {"mut ", "const ", "readonly "};
 
+    std::string reparseArgType(std::string type, const std::unordered_map<std::string, Token>& templateArgs) {
+        std::string mods = "";
+        bool isVal = type.front() == '@';
+        if (isVal) {
+            type = type.substr(1);
+        }
+        bool isNil = type.back() == '?';
+        type = removeTypeModifiers(type);
+        if (isVal) {
+            return "@" + mods + reparseArgType(type.substr(1), templateArgs) + (isNil ? "?" : "");
+        } else if (type.front() == '[') {
+            std::string inner = type.substr(1, type.size() - 2);
+            return "[" + reparseArgType(inner, templateArgs) + "]" + (isNil ? "?" : "");
+        }
+        if (strstarts(type, "lambda(")) {
+            std::string lt = type.substr(0, type.find(':'));
+            std::string ret = type.substr(type.find(':') + 1);
+            type = lt + ":" + reparseArgType(ret, templateArgs);
+        }
+        if (templateArgs.find(type) != templateArgs.end()) {
+            return mods + templateArgs.at(type).value + (isNil ? "?" : "");
+        }
+        return mods + type + (isNil ? "?" : "");
+    }
     std::string reparseArgType(std::string type, const std::map<std::string, Token>& templateArgs) {
         std::string mods = "";
         bool isVal = type.front() == '@';
