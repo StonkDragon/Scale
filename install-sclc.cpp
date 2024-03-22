@@ -146,6 +146,10 @@ int main(int argc, char const *argv[]) {
             path,
             std::filesystem::perms::all
         );
+        std::filesystem::permissions(
+            "/opt/Scale/latest",
+            std::filesystem::perms::all
+        );
     }
 
     if (!isDevBuild) {
@@ -318,7 +322,7 @@ int main(int argc, char const *argv[]) {
     }
 
     std::string macro_library = create_command<std::string>({
-        "sclc",
+        binary,
         "-makelib",
         "-o",
         path + "/Frameworks/Scale.framework/impl/__scale_macros.scl",
@@ -326,7 +330,7 @@ int main(int argc, char const *argv[]) {
     });
 
     auto scale_stdlib = create_command<std::string>({
-        "sclc", "-no-link-std", "-makelib", "-o", path + "/Internal/" + SCALE_STDLIB_FILENAME
+        binary, "-no-link-std", "-makelib", "-o", path + "/Internal/" + SCALE_STDLIB_FILENAME
     });
 
     auto files = listFiles(path + "/Frameworks/Scale.framework/include", ".scale");
