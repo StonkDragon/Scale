@@ -2,9 +2,9 @@ import std.io
 import std.util.Array
 
 cdecl "s_memset"
-expect foreign unsafe function memset(ptr: [any], val: int32, len: int): [any]
+expect foreign unsafe reified function memset<T,,>(ptr: T, val: int32, len: int): T
 cdecl "s_memcpy"
-expect foreign unsafe function memcpy(dst: [any], src: [any], n: int): [any]
+expect foreign unsafe reified function memcpy<T,,>(dst: T, src: T, n: int): T
 deprecated![since: "23.9.2", forRemoval: true]
 function sizeofStack(): int
   0 return
