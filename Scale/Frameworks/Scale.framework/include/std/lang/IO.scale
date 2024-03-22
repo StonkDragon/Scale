@@ -14,16 +14,20 @@ private expect foreign unsafe function __c_getchar(): int8
 cdecl "puts"
 private expect foreign function puts0(:[int8]): none
 
-function puts(val: [int8]): none        val puts0 end
-function puts(val: str): none           val:view puts end
-function puts(f: float): none           f:toString:view puts end
-function puts(f: float32): none         f as float:toString:view puts end
-function puts(value: SclObject): none   value:toString:view puts end
-function puts(value: any): none         value builtinToString:view puts end
+function puts(value: [int8]): none
+    value puts0
+end
 
-function eputs(s: [int8]): none         unsafe s __c_get_stderr __c_fputs c"\n" __c_get_stderr __c_fputs end end
-function eputs(s: str): none            s:view eputs end
-function eputs(f: float): none          f:toString:view eputs end
-function eputs(f: float32): none        f as float:toString:view eputs end
-function eputs(value: SclObject): none  value:toString:view eputs end
-function eputs(value: any): none        value builtinToString:view eputs end
+reified function puts<T>(value: T): none
+    value:toString:view puts
+end
+
+function eputs(value: [int8]): none
+    unsafe
+        value __c_get_stderr __c_fputs c"\n" __c_get_stderr __c_fputs
+    end
+end
+
+reified function eputs<T>(value: T): none
+    value:toString:view eputs
+end
