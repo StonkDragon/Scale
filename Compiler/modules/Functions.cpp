@@ -237,7 +237,9 @@ namespace sclc {
             symbol = "_F";
         }
         symbol += generateInternal(f);
-        return "_scl_macro_to_string(__USER_LABEL_PREFIX__) \"" + symbol + "\"";
+        symbol = "_scl_macro_to_string(__USER_LABEL_PREFIX__) \"" + symbol;
+        symbol += "\"";
+        return symbol;
     }
     
     Method* findMethodLocally(Method* self, TPResult& result) {
