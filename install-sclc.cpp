@@ -329,25 +329,20 @@ int main(int argc, char const *argv[]) {
 
     exec_command(create_command<std::string>(link_command));
 
-    std::vector<std::filesystem::path> paths = {
-        "/usr/local/bin",
-        home / "bin",
-        home / ".bin",
-        "/usr/bin",
-        "/opt/local/bin",
-    };
     std::filesystem::path symlinked_path;
-    for (auto&& p : paths) {
-        try {
-            symlinked_path = p / binary;
-            std::filesystem::remove(symlinked_path);
-            std::filesystem::create_symlink(std::string(path) + "/" + binary, symlinked_path);
-            break;
-        } catch(const std::filesystem::filesystem_error& e) {}
+    if (is_root()) {
+        symlinked_path = std::filesystem::path("/usr/local/bin") / binary;
+    } else {
+        symlinked_path = home / "bin" / binary;
     }
+    if (!std::filesystem::exists(symlinked_path.parent_path())) {
+        std::filesystem::create_directories(symlinked_path.parent_path());
+    }
+    std::filesystem::remove(symlinked_path);
+    std::filesystem::create_symlink(path + "/" + binary, symlinked_path);
     
     std::string macro_library = create_command<std::string>({
-        std::string(path) + "/" + binary,
+        std::filesystem::path(path) / binary,
         "-makelib",
         "-o",
         path + "/Frameworks/Scale.framework/impl/__scale_macros.scl",
@@ -355,7 +350,7 @@ int main(int argc, char const *argv[]) {
     });
 
     auto scale_stdlib = create_command<std::string>({
-        std::string(path) + "/" + binary,
+        std::filesystem::path(path) / binary,
         "-no-link-std",
         "-makelib",
         "-o",
