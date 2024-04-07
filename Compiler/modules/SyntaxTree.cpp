@@ -2482,7 +2482,7 @@ namespace sclc {
                 std::string name = tokens[i].value;
                 i++;
                 Enum e = Enum(namePrefix + name);
-                e.name_token = new Token(tokens[i - 1]);
+                e.name_token = tokens[i - 1];
                 while (tokens[i].type != tok_end) {
                     long next = e.nextValue;
                     if (tokens[i].type == tok_bracket_open) {
@@ -3162,6 +3162,7 @@ namespace sclc {
             std::string stringify = retemplate(s.name) + " {";
             toString->return_type = "str";
             toString->addModifier("<generated>");
+            toString->addModifier("nonvirtual");
             toString->addArgument(Variable("self", s.name));
             toString->addToken(Token(tok_string_literal, stringify));
 
@@ -3207,6 +3208,44 @@ namespace sclc {
             toString->force_add = true;
             return toString;
         };
+        auto createToStringMethodEnum = [&](Enum& s) -> Method* {
+            Token t(tok_identifier, "toString", s.name_token.location);
+            Method* toString = new Method(s.name, std::string("toString"), t);
+            toString->return_type = "str";
+            toString->addModifier("<generated>");
+            toString->addModifier("nonvirtual");
+            toString->addArgument(Variable("self", s.name));
+            toString->addToken(Token(tok_identifier, "self"));
+            toString->addToken(Token(tok_switch, "switch"));
+
+            for (auto&& member : s.members) {
+                toString->addToken(Token(tok_case, "case"));
+                toString->addToken(Token(tok_identifier, s.name));
+                toString->addToken(Token(tok_double_column, "::"));
+                toString->addToken(Token(tok_identifier, member.first));
+                toString->addToken(Token(tok_string_literal, member.first));
+                toString->addToken(Token(tok_return, "return"));
+                toString->addToken(Token(tok_esac, "esac"));
+            }
+            toString->addToken(Token(tok_end, "end"));
+            toString->addToken(Token(tok_identifier, "builtinUnreachable"));
+            toString->force_add = true;
+            return toString;
+        };
+        auto createOrdinalMethod = [&](Enum& s) -> Method* {
+            Token t(tok_identifier, "ordinal", s.name_token.location);
+            Method* toString = new Method(s.name, std::string("ordinal"), t);
+            toString->return_type = "int";
+            toString->addModifier("<generated>");
+            toString->addModifier("nonvirtual");
+            toString->addArgument(Variable("self", s.name));
+            toString->addToken(Token(tok_identifier, "self"));
+            toString->addToken(Token(tok_as, "as"));
+            toString->addToken(Token(tok_identifier, "int"));
+            toString->addToken(Token(tok_return, "return"));
+            toString->force_add = true;
+            return toString;
+        };
 
         for (Struct& s : result.structs) {
             if (s.isStatic()) continue;
@@ -3227,6 +3266,16 @@ namespace sclc {
             Method* toString = getMethodByName(result, "toString", s.name);
             if (toString == nullptr || contains<std::string>(toString->modifiers, "<generated>")) {
                 result.functions.push_back(createToStringMethodLayout(s));
+            }
+        }
+        for (Enum& s : result.enums) {
+            Method* toString = getMethodByName(result, "toString", s.name);
+            Method* ordinal = getMethodByName(result, "ordinal", s.name);
+            if (toString == nullptr || contains<std::string>(toString->modifiers, "<generated>")) {
+                result.functions.push_back(createToStringMethodEnum(s));
+            }
+            if (ordinal == nullptr || contains<std::string>(ordinal->modifiers, "<generated>")) {
+                result.functions.push_back(createOrdinalMethod(s));
             }
         }
 

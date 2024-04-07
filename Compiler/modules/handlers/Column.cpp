@@ -82,10 +82,16 @@ namespace sclc {
         }
         Struct s = getStructByName(result, type);
         if (s == Struct::Null) {
-            if (hasLayout(result, type)) {
-                Layout l = getLayout(result, type);
+            Layout l = getLayout(result, type);
+            Enum e = getEnumByName(result, type);
+            if (l.name.size() || e.name.size()) {
                 safeInc();
-                Method* f = getMethodByName(result, body[i].value, l.name);
+                Method* f;
+                if (l.name.size()) {
+                    f = getMethodByName(result, body[i].value, l.name);
+                } else {
+                    f = getMethodByName(result, body[i].value, e.name);
+                }
                 if (f->has_private && function->member_type != f->member_type) {
                     transpilerError("'" + body[i].value + "' has private access in Struct '" + s.name + "'", i);
                     errors.push_back(err);

@@ -484,7 +484,7 @@ namespace sclc {
                 return;
             }
             append("_scl_push(scl_int, %zuUL);\n", e.indexOf(body[i].value));
-            typeStack.push_back("int");
+            typeStack.push_back(e.name);
         } else if (hasVar(function->member_type + "$" + body[i].value)) {
             Variable v = getVar(function->member_type + "$" + body[i].value);
             makePath(result, v, false, body, i, errors, false, function, warns, fp, [&](auto path, auto lastType) {

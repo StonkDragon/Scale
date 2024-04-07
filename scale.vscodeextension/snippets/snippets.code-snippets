@@ -366,7 +366,7 @@
 		"scope": "source.scale",
 		"prefix": "array",
 		"body": [
-			"{${0:element}}"
+			"new<${1:type}> {${0:element}}"
 		],
 		"description": "Array literal"
 	},

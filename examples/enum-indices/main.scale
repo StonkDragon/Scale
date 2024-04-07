@@ -15,7 +15,7 @@ enum CustomIndexes
             h # will be 13
 end
 
-# Prints numbers 1, 2, 3, 4, 10, 11, 12, 13
+# Prints numbers a, b, c, d, e, f, g, h
 function main(): none
     CustomIndexes::a puts
     CustomIndexes::b puts

@@ -62,6 +62,7 @@ namespace sclc {
         std::pair(tok_elif, handlerRef(Elif)),
         std::pair(tok_elunless, handlerRef(Elunless)),
         std::pair(tok_while, handlerRef(While)),
+        std::pair(tok_until, handlerRef(Until)),
         std::pair(tok_do, handlerRef(Do)),
         std::pair(tok_repeat, handlerRef(Repeat)),
         std::pair(tok_for, handlerRef(For)),
@@ -525,12 +526,6 @@ namespace sclc {
                     transpilerErrorTok("'reified' modifier implies 'nonvirtual' modifier on methods", function->name_token);
                     warns.push_back(err);
                 }
-                currentStruct = getStructByName(result, function->member_type);
-                if (currentStruct == Struct::Null) {
-                    if (hasLayout(result, function->member_type)) {
-                        function->has_nonvirtual = true;
-                    }
-                }
             }
         }
 
@@ -549,7 +544,7 @@ namespace sclc {
             if (function->isMethod) {
                 currentStruct = getStructByName(result, function->member_type);
                 if (UNLIKELY(currentStruct == Struct::Null)) {
-                    if (!hasLayout(result, function->member_type)) {
+                    if (!hasLayout(result, function->member_type) && !hasEnum(result, function->member_type)) {
                         transpilerErrorTok("Method '" + function->name + "' is member of unknown Struct '" + function->member_type + "'", function->name_token);
                         errors.push_back(err);
                         continue;
@@ -726,7 +721,7 @@ namespace sclc {
 
             for (ssize_t a = (ssize_t) function->args.size() - 1; a >= 0; a--) {
                 const Variable& arg = function->args[a];
-                if (UNLIKELY(typeCanBeNil(arg.type) || arg.type == "varargs" || (hasTypealias(result, arg.type) && typealiasCanBeNil(result, arg.type)))) continue;
+                if (UNLIKELY(typeCanBeNil(arg.type) || hasEnum(result, arg.type) || arg.type == "varargs" || (hasTypealias(result, arg.type) && typealiasCanBeNil(result, arg.type)))) continue;
 
                 if (!arg.name.empty()) {
                     append("SCL_ASSUME(*(scl_int*) &Var_%s, \"Argument '%%s' is nil\", \"%s\");\n", arg.name.c_str(), arg.name.c_str());

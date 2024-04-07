@@ -104,9 +104,13 @@ namespace sclc {
             bool isListExpression = false;
             auto start = i;
             int bracketDepth = 0;
-            while (body[i].type != tok_bracket_close || bracketDepth > 0) {
+            while (i < body.size() && (body[i].type != tok_bracket_close || bracketDepth > 0)) {
                 if (body[i].type == tok_bracket_open) bracketDepth++;
-                if (body[i].type == tok_bracket_close) bracketDepth--;
+                if (body[i].type == tok_bracket_close) {
+                    if (--bracketDepth <= 0) {
+                        break;
+                    }
+                }
                 if (body[i].type == tok_do) {
                     isListExpression = true;
                     break;
