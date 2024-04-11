@@ -357,8 +357,8 @@ namespace sclc
             return nextToken();
         }
 
-        if (value == "pragma" || value == "c" || value == "macro" || value == "deprecated") {
-            if (c == '!') {
+        if (c == '!') {
+            if (value == "pragma" || value == "c" || value == "macro" || value == "deprecated") {
                 value += c;
                 c = source[++current];
                 column++;
@@ -386,6 +386,7 @@ namespace sclc
         TOKEN("end",        tok_end, line, filename);
         TOKEN("expect",     tok_extern, line, filename);
         TOKEN("while",      tok_while, line, filename);
+        TOKEN("until",      tok_until, line, filename);
         TOKEN("do",         tok_do, line, filename);
         TOKEN("done",       tok_done, line, filename);
         TOKEN("if",         tok_if, line, filename);

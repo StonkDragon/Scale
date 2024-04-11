@@ -9,7 +9,7 @@ enum Enum
     two  # 2
 end
 
-# prints 0, 2, 1
+# prints zero, two, one
 function main(): none
     Enum::zero puts
     Enum::two  puts

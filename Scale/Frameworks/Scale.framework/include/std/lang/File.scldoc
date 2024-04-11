@@ -2,8 +2,20 @@
 @std.fs
 @@{frameworkPath}/include/std/lang/File.scale
 ## Filesystem
+### final struct EndOfFileException
+The struct `EndOfFileException` is thrown when an end of file is reached.
+
 ### final struct File
 The struct `File` represents a file on the filesystem.
+
+### static decl File::stdin: const File
+Contains a `File` object representing the standard input stream.
+
+### static decl File::stdout: const File
+Contains a `File` object representing the standard output stream.
+
+### static decl File::stderr: const File
+Contains a `File` object representing the standard error stream.
 
 ### static function File::new(name: str): File
 Returns a new instance of `File` with the given name `name`.
@@ -14,8 +26,9 @@ Returns the name of this file.
 ### function File:close(): none
 Closes this file. Any further operations on this file will result in undefined behavior.
 
-### function readLine(): str?
-Reads a line from this file and returns it. Returns `nil` if the end of the file has been reached.
+### function readLine(): str
+Reads a line from this file and returns it.
+Throws an `EndOfFileException` if the end of the file has been reached.
 
 ### function readLines(): [str]
 Returns a list of all lines in this file.
@@ -46,8 +59,8 @@ This is equivalent to calling `0 f:offsetFromEnd`.
 ### function File:append(s: str): none
 Appends the string `s` to this file.
 
-### function File:puts(s: any): none
-Writes the string representation of `s` to this file.
+### reified function File:puts<T>(value: T): none
+Writes the string representation of `value` to this file.
 
 ### function File:writeBinary(buf: any, sz: int): none
 Writes `sz` bytes from the memory block pointed to by `buf` to this file.

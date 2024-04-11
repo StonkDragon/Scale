@@ -1,0 +1,13 @@
+import std.fs
+
+enum Foo
+    Foo
+    Bar
+    Baz
+end
+
+function main(): none
+    Foo::Foo:ordinal puts
+    Foo::Bar:ordinal puts
+    Foo::Baz:ordinal puts
+end

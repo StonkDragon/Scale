@@ -1,0 +1,24 @@
+import std.fs
+
+enum Foo
+    Foo
+    Bar
+    Baz
+end
+
+layout Bar
+    decl x: int
+    decl y: int
+end
+
+function main(): none
+
+    Bar {
+        1 => x
+        2 => y
+    } puts
+
+    Foo::Foo puts
+    Foo::Bar puts
+    Foo::Baz puts
+end

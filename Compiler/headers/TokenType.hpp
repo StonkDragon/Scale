@@ -27,6 +27,7 @@ namespace sclc
         tok_else,                   // else
         tok_fi,                     // fi
         tok_while,                  // while
+        tok_until,                  // until
         tok_do,                     // do
         tok_done,                   // done
         tok_extern,                 // extern
@@ -72,18 +73,6 @@ namespace sclc
         tok_bracket_open,           // [
         tok_bracket_close,          // ]
         tok_comma,                  // ,
-        tok_add,                    // +
-        tok_sub,                    // -
-        tok_mul,                    // *
-        tok_div,                    // /
-        tok_mod,                    // %
-        tok_land,                   // &
-        tok_lor,                    // |
-        tok_lxor,                   // ^
-        tok_lnot,                   // ~
-        tok_lsh,                    // <<
-        tok_rsh,                    // >>
-        tok_pow,                    // **
         tok_column,                 // :
         tok_double_column,          // ::
         tok_dot,                    // .

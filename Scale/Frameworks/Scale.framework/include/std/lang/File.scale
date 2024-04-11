@@ -2,13 +2,51 @@ import std.util.Closeable
 
 typealias __c_file "FILE*"
 
+cdecl "_scl_get_stdin"
+private expect foreign unsafe function __c_stdin(): __c_file
+cdecl "_scl_get_stdout"
+private expect foreign unsafe function __c_stdout(): __c_file
+cdecl "_scl_get_stderr"
+private expect foreign unsafe function __c_stderr(): __c_file
 cdecl "strlen"
 private expect foreign unsafe function __c_strlen(cstr: [int8]): int
+cdecl "getline"
+private expect foreign unsafe function __c_getline(cstr: [[int8]], size: [int], file: __c_file): int
+
+final struct EndOfFileException: Exception
+  function init(): none
+    "End of file reached" => self.msg
+  end
+end
 
 final struct File is Closeable
   private decl _name: str
   private decl _file: __c_file
   private decl _can_close: bool
+
+  static decl stdin: const File
+  static decl stdout: const File
+  static decl stderr: const File
+
+  construct function staticInit(): none
+    unsafe
+      File {
+        "stdin" => _name
+        __c_stdin => _file
+        false => _can_close
+      } => File::stdin
+      File {
+        "stdout" => _name
+        __c_stdout => _file
+        false => _can_close
+      } => File::stdout
+      File {
+        "stderr" => _name
+        __c_stderr => _file
+        false => _can_close
+      } => File::stderr
+    end
+  end
 
   function init(name: str): none
     unsafe
@@ -45,23 +83,8 @@ final struct File is Closeable
     end
   end
 
-  function puts(s: str): none
-    s self:append
-    "\n" self:append
-  end
-
-  function puts(s: [int8]): none
-    s self:append
-    "\n" self:append
-  end
-
-  function puts(f: float): none
-    f:toString self:puts
-  end
-
-  function puts(s: any): none
-    s builtinToString => decl val: str
-    val self:append
+  nonvirtual reified function puts<T>(value: T): none
+    value:toString self:append
     "\n" self:append
   end
 
@@ -131,20 +154,19 @@ final struct File is Closeable
     "" self:append
   end
 
-  function readLine(): str?
-    self:size => decl len: int
-    new<int8>[len] => decl line: [int8]
+  function readLine(): str
+    decl len: int
+    decl line: [int8]?
 
     unsafe
-      if line len self._file File::__c_fgets nil == then
-        nil return
-      fi
-      if line[line __c_strlen 1 -] '\n' == then
-        '\0' => line[line __c_strlen 1 -]
+      if ref line as [[int8]] ref len self._file __c_getline 0 < then
+        EndOfFileException::new throw
       fi
     end
 
-    line str::new return
+    line!! str::new => decl s: str
+    (0 to s:size 1 -) s:subString
+    s return
   end
 
   function readLines(): [str]

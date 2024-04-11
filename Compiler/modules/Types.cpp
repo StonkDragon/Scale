@@ -233,6 +233,12 @@ namespace sclc {
         bool argIsNilable = typeCanBeNil(arg);
         stack = removeTypeModifiers(stack);
         arg = removeTypeModifiers(arg);
+        if (hasEnum(result, stack)) {
+            stack = "int";
+        }
+        if (hasEnum(result, arg)) {
+            arg = "int";
+        }
         if (arg == "bool") arg = "int";
         if (stack == "bool") stack = "int";
         if (typeEquals(stack, arg) && stackTypeIsNilable == argIsNilable) {
