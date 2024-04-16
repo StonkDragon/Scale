@@ -47,7 +47,7 @@
 #endif
 
 #ifndef FRAMEWORK_VERSION_REQ
-#define FRAMEWORK_VERSION_REQ "24.1"
+#define FRAMEWORK_VERSION_REQ "24.1.2"
 #endif
 
 #ifndef SCL_ROOT_DIR
@@ -539,7 +539,7 @@ namespace sclc
         DragonConfig::CompoundEntry* framework = new DragonConfig::CompoundEntry();
         framework->setKey("framework");
 
-        framework->addString("version", "24.1");
+        framework->addString("version", "24.1.2");
         framework->addString("headerDir", "include");
         framework->addString("implDir", "impl");
         framework->addString("implHeaderDir", "impl");

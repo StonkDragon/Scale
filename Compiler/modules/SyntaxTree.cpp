@@ -684,13 +684,10 @@ namespace sclc {
     std::string reparseArgType(std::string type, const std::unordered_map<std::string, std::string>& templateArgs) {
         std::string mods = "";
         bool isVal = type.front() == '@';
-        if (isVal) {
-            type = type.substr(1);
-        }
         bool isNil = type.back() == '?';
         type = removeTypeModifiers(type);
         if (isVal) {
-            return "@" + mods + reparseArgType(type.substr(1), templateArgs) + (isNil ? "?" : "");
+            return "@" + mods + reparseArgType(type.substr(1), templateArgs);
         } else if (type.front() == '[') {
             std::string inner = type.substr(1, type.size() - 2);
             return "[" + reparseArgType(inner, templateArgs) + "]" + (isNil ? "?" : "");
@@ -701,7 +698,7 @@ namespace sclc {
             type = lt + ":" + reparseArgType(ret, templateArgs);
         }
         if (templateArgs.find(type) != templateArgs.end()) {
-            return mods + templateArgs.at(type) + (isNil ? "?" : "");
+            type = templateArgs.at(type);
         }
         return mods + type + (isNil ? "?" : "");
     }
@@ -709,13 +706,10 @@ namespace sclc {
     std::string reparseArgType(std::string type, const std::map<std::string, Token>& templateArgs) {
         std::string mods = "";
         bool isVal = type.front() == '@';
-        if (isVal) {
-            type = type.substr(1);
-        }
         bool isNil = type.back() == '?';
         type = removeTypeModifiers(type);
         if (isVal) {
-            return "@" + mods + reparseArgType(type.substr(1), templateArgs) + (isNil ? "?" : "");
+            return "@" + mods + reparseArgType(type.substr(1), templateArgs);
         } else if (type.front() == '[') {
             std::string inner = type.substr(1, type.size() - 2);
             return "[" + reparseArgType(inner, templateArgs) + "]" + (isNil ? "?" : "");
@@ -726,7 +720,7 @@ namespace sclc {
             type = lt + ":" + reparseArgType(ret, templateArgs);
         }
         if (templateArgs.find(type) != templateArgs.end()) {
-            return mods + templateArgs.at(type).value + (isNil ? "?" : "");
+            type = templateArgs.at(type).value;
         }
         return mods + type + (isNil ? "?" : "");
     }
@@ -1688,29 +1682,24 @@ namespace sclc {
         }
 
         for (size_t i = 0; i < tokens.size(); i++) {
-            if (tokens[i].type != tok_identifier || tokens[i].value != ">") {
-                continue;
-            }
-            if (i + 1 >= tokens.size()) {
-                continue;
-            }
-            if (tokens[i + 1].type != tok_identifier || tokens[i + 1].value != ">") {
-                continue;
-            }
-            if (tokens[i + 1].location.column - 1 != tokens[i].location.column) {
-                continue;
-            }
-            Token begin = tokens[i];
-            tokens.erase(tokens.begin() + i);
-            tokens.erase(tokens.begin() + i);
-            if (i < tokens.size() && tokens[i].type == tok_identifier && tokens[i].value == ">") {
-                if (tokens[i].location.column - 2 == tokens[i].location.column) {
-                    tokens.erase(tokens.begin() + i);
-                    tokens.insert(tokens.begin() + i, Token(tok_identifier, ">>>", begin.location));
+            int count = 0;
+            for (count = 0; count < 3; count++) {
+                if (i + count >= tokens.size()) {
+                    break;
                 }
-            } else {
-                tokens.insert(tokens.begin() + i, Token(tok_identifier, ">>", begin.location));
+                if (tokens[i + count].type != tok_identifier || tokens[i + count].value != ">") {
+                    break;
+                }
             }
+            if (count < 2) continue;
+            SourceLocation begin = tokens[i].location;
+            std::string val;
+            val.reserve(count);
+            for (int x = 0; x < count; x++) {
+                tokens.erase(tokens.begin() + i);
+                val.push_back('>');
+            }
+            tokens.insert(tokens.begin() + i, Token(tok_identifier, val, begin));
         }
 
         for (size_t i = 0; i < tokens.size(); i++) {

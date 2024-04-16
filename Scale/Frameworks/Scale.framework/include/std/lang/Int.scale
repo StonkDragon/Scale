@@ -101,6 +101,27 @@ macro! UIntStruct(type) {
   end
 }
 
+final static sealed struct bool
+  function toString(x: bool): str
+    if x then
+      "true" return
+    else
+      "false" return
+    fi
+  end
+
+  function parse(s: str): bool
+    if s "true" == then
+      true return
+    elif s "false" == then
+      false return
+    fi
+    unsafe
+      s:view __c_atoll as bool return
+    end
+  end
+end
+
 IntStruct! int8
 IntStruct! int16
 IntStruct! int32
@@ -151,150 +172,35 @@ struct Int
   end
 end
 
-expect foreign operator "add" function +(:int, :int): int
-expect foreign operator "sub" function -(:int, :int): int
-expect foreign operator "mul" function *(:int, :int): int
-expect foreign operator "div" function /(:int, :int): int
-expect foreign operator "pow" function **(:int, :int): int
+expect foreign reified operator "add" function +<A, B>(:A, :B): ArithmeticReturnType
+expect foreign reified operator "sub" function -<A, B>(:A, :B): ArithmeticReturnType
+expect foreign reified operator "mul" function *<A, B>(:A, :B): ArithmeticReturnType
+expect foreign reified operator "div" function /<A, B>(:A, :B): ArithmeticReturnType
+expect foreign reified operator "pow" function **<A, B>(:A, :B): ArithmeticReturnType
 
-expect foreign operator "add" function +(:int, :float): float
-expect foreign operator "sub" function -(:int, :float): float
-expect foreign operator "mul" function *(:int, :float): float
-expect foreign operator "div" function /(:int, :float): float
-expect foreign operator "pow" function **(:int, :float): float
-
-expect foreign operator "add" function +(:float, :int): float
-expect foreign operator "sub" function -(:float, :int): float
-expect foreign operator "mul" function *(:float, :int): float
-expect foreign operator "div" function /(:float, :int): float
-expect foreign operator "pow" function **(:float, :int): float
-
-expect foreign operator "add" function +(:float, :float): float
-expect foreign operator "sub" function -(:float, :float): float
-expect foreign operator "mul" function *(:float, :float): float
-expect foreign operator "div" function /(:float, :float): float
-expect foreign operator "pow" function **(:float, :float): float
-
-expect foreign operator "add" function +(:int, :float32): float32
-expect foreign operator "sub" function -(:int, :float32): float32
-expect foreign operator "mul" function *(:int, :float32): float32
-expect foreign operator "div" function /(:int, :float32): float32
-expect foreign operator "pow" function **(:int, :float32): float32
-
-expect foreign operator "add" function +(:float32, :int): float32
-expect foreign operator "sub" function -(:float32, :int): float32
-expect foreign operator "mul" function *(:float32, :int): float32
-expect foreign operator "div" function /(:float32, :int): float32
-expect foreign operator "pow" function **(:float32, :int): float32
-
-expect foreign operator "add" function +(:float32, :float32): float32
-expect foreign operator "sub" function -(:float32, :float32): float32
-expect foreign operator "mul" function *(:float32, :float32): float32
-expect foreign operator "div" function /(:float32, :float32): float32
-expect foreign operator "pow" function **(:float32, :float32): float32
-
-expect foreign operator "add" function +(:float32, :float): float
-expect foreign operator "sub" function -(:float32, :float): float
-expect foreign operator "mul" function *(:float32, :float): float
-expect foreign operator "div" function /(:float32, :float): float
-expect foreign operator "pow" function **(:float32, :float): float
-
-expect foreign operator "add" function +(:float, :float32): float
-expect foreign operator "sub" function -(:float, :float32): float
-expect foreign operator "mul" function *(:float, :float32): float
-expect foreign operator "div" function /(:float, :float32): float
-expect foreign operator "pow" function **(:float, :float32): float
-
-expect foreign operator "eq" function ==(:int, :float): bool
-expect foreign operator "ne" function !=(:int, :float): bool
-expect foreign operator "gt" function >(:int, :float): bool
-expect foreign operator "ge" function >=(:int, :float): bool
-expect foreign operator "lt" function <(:int, :float): bool
-expect foreign operator "le" function <=(:int, :float): bool
-
-expect foreign operator "eq" function ==(:float, :int): bool
-expect foreign operator "ne" function !=(:float, :int): bool
-expect foreign operator "gt" function >(:float, :int): bool
-expect foreign operator "ge" function >=(:float, :int): bool
-expect foreign operator "lt" function <(:float, :int): bool
-expect foreign operator "le" function <=(:float, :int): bool
-
-expect foreign operator "eq" function ==(:float, :float): bool
-expect foreign operator "ne" function !=(:float, :float): bool
-expect foreign operator "gt" function >(:float, :float): bool
-expect foreign operator "ge" function >=(:float, :float): bool
-expect foreign operator "lt" function <(:float, :float): bool
-expect foreign operator "le" function <=(:float, :float): bool
-
-expect foreign operator "eq" function ==(:int, :int): bool
-expect foreign operator "ne" function !=(:int, :int): bool
-expect foreign operator "gt" function >(:int, :int): bool
-expect foreign operator "ge" function >=(:int, :int): bool
-expect foreign operator "lt" function <(:int, :int): bool
-expect foreign operator "le" function <=(:int, :int): bool
-
-expect foreign operator "eq" function ==(:float, :float32): bool
-expect foreign operator "ne" function !=(:float, :float32): bool
-expect foreign operator "gt" function >(:float, :float32): bool
-expect foreign operator "ge" function >=(:float, :float32): bool
-expect foreign operator "lt" function <(:float, :float32): bool
-expect foreign operator "le" function <=(:float, :float32): bool
-
-expect foreign operator "eq" function ==(:float32, :float): bool
-expect foreign operator "ne" function !=(:float32, :float): bool
-expect foreign operator "gt" function >(:float32, :float): bool
-expect foreign operator "ge" function >=(:float32, :float): bool
-expect foreign operator "lt" function <(:float32, :float): bool
-expect foreign operator "le" function <=(:float32, :float): bool
-
-expect foreign operator "eq" function ==(:float32, :float32): bool
-expect foreign operator "ne" function !=(:float32, :float32): bool
-expect foreign operator "gt" function >(:float32, :float32): bool
-expect foreign operator "ge" function >=(:float32, :float32): bool
-expect foreign operator "lt" function <(:float32, :float32): bool
-expect foreign operator "le" function <=(:float32, :float32): bool
-
-expect foreign operator "eq" function ==(:int, :float32): bool
-expect foreign operator "ne" function !=(:int, :float32): bool
-expect foreign operator "gt" function >(:int, :float32): bool
-expect foreign operator "ge" function >=(:int, :float32): bool
-expect foreign operator "lt" function <(:int, :float32): bool
-expect foreign operator "le" function <=(:int, :float32): bool
-
-expect foreign operator "eq" function ==(:float32, :int): bool
-expect foreign operator "ne" function !=(:float32, :int): bool
-expect foreign operator "gt" function >(:float32, :int): bool
-expect foreign operator "ge" function >=(:float32, :int): bool
-expect foreign operator "lt" function <(:float32, :int): bool
-expect foreign operator "le" function <=(:float32, :int): bool
-
-expect foreign operator "eq" function ==(:any, :any): bool
-expect foreign operator "ne" function !=(:any, :any): bool
-expect foreign operator "gt" function >(:any, :any): bool
-expect foreign operator "ge" function >=(:any, :any): bool
-expect foreign operator "lt" function <(:any, :any): bool
-expect foreign operator "le" function <=(:any, :any): bool
+expect foreign reified operator "eq" function == <A?, B?>(:A?, :B?): bool
+expect foreign reified operator "ne" function != <A?, B?>(:A?, :B?): bool
+expect foreign reified operator "gt" function > <A?, B?>(:A?, :B?): bool
+expect foreign reified operator "ge" function >= <A?, B?>(:A?, :B?): bool
+expect foreign reified operator "lt" function < <A?, B?>(:A?, :B?): bool
+expect foreign reified operator "le" function <= <A?, B?>(:A?, :B?): bool
 
 expect foreign operator "and" function &&(:int, :int): bool
 expect foreign operator "or" function ||(:int, :int): bool
 expect foreign operator "not" function !(:int): bool
 
-expect foreign operator "mod" function %(:int, :int): int
-expect foreign operator "land" function &(:int, :int): int
-expect foreign operator "lor" function |(:int, :int): int
-expect foreign operator "lxor" function ^(:int, :int): int
-expect foreign operator "lnot" function ~(:int): int
-expect foreign operator "lsl" function <<(:int, :int): int
-expect foreign operator "lsr" function >>(:int, :int): int
-expect foreign operator "rol" function <<<(:int, :int): int
-expect foreign operator "ror" function >>>(:int, :int): int
+expect foreign reified operator "mod" function % <A, >(:A, :int): A
+expect foreign reified operator "land" function & <A, >(:A, :int): A
+expect foreign reified operator "lor" function | <A, >(:A, :int): A
+expect foreign reified operator "lxor" function ^ <A, >(:A, :int): A
+expect foreign reified operator "lnot" function ~ <A>(:A): A
+expect foreign reified operator "lsl" function << <A, >(:A, :int): A
+expect foreign reified operator "lsr" function >> <A, >(:A, :int): A
+expect foreign reified operator "rol" function <<< <A, >(:A, :int): A
+expect foreign reified operator "ror" function >>> <A, >(:A, :int): A
 
-expect foreign operator "inc" function ++(:int): int
-expect foreign operator "inc" function ++(:float): float
-expect foreign operator "inc" function ++(:float32): float32
-expect foreign operator "dec" function --(:int): int
-expect foreign operator "dec" function --(:float): float
-expect foreign operator "dec" function --(:float32): float32
+expect foreign reified operator "inc" function ++ <A>(:A): A
+expect foreign reified operator "dec" function -- <A>(:A): A
 
 expect foreign reified operator "at" function @<[T]>(:[T]): T
 expect foreign reified operator "ann" function !!<T?>(:T?): T

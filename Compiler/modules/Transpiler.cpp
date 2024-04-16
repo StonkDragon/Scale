@@ -500,6 +500,8 @@ namespace sclc {
         append("#pragma clang diagnostic ignored \"-Wint-conversion\"\n");
         append("#pragma clang diagnostic ignored \"-Winteger-overflow\"\n");
         append("#pragma clang diagnostic ignored \"-Wout-of-scope-function\"\n");
+        append("#pragma clang diagnostic ignored \"-Wconstant-conversion\"\n");
+        append("#pragma clang diagnostic ignored \"-Wpointer-integer-compare\"\n");
         append("#endif\n\n");
     }
 

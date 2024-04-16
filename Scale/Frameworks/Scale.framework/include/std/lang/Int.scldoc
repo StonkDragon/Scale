@@ -2,81 +2,95 @@
 @std.Int
 @@{frameworkPath}/include/std/lang/Int.scale
 ## Int
-### operator function +(a: int | float | float32, b: int | float | float32): int | float | float32
+### reified operator function +<A, B>(a: A, b: B): A | B
 Returns the sum of `a` and `b`.
+Return type is the larger type of `A` or `B`.
 
-### operator function -(a: int | float | float32, b: int | float | float32): int | float | float32
+### reified operator function -<A, B>(a: A, b: B): A | B
 Returns the difference of `a` and `b`.
+Return type is the larger type of `A` or `B`.
 
-### operator function *(a: int | float | float32, b: int | float | float32): int | float | float32
+### reified operator function *<A, B>(a: A, b: B): A | B
 Returns the product of `a` and `b`.
+Return type is the larger type of `A` or `B`.
 
-### operator function /(a: int | float | float32, b: int | float | float32): int | float | float32
+### reified operator function /<A, B>(a: A, b: B): A | B
 Returns the quotient of `a` and `b`.
+Return type is the larger type of `A` or `B`.
 
-### operator function **(a: int | float | float32, b: int | float | float32): int | float | float32
+### reified operator function **<A, B>(a: A, b: B): A | B
 Returns `a` raised to the power of `b`.
+Return type is the larger type of `A` or `B`.
 
-### operator function %(a: int, b: int): int
+### reified operator function %<A, >(a: A, b: int): A
 Returns the remainder of `a` divided by `b`.
 
-### operator function &(a: int, b: int): int
+### reified operator function &<A, >(a: A, b: int): A
 Returns the bitwise AND of `a` and `b`.
 
-### operator function |(a: int, b: int): int
+### reified operator function |<A, >(a: A, b: int): A
 Returns the bitwise OR of `a` and `b`.
 
-### operator function ^(a: int, b: int): int
+### reified operator function ^<A, >(a: A, b: int): A
 Returns the bitwise XOR of `a` and `b`.
 
-### operator function ~(a: int): int
+### reified operator function ~<A>(a: A): A
 Returns the bitwise NOT of `a`.
 
-### operator function <<(a: int, b: int): int
+### reified operator function <<<A, >(a: A, b: int): A
 Returns `a` shifted left by `b` bits.
 
-### operator function >>(a: int, b: int): int
+### reified operator function >><A, >(a: A, b: int): A
 Returns `a` shifted right by `b` bits.
 
-### operator function <<<(a: int, b: int): int
+### reified operator function <<<<A, >(a: A, b: int): A
 Returns `a` rotated left by `b` bits.
 
-### operator function >>>(a: int, b: int): int
+### reified operator function >>><A, >(a: A, b: int): A
 Returns `a` rotated right by `b` bits.
 
-### operator function ==(a: int | float | float32, b: int | float | float32): bool
+### reified operator function == <A?, B?>(a: A?, b: B?): bool
 Returns true if `a` and `b` represent the same value.
 
-### operator function !=(a: int | float | float32, b: int | float | float32): bool
+### reified operator function != <A?, B?>(a: A?, b: B?): bool
 Returns true if `a` and `b` do not represent the same value.
 
-### operator function <(a: int | float | float32, b: int | float | float32): bool
+### reified operator function < <A?, B?>(a: A?, b: B?): bool
 Returns true if `a` is less than `b`.
 
-### operator function >(a: int | float | float32, b: int | float | float32): bool
+### reified operator function > <A?, B?>(a: A?, b: B?): bool
 Returns true if `a` is greater than `b`.
 
-### operator function <=(a: int | float | float32, b: int | float | float32): bool
+### reified operator function <= <A?, B?>(a: A?, b: B?): bool
 Returns true if `a` is less than or equal to `b`.
 
-### operator function >=(a: int | float | float32, b: int | float | float32): bool
+### reified operator function >= <A?, B?>(a: A?, b: B?): bool
 Returns true if `a` is greater than or equal to `b`.
 
-### operator function ++(a: int | float | float32): int | float | float32
+### reified operator function ++ <A>(a: A): A
 Returns the value of `a` incremented by 1.
 
-### operator function --(a: int | float | float32): int | float | float32
+### reified operator function -- <A>(a: A): A
 Returns the value of `a` decremented by 1.
 
-### operator function @<[T]>(a: [T]): T
+### reified operator function @<[T]>(a: [T]): T
 Dereferences the pointer `a`.
 This operator does not do a `nil` check. Also use `!!` or `?:` if you want that.
 
-### operator function !!<T?>(a: T?): T
+### reified operator function !!<T?>(a: T?): T
 Returns `a` if `a` is not nil, otherwise throws an error.
 
-### operator function ?:<T?, >(a: T?, b: T): T
+### reified operator function ?:<T?, >(a: T?, b: T): T
 Returns `a` if `a` is not nil, otherwise returns `b`.
+
+### operator function &&(a: int, b: int): bool
+Returns `true` if both `a` and `b` are `true`.
+
+### operator function ||(a: int, b: int): bool
+Returns `true` if `a` or `b` is `true`.
+
+### operator function !(a: int): bool
+Returns `true` if `a` is `false` and `false` if `a` is `true`.
 
 ### final static struct int8
 The static struct `int8` provides utility functions for working with the `int8` type.

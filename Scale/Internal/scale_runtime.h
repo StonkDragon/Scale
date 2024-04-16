@@ -545,6 +545,8 @@ void				cxx_std_recursive_mutex_unlock(scl_any* mutex);
 #define _scl_popn(n)						(_local_stack_ptr -= (n))
 #define _scl_dup()							_scl_push(scl_any, _scl_top(scl_any))
 #define _scl_drop()							(--_local_stack_ptr)
+#define _scl_cast_positive_offset(offset, _type, _other) \
+											((_other) (*(_type*) (_local_stack_ptr + offset)))
 
 #define _scl_swap() ({ \
 		scl_int tmp = _local_stack_ptr[-1]; \
@@ -593,6 +595,7 @@ void				cxx_std_recursive_mutex_unlock(scl_any* mutex);
 #define _scl_lxor(a, b)			(a) ^ (b)
 #define _scl_lnot(a)			~((a))
 #define _scl_lsr(a, b)			(a) >> (b)
+#define _scl_asr(a, b)			(a) >> (b)
 #define _scl_lsl(a, b)			(a) << (b)
 #define _scl_eq(a, b)			(a) == (b)
 #define _scl_ne(a, b)			(a) != (b)
@@ -608,12 +611,36 @@ void				cxx_std_recursive_mutex_unlock(scl_any* mutex);
 #define _scl_dec(a)				((a) - 1)
 #define _scl_ann(a)				({ typeof((a)) _a = (a); _scl_assert(_a, "Expected non-nil value"); _a; })
 #define _scl_elvis(a, b)		({ typeof((a)) _a = (a); _a ? _a : (b); })
-#define _scl_ror(a, b)			({ typeof((a)) _a = (a); typeof((b)) _b = (b); ((_a) >> (_b)) | ((_a) << ((sizeof(typeof(_a)) << 3) - (_b))); })
-#define _scl_rol(a, b)			({ typeof((a)) _a = (a); typeof((b)) _b = (b); ((_a) << (_b)) | ((_a) >> ((sizeof(typeof(_a)) << 3) - (_b))); })
 #define _scl_checked_index(a, i) \
 								({ typeof((a)) _a = (a); typeof((i)) _i = (i); _scl_array_check_bounds_or_throw((scl_any*) _a, _i); _a[_i]; })
 #define _scl_checked_write(a, i, w) \
 								({ typeof((a)) _a = (a); typeof((i)) _i = (i); _scl_array_check_bounds_or_throw((scl_any*) _a, _i); _a[_i] = (w); })
+
+
+static inline scl_uint8 _scl_ror8(scl_uint8 a, scl_int b) { return (a >> b) | (a << ((sizeof(scl_uint8) << 3) - b)); }
+static inline scl_uint16 _scl_ror16(scl_uint16 a, scl_int b) { return (a >> b) | (a << ((sizeof(scl_uint16) << 3) - b)); }
+static inline scl_uint32 _scl_ror32(scl_uint32 a, scl_int b) { return (a >> b) | (a << ((sizeof(scl_uint32) << 3) - b)); }
+static inline scl_uint64 _scl_ror64(scl_uint64 a, scl_int b) { return (a >> b) | (a << ((sizeof(scl_uint64) << 3) - b)); }
+
+static inline scl_uint8 _scl_rol8(scl_uint8 a, scl_int b) { return (a << b) | (a >> ((sizeof(scl_uint8) << 3) - b)); }
+static inline scl_uint16 _scl_rol16(scl_uint16 a, scl_int b) { return (a << b) | (a >> ((sizeof(scl_uint16) << 3) - b)); }
+static inline scl_uint32 _scl_rol32(scl_uint32 a, scl_int b) { return (a << b) | (a >> ((sizeof(scl_uint32) << 3) - b)); }
+static inline scl_uint64 _scl_rol64(scl_uint64 a, scl_int b) { return (a << b) | (a >> ((sizeof(scl_uint64) << 3) - b)); }
+
+#define _scl_ror(a, b)	(_Generic((a), \
+		scl_int8: _scl_ror8, scl_uint8: _scl_ror8, \
+		scl_int16: _scl_ror16, scl_uint16: _scl_ror16, \
+		scl_int32: _scl_ror32, scl_uint32: _scl_ror32, \
+		scl_int64: _scl_ror64, scl_uint64: _scl_ror64, \
+		scl_int: _scl_ror64, scl_uint: _scl_ror64 \
+	))((a), (b))
+#define _scl_rol(a, b)	(_Generic((a), \
+		scl_int8: _scl_ror8, scl_uint8: _scl_ror8, \
+		scl_int16: _scl_ror16, scl_uint16: _scl_ror16, \
+		scl_int32: _scl_ror32, scl_uint32: _scl_ror32, \
+		scl_int64: _scl_ror64, scl_uint64: _scl_ror64, \
+		scl_int: _scl_ror64, scl_uint: _scl_ror64 \
+	))((a), (b))
 
 #if defined(__cplusplus)
 }
