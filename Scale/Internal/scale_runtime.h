@@ -501,7 +501,6 @@ scl_any				_scl_alloc_struct(const TypeInfo* statics);
 scl_any				_scl_init_struct(scl_any ptr, const TypeInfo* statics, memory_layout_t* layout);
 scl_int				_scl_is_instance(scl_any ptr);
 scl_int				_scl_is_instance_of(scl_any ptr, ID_t type_id);
-_scl_lambda			_scl_get_method_on_type(scl_any type, ID_t method, ID_t signature, int onSuper);
 scl_any				_scl_get_vtable_function(scl_int onSuper, scl_any instance, const scl_int8* methodIdentifier);
 scl_any				_scl_checked_cast(scl_any instance, ID_t target_type, const scl_int8* target_type_name);
 scl_int8*			_scl_typename_or_else(scl_any instance, const scl_int8* else_);

@@ -305,6 +305,53 @@ final sealed struct str is Equatable, Cloneable, Stringifyable, Iterable
     self.data any::delete
   end
 
+  static function format(fmt: str, args: varargs): str
+    decl out: str
+    
+    0 => decl current: int
+    args:size => decl size: int
+    for i in 0 to fmt:size do
+      fmt[i] => decl c: int8
+      if c '%' == then
+        i++ => i
+        fmt[i] => c
+        if c '%' == then
+          out "%" + => out
+          continue
+        fi
+        if current size >= then
+          "Not enough arguments for format string" InvalidArgumentException::new throw
+        fi
+        args[current] => decl arg: any
+        current++ => current
+        if c 'i' == then
+          out arg as int + => out
+        elif c 's' == then
+          out arg as str + => out
+        elif c '@' == then
+          if arg then
+            out arg as SclObject:toString + => out
+          else
+            out "(nil)" + => out
+          fi
+        elif c 'f' == then
+          out arg float::fromBits:toString + => out
+        elif c 'p' == then
+          out arg int::toHexString + => out
+        elif c 'b' == then
+          out arg bool::toString + => out
+        elif c 'c' == then
+          out arg int8::toString + => out
+        else
+          "Invalid format specifier at position #" i + InvalidArgumentException::new throw
+        fi
+      else
+        out c:toString + => out
+      fi
+    done
+    out return
+  end
+
   static function =>(cStr: [int8]): str
     cStr str::new return
   end

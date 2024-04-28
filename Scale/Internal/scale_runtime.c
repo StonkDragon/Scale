@@ -93,6 +93,17 @@ scl_int _scl_sizeof(scl_any ptr) {
 	return layout->size;
 }
 
+void _scl_finalize(scl_any ptr) {
+	ptr = _scl_get_memory_layout(ptr);
+	if (ptr && (((memory_layout_t*) ptr)->flags & MEM_FLAG_INSTANCE)) {
+		scl_any obj = (scl_any) (ptr + sizeof(memory_layout_t));
+		virtual_call(obj, "finalize()V;");
+	}
+	((memory_layout_t*) ptr)->size = 0;
+	((memory_layout_t*) ptr)->flags = 0;
+	((memory_layout_t*) ptr)->array_elem_size = 0;
+}
+
 scl_any _scl_alloc(scl_int size) {
 	scl_int orig_size = size;
 	size = ((size + 7) >> 3) << 3;
@@ -102,6 +113,7 @@ scl_any _scl_alloc(scl_int size) {
 	if (unlikely(ptr == nil)) {
 		raise(SIGSEGV);
 	}
+	GC_register_finalizer(ptr, (GC_finalization_proc) _scl_finalize, nil, nil, nil);
 
 	((memory_layout_t*) ptr)->size = orig_size;
 
@@ -122,6 +134,7 @@ scl_any _scl_realloc(scl_any ptr, scl_int size) {
 	if (unlikely(ptr == nil)) {
 		raise(SIGSEGV);
 	}
+	GC_register_finalizer(ptr, (GC_finalization_proc) _scl_finalize, nil, nil, nil);
 
 	((memory_layout_t*) ptr)->size = orig_size;
 	
@@ -130,15 +143,13 @@ scl_any _scl_realloc(scl_any ptr, scl_int size) {
 
 void _scl_free(scl_any ptr) {
 	if (unlikely(ptr == nil)) return;
-	if (_scl_is_instance(ptr)) {
-		cxx_std_recursive_mutex_delete(&((Struct*) ptr)->mutex);
-	}
-	ptr = GC_base(ptr);
-	if (likely(ptr != nil)) {
-		((memory_layout_t*) ptr)->size = 0;
-		((memory_layout_t*) ptr)->flags = 0;
-		((memory_layout_t*) ptr)->array_elem_size = 0;
-		GC_free(ptr);
+	scl_any base = GC_base(ptr);
+	if (likely(base)) {
+		_scl_finalize(ptr);
+		if (_scl_is_instance(ptr)) {
+			cxx_std_recursive_mutex_delete(&((Struct*) ptr)->mutex);
+		}
+		GC_free(base);
 	}
 }
 
@@ -166,7 +177,7 @@ scl_int builtinIsInstanceOf(scl_any obj, scl_str type) {
 _scl_symbol_hidden static void native_trace(void);
 
 char* vstrformat(const char* fmt, va_list args) {
-	size_t len = vsnprintf(NULL, 0, fmt, args);
+	size_t len = vsnprintf(nil, 0, fmt, args);
 	char* s = _scl_alloc(len + 1);
 	vsnprintf(s, len + 1, fmt, args);
 	return s;
@@ -203,7 +214,7 @@ scl_any _scl_cvarargs_to_array(va_list args, scl_int count) {
 _scl_symbol_hidden static void _scl_signal_handler(scl_int sig_num) {
 	static int handling_signal = 0;
 	static int with_errno = 0;
-	const scl_int8* signalString = NULL;
+	const scl_int8* signalString = nil;
 
 	if (handling_signal) {
 		signalString = strsignal(handling_signal);
@@ -312,12 +323,13 @@ scl_any _scl_copy_fields(scl_any dest, scl_any src, scl_int size) {
 
 _scl_symbol_hidden static scl_int _scl_search_method_index(const struct _scl_methodinfo* const methods, ID_t id, ID_t sig);
 
-_scl_lambda _scl_get_method_on_type(scl_any type, ID_t method, ID_t signature, int onSuper) {
-	if (unlikely(!_scl_is_instance(type))) {
-		_scl_runtime_error(EX_CAST_ERROR, "Tried getting method on non-struct type (%p)", type);
+static inline _scl_lambda _scl_get_method_on_type(scl_any type, ID_t method, ID_t signature, int onSuper) {
+	const struct TypeInfo* ti;
+	if (likely(!onSuper)) {
+		ti = ((Struct*) type)->type;
+	} else {
+		ti = ((Struct*) type)->type->super;
 	}
-
-	const struct TypeInfo* ti = likely(!onSuper) ? ((Struct*) type)->type : ((Struct*) type)->type->super;
 	const struct _scl_methodinfo* mi = ti->vtable_info;
 	const _scl_lambda* vtable = ti->vtable;
 
@@ -347,6 +359,10 @@ _scl_symbol_hidden static void split_at(const scl_int8* str, size_t len, size_t 
 }
 
 scl_any _scl_get_vtable_function(scl_int onSuper, scl_any instance, const scl_int8* methodIdentifier) {
+	if (unlikely(!_scl_is_instance(instance))) {
+		_scl_runtime_error(EX_CAST_ERROR, "Tried getting method on non-struct type (%p)", instance);
+	}
+
 	size_t methodLen = strlen(methodIdentifier);
 	ID_t signatureHash;
 	size_t methodNameLen = str_index_of_or(methodIdentifier, '(', methodLen);
@@ -365,6 +381,9 @@ scl_any _scl_get_vtable_function(scl_int onSuper, scl_any instance, const scl_in
 
 	_scl_lambda m = _scl_get_method_on_type(instance, methodNameHash, signatureHash, onSuper);
 	if (unlikely(m == nil)) {
+		if (unlikely(((Struct*) instance)->type == nil)) {
+			_scl_runtime_error(EX_BAD_PTR, "instance->type is nil");
+		}
 		_scl_runtime_error(EX_BAD_PTR, "Method '%s%s' not found on type '%s'", methodName, signature, ((Struct*) instance)->type->type_name);
 	}
 	return m;

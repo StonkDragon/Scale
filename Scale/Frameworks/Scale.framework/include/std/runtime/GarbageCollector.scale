@@ -17,13 +17,17 @@ static final sealed struct GarbageCollector
 
     function pause(): none
         unsafe
-            true setPaused0
+            if isPaused0 ! then
+                true setPaused0
+            fi
         end
     end
 
     function resume(): none
         unsafe
-            false setPaused0
+            if isPaused0 then
+                false setPaused0
+            fi
         end
     end
 

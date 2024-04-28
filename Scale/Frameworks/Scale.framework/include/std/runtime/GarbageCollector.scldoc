@@ -21,9 +21,11 @@ Performs a garbage collection.
 
 ### static function GarbageCollector::pause(): none
 Pauses the garbage collector.
+Call is a no-op if the garbage collector is already disabled.
 
 ### static function GarbageCollector::resume(): none
 Resumes the garbage collector.
+Call is a no-op if the garbage collector is already enabled.
 
 ### static function GarbageCollector::isPaused(): bool
 Returns true if the garbage collector is paused.
