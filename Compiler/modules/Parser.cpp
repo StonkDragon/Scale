@@ -161,8 +161,8 @@ namespace sclc
         scopeDepth = 0;
 
         for (Variable& s : result.globals) {
-            if (!Main::options::noLinkScale && strstarts(s.name_token.location.file, scaleFolder + "/Frameworks/Scale.framework") && !Main::options::noMain) {
-                const std::string& file = s.name_token.location.file;
+            const std::string& file = s.name_token.location.file;
+            if (!Main::options::noLinkScale && strstarts(file, scaleFolder + "/Frameworks/Scale.framework") && !Main::options::noMain) {
                 if (!strcontains(file, "/compiler/") && !strcontains(file, "/macros/") && !strcontains(file, "/__")) {
                     continue;
                 }
@@ -176,44 +176,30 @@ namespace sclc
         append("_scl_constructor void init_this%llx() {\n", random());
         scopeDepth++;
         append("_scl_setup();\n");
-        if (initFuncs.size()) {
-            append("TRY {\n");
-            for (auto&& f : initFuncs) {
-                if (!Main::options::noLinkScale && strstarts(f->name_token.location.file, scaleFolder + "/Frameworks/Scale.framework") && !Main::options::noMain) {
-                    const std::string& file = f->name_token.location.file;
-                    if (!strcontains(file, "/compiler/") && !strcontains(file, "/macros/") && !strcontains(file, "/__")) {
-                        continue;
-                    }
+        std::vector<Function*> creates;
+        std::vector<Function*> destroys;
+        for (auto&& f : initFuncs) {
+            if (!Main::options::noLinkScale && strstarts(f->name_token.location.file, scaleFolder + "/Frameworks/Scale.framework") && !Main::options::noMain) {
+                const std::string& file = f->name_token.location.file;
+                if (!strcontains(file, "/compiler/") && !strcontains(file, "/macros/") && !strcontains(file, "/__")) {
+                    continue;
                 }
-                append("  fn_%s();\n", f->name.c_str());
             }
-            append("} else {\n");
-            append("  _scl_runtime_catch(_scl_exception_handler.exception);\n");
-            append("}\n");
+            append("  fn_%s();\n", f->name.c_str());
         }
         scopeDepth--;
         append("}\n");
 
+        append("\n");
+        append("_scl_destructor void destroy_this%llx() {\n", random());
         if (destroyFuncs.size()) {
-            append("\n");
-            append("_scl_destructor void destroy_this%llx() {\n", random());
             scopeDepth++;
-            append("TRY {\n");
             for (auto&& f : destroyFuncs) {
-                if (!Main::options::noLinkScale && strstarts(f->name_token.location.file, scaleFolder + "/Frameworks/Scale.framework") && !Main::options::noMain) {
-                    const std::string& file = f->name_token.location.file;
-                    if (!strcontains(file, "/compiler/") && !strcontains(file, "/macros/") && !strcontains(file, "/__")) {
-                        continue;
-                    }
-                }
                 append("  fn_%s();\n", f->name.c_str());
             }
-            append("} else {\n");
-            append("  _scl_runtime_catch(_scl_exception_handler.exception);\n");
-            append("}\n");
             scopeDepth--;
-            append("}\n");
         }
+        append("}\n");
 
         std::ofstream func(func_file, std::ios::out);
         fp.flush();
@@ -228,8 +214,8 @@ namespace sclc
                 if (s.isStatic() || s.isExtern() || s.templateInstance) {
                     return;
                 }
-                if (!Main::options::noLinkScale && s.templates.size() == 0 && strstarts(s.name_token.location.file, scaleFolder + "/Frameworks/Scale.framework") && !Main::options::noMain) {
-                    const std::string& file = s.name_token.location.file;
+                const std::string& file = s.name_token.location.file;
+                if (!Main::options::noLinkScale && (s.templates.size() == 0 || s.usedInStdLib) && strstarts(file, scaleFolder + "/Frameworks/Scale.framework") && !Main::options::noMain) {
                     if (!strcontains(file, "/compiler/") && !strcontains(file, "/macros/") && !strcontains(file, "/__")) {
                         append("extern const TypeInfo _scl_ti_%s __asm(\"__T%s\");\n", s.name.c_str(), s.name.c_str());
                         return;

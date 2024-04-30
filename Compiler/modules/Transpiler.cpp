@@ -558,8 +558,8 @@ namespace sclc {
                 currentStruct = Struct::Null;
             }
 
-            if (!Main::options::noLinkScale && currentStruct.templates.size() == 0 && function->reified_parameters.size() == 0 && strstarts(function->name_token.location.file, scaleFolder + "/Frameworks/Scale.framework") && !Main::options::noMain) {
-                const std::string& file = function->name_token.location.file;
+            const std::string& file = function->name_token.location.file;
+            if (!Main::options::noLinkScale && (currentStruct.templates.size() == 0 || currentStruct.usedInStdLib) && function->reified_parameters.size() == 0 && strstarts(file, scaleFolder + "/Frameworks/Scale.framework") && !Main::options::noMain) {
                 if (!strcontains(file, "/compiler/") && !strcontains(file, "/macros/") && !strcontains(file, "/__")) {
                     continue;
                 }

@@ -796,10 +796,11 @@ namespace sclc {
             this->arguments[key] = value;
         }
 
-        void makeInstance(TPResult& result, const Struct& baseStruct) {
+        void makeInstance(TPResult& result, const Struct& baseStruct, SourceLocation loc) {
             std::string instanceName = this->nameForInstance();
             Struct instance(instanceName);
             copyTo(baseStruct, instance, result);
+            instance.usedInStdLib = strstarts(loc.file, scaleFolder + "/Frameworks/Scale.framework") && !strcontains(loc.file, "/compiler/") && !strcontains(loc.file, "/macros/") && !strcontains(loc.file, "/__");
             result.structs.push_back(instance);
         }
 
@@ -949,7 +950,7 @@ namespace sclc {
                 continue;
             }
             baseStruct.templateInstance = true;
-            templateInstance.makeInstance(result, baseStruct);
+            templateInstance.makeInstance(result, baseStruct, templateInstance.instantiatingToken.location);
         }
     }
 
@@ -2365,8 +2366,9 @@ namespace sclc {
                 }
                 i++;
                 std::string name = tokens[i].value;
-                i++;
                 Layout layout(namePrefix + name);
+                layout.name_token = tokens[i];
+                i++;
 
                 while (tokens[i].type != tok_end) {
                     if (tokens[i].type != tok_declare) {

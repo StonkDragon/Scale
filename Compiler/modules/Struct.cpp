@@ -10,60 +10,6 @@ namespace sclc {
         this->flags = 0;
         this->required_typed_arguments = 0;
     }
-    Struct::Struct(const Struct& other) {
-        this->name = other.name;
-        this->name_token = other.name_token;
-        this->flags = other.flags;
-        this->members = other.members;
-        this->memberInherited = other.memberInherited;
-        this->interfaces = other.interfaces;
-        this->super = other.super;
-        this->toImplementFunctions = other.toImplementFunctions;
-        this->required_typed_arguments = other.required_typed_arguments;
-        this->templates = other.templates;
-        this->templateInstance = other.templateInstance;
-    }
-    Struct::Struct(Struct&& other) {
-        this->name = std::move(other.name);
-        this->name_token = std::move(other.name_token);
-        this->flags = std::move(other.flags);
-        this->members = std::move(other.members);
-        this->memberInherited = std::move(other.memberInherited);
-        this->interfaces = std::move(other.interfaces);
-        this->super = std::move(other.super);
-        this->toImplementFunctions = std::move(other.toImplementFunctions);
-        this->required_typed_arguments = std::move(other.required_typed_arguments);
-        this->templates = std::move(other.templates);
-        this->templateInstance = std::move(other.templateInstance);
-    }
-    Struct& Struct::operator=(const Struct& other) {
-        this->name = other.name;
-        this->name_token = other.name_token;
-        this->flags = other.flags;
-        this->members = other.members;
-        this->memberInherited = other.memberInherited;
-        this->interfaces = other.interfaces;
-        this->super = other.super;
-        this->toImplementFunctions = other.toImplementFunctions;
-        this->required_typed_arguments = other.required_typed_arguments;
-        this->templates = other.templates;
-        this->templateInstance = other.templateInstance;
-        return *this;
-    }
-    Struct& Struct::operator=(Struct&& other) {
-        this->name = std::move(other.name);
-        this->name_token = std::move(other.name_token);
-        this->flags = std::move(other.flags);
-        this->members = std::move(other.members);
-        this->memberInherited = std::move(other.memberInherited);
-        this->interfaces = std::move(other.interfaces);
-        this->super = std::move(other.super);
-        this->toImplementFunctions = std::move(other.toImplementFunctions);
-        this->required_typed_arguments = std::move(other.required_typed_arguments);
-        this->templates = std::move(other.templates);
-        this->templateInstance = std::move(other.templateInstance);
-        return *this;
-    }
     Struct::~Struct() {};
     void Struct::addMember(Variable member, bool inherited) {
         if (inherited) {

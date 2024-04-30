@@ -23,14 +23,11 @@ namespace sclc
         size_t required_typed_arguments;
         std::map<std::string, Token> templates;
         bool templateInstance = false;
+        bool usedInStdLib = false;
         static Struct Null;
 
         Struct(std::string name);
         Struct(std::string name, Token t);
-        Struct(const Struct& other);
-        Struct(Struct&& other);
-        Struct& operator=(const Struct& other);
-        Struct& operator=(Struct&& other);
         ~Struct();
         void addMember(Variable member, bool inherited = false);
         void clearMembers();

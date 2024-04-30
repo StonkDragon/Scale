@@ -125,6 +125,9 @@ scl_any _scl_realloc(scl_any ptr, scl_int size) {
 		_scl_free(ptr);
 		return nil;
 	}
+	if (unlikely(ptr == nil)) {
+		return _scl_alloc(size);
+	}
 
 	scl_int orig_size = size;
 	size = ((size + 7) >> 3) << 3;
@@ -151,27 +154,6 @@ void _scl_free(scl_any ptr) {
 		}
 		GC_free(base);
 	}
-}
-
-void _scl_assert(scl_int b, const scl_int8* msg, ...) {
-	if (unlikely(!b)) {
-		scl_AssertError e = ALLOC(AssertError);
-		va_list list;
-		va_start(list, msg);
-		virtual_call(e, "init(s;)V;", str_of_exact(strformat("Assertion failed: %s", vstrformat(msg, list))));
-		va_end(list);
-		_scl_throw(e);
-	}
-}
-
-void builtinUnreachable(void) {
-	scl_UnreachableError e = ALLOC(UnreachableError);
-	virtual_call(e, "init(s;)V;", str_of_exact("Unreachable"));
-	_scl_throw(e);
-}
-
-scl_int builtinIsInstanceOf(scl_any obj, scl_str type) {
-	return _scl_is_instance_of(obj, type->hash);
 }
 
 _scl_symbol_hidden static void native_trace(void);
@@ -232,16 +214,6 @@ _scl_symbol_hidden static void _scl_signal_handler(scl_int sig_num) {
 	signalString = strsignal(sig_num);
 	handling_signal = sig_num;
 	with_errno = errno;
-
-	struct {
-		memory_layout_t layout;
-		struct Struct_SignalError error;
-	} data = {
-		.layout = {
-			.size = sizeof(struct Struct_SignalError),
-			.flags = MEM_FLAG_INSTANCE
-		}
-	};
 
 	scl_SignalError sigErr = ALLOC(SignalError);
 	virtual_call(sigErr, "init(s;)V;", _scl_create_string(signalString));
@@ -310,14 +282,18 @@ scl_any _scl_atomic_clone(scl_any ptr) {
 	scl_int size = _scl_sizeof(ptr);
 	scl_any clone = _scl_alloc(size);
 
-	memcpy(clone, ptr, size);
+	memmove(clone, ptr, size);
+	memory_layout_t* src = _scl_get_memory_layout(ptr);
+	memory_layout_t* dest = _scl_get_memory_layout(clone);
+	memmove(dest, src, sizeof(memory_layout_t));
+	
 	return clone;
 }
 
 scl_any _scl_copy_fields(scl_any dest, scl_any src, scl_int size) {
 	size -= sizeof(struct Struct);
 	if (size == 0) return dest;
-	memcpy(dest + sizeof(struct Struct), src + sizeof(struct Struct), size);
+	memmove(dest + sizeof(struct Struct), src + sizeof(struct Struct), size);
 	return dest;
 }
 
@@ -523,7 +499,7 @@ scl_any _scl_migrate_foreign_array(const void* const arr, scl_int num_elems, scl
 		_scl_runtime_error(EX_INVALID_ARGUMENT, "Array size must not be less than 0");
 	}
 	scl_any* new_arr = _scl_new_array_by_size(num_elems, elem_size);
-	memcpy(new_arr, arr, num_elems * elem_size);
+	memmove(new_arr, arr, num_elems * elem_size);
 	return new_arr;
 }
 
@@ -590,7 +566,7 @@ scl_any* _scl_array_resize(scl_int new_size, scl_any* arr) {
 		_scl_runtime_error(EX_INVALID_ARGUMENT, "Array must be initialized with 'new[]'");
 	}
 	if (unlikely(new_size < 0)) {
-		_scl_runtime_error(EX_INVALID_ARGUMENT, "Array size must not be less than 1");
+		_scl_runtime_error(EX_INVALID_ARGUMENT, "Array size must not be negative");
 	}
 	scl_int elem_size = _scl_get_memory_layout(arr)->array_elem_size;
 	scl_any* new_arr = (scl_any*) _scl_realloc(arr, new_size * elem_size);
@@ -625,7 +601,7 @@ void _scl_throw(scl_any ex) {
 
 	scl_int iteration_direction = stack_top < stack_bottom ? 1 : -1;
 	while (stack_top != stack_bottom) {
-		if (likely(*stack_top != EXCEPTION_HANDLER_MARKER)) {
+		if (*stack_top != EXCEPTION_HANDLER_MARKER) {
 			stack_top += iteration_direction;
 			continue;
 		}

@@ -488,11 +488,31 @@ void				_scl_setup(void);
 							self; \
 						})
 
+static inline void _scl_assert(scl_int b, const scl_int8* msg, ...) {
+	if (unlikely(!b)) {
+		scl_AssertError e = ALLOC(AssertError);
+		va_list list;
+		va_start(list, msg);
+		virtual_call(e, "init(s;)V;", str_of_exact(strformat("Assertion failed: %s", vstrformat(msg, list))));
+		va_end(list);
+		_scl_throw(e);
+	}
+}
+
+static inline void builtinUnreachable(void) {
+	scl_UnreachableError e = ALLOC(UnreachableError);
+	virtual_call(e, "init(s;)V;", str_of_exact("Unreachable"));
+	_scl_throw(e);
+}
+
+static inline scl_int builtinIsInstanceOf(scl_any obj, scl_str type) {
+	return _scl_is_instance_of(obj, type->hash);
+}
+
 scl_any				_scl_realloc(scl_any ptr, scl_int size);
 scl_any				_scl_alloc(scl_int size);
 void				_scl_free(scl_any ptr);
 scl_int				_scl_sizeof(scl_any ptr);
-void				_scl_assert(scl_int b, const scl_int8* msg, ...);
 
 ID_t				type_id(const scl_int8* data);
 
@@ -614,7 +634,7 @@ void				cxx_std_recursive_mutex_unlock(scl_any* mutex);
 								({ typeof((a)) _a = (a); typeof((i)) _i = (i); _scl_array_check_bounds_or_throw((scl_any*) _a, _i); _a[_i]; })
 #define _scl_checked_write(a, i, w) \
 								({ typeof((a)) _a = (a); typeof((i)) _i = (i); _scl_array_check_bounds_or_throw((scl_any*) _a, _i); _a[_i] = (w); })
-
+#define _scl_putlocal(a, w) 	((a) = (w))
 
 static inline scl_uint8 _scl_ror8(scl_uint8 a, scl_int b) { return (a >> b) | (a << ((sizeof(scl_uint8) << 3) - b)); }
 static inline scl_uint16 _scl_ror16(scl_uint16 a, scl_int b) { return (a >> b) | (a << ((sizeof(scl_uint16) << 3) - b)); }
