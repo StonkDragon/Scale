@@ -117,7 +117,7 @@ final static sealed struct bool
       false return
     fi
     unsafe
-      s:view __c_atoll as bool return
+      s:view __c_atoll 0 != return
     end
   end
 end

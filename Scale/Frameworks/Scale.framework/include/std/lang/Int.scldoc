@@ -92,6 +92,18 @@ Returns `true` if `a` or `b` is `true`.
 ### operator function !(a: int): bool
 Returns `true` if `a` is `false` and `false` if `a` is `true`.
 
+### final static struct bool
+The static struct `bool` provides utility functions for working with the `bool` type.
+
+### static function bool::toString(b: bool): str
+Returns a string representation of `b`.
+
+### static function bool::parse(s: str): bool
+Returns `true` if `s` is the string `"true"`.
+Returns `false` if `s` is the string `"false"`.
+Otherwise, try to parse `s` as a number and return `true` if it is non-zero.
+Returns `false` if `s` does not start with a number and is not equal to `"false"`.
+
 ### final static struct int8
 The static struct `int8` provides utility functions for working with the `int8` type.
 All functions available on the `int` type are also available on this type.
