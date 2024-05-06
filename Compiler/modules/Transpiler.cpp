@@ -500,6 +500,8 @@ namespace sclc {
         append("#pragma clang diagnostic ignored \"-Wint-conversion\"\n");
         append("#pragma clang diagnostic ignored \"-Winteger-overflow\"\n");
         append("#pragma clang diagnostic ignored \"-Wout-of-scope-function\"\n");
+        append("#pragma clang diagnostic ignored \"-Wconstant-conversion\"\n");
+        append("#pragma clang diagnostic ignored \"-Wpointer-integer-compare\"\n");
         append("#endif\n\n");
     }
 
@@ -556,8 +558,8 @@ namespace sclc {
                 currentStruct = Struct::Null;
             }
 
-            if (!Main::options::noLinkScale && currentStruct.templates.size() == 0 && function->reified_parameters.size() == 0 && strstarts(function->name_token.location.file, scaleFolder + "/Frameworks/Scale.framework") && !Main::options::noMain) {
-                const std::string& file = function->name_token.location.file;
+            const std::string& file = function->name_token.location.file;
+            if (!Main::options::noLinkScale && (currentStruct.templates.size() == 0 || currentStruct.usedInStdLib) && function->reified_parameters.size() == 0 && strstarts(file, scaleFolder + "/Frameworks/Scale.framework") && !Main::options::noMain) {
                 if (!strcontains(file, "/compiler/") && !strcontains(file, "/macros/") && !strcontains(file, "/__")) {
                     continue;
                 }
@@ -649,7 +651,7 @@ namespace sclc {
                 }
             } else if (UNLIKELY(function->has_lambda)) {
                 if (function->captures.size()) {
-                    append("  extern struct {\n");
+                    append("  extern tls struct {\n");
                     for (Variable cap : function->captures) {
                         append("    %s %s_;\n", sclTypeToCType(result, cap.type).c_str(), cap.name.c_str());
                         vars.push_back(Variable(cap.name, cap.type));
@@ -661,7 +663,7 @@ namespace sclc {
                     n_captures++;
                 }
                 if (function->ref_captures.size()) {
-                    append("  extern struct {\n");
+                    append("  extern tls struct {\n");
                     for (Variable cap : function->ref_captures) {
                         append("    %s* %s_;\n", sclTypeToCType(result, cap.type).c_str(), cap.name.c_str());
                         vars.push_back(Variable(cap.name, cap.type));
@@ -682,7 +684,11 @@ namespace sclc {
             if (UNLIKELY(!function->namedReturnValue.name.empty())) {
                 const std::string& nrvName = function->namedReturnValue.name;
                 checkShadow(nrvName, function->namedReturnValue.name_token, function, result, warns);
-                append("%s Var_%s;\n", sclTypeToCType(result, function->namedReturnValue.type).c_str(), function->namedReturnValue.name.c_str());
+                if (isPrimitiveType(function->namedReturnValue.type)) {
+                    append("%s Var_%s = 0;\n", sclTypeToCType(result, function->namedReturnValue.type).c_str(), function->namedReturnValue.name.c_str());
+                } else {
+                    append("%s Var_%s = {0};\n", sclTypeToCType(result, function->namedReturnValue.type).c_str(), function->namedReturnValue.name.c_str());
+                }
 
                 vars.push_back(function->namedReturnValue);
             }

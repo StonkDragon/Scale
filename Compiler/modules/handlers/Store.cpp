@@ -161,12 +161,14 @@ namespace sclc {
                 errors.push_back(err);
             }
             std::string ctype = sclTypeToCType(result, v.type);
-            append("%s Var_%s = ", ctype.c_str(), v.name.c_str());
+            append("%s Var_%s;\n", ctype.c_str(), v.name.c_str());
+            append("_scl_putlocal(Var_%s, ", v.name.c_str());
             if (v.type.front() == '@' && typeStackTop.front() != '@') {
-                append2("*_scl_pop(%s*);\n", ctype.c_str());
+                append2("*_scl_pop(%s*)", ctype.c_str());
             } else {
-                append2("_scl_pop(%s);\n", ctype.c_str());
+                append2("_scl_pop(%s)", ctype.c_str());
             }
+            append2(");\n");
             typePop;
         } else {
             if (body[i].type != tok_identifier && body[i].type != tok_addr_of) {

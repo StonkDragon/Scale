@@ -53,11 +53,7 @@ final static sealed struct FmtIO
         elif c 'p' == then
           arg int::toHexString FmtIO::printStrNoNewline
         elif c 'b' == then
-          if arg as int 0 == then
-            "false" FmtIO::printStrNoNewline
-          else
-            "true" FmtIO::printStrNoNewline
-          fi
+          arg bool::toString FmtIO::printStrNoNewline
         elif c 'c' == then
           arg FmtIO::putchar
         else

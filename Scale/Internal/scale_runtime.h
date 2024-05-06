@@ -468,31 +468,70 @@ _scl_no_return void	_scl_throw(scl_any ex);
 _scl_constructor
 void				_scl_setup(void);
 
-#define				_scl_create_string(_data) ({ \
-							const scl_int8* _data_ = (scl_int8*) (_data); \
-							scl_str self = ALLOC(str); \
-							self->length = strlen((_data_)); \
-							self->data = (scl_int8*) _scl_migrate_foreign_array(_data_, self->length, sizeof(scl_int8)); \
-							self->hash = type_id((_data_)); \
-							self; \
-						})
+#define _scl_create_string(_data) ({ \
+						const scl_int8* _data_ = (scl_int8*) (_data); \
+						scl_str self = ALLOC(str); \
+						self->length = strlen((_data_)); \
+						self->data = (scl_int8*) _scl_migrate_foreign_array(_data_, self->length, sizeof(scl_int8)); \
+						self->hash = type_id((_data_)); \
+						self; \
+					})
 
-#define				_scl_string_with_hash_len(_data, _hash, _len) ({ \
-							scl_int8* _data_ = (scl_int8*) (_data); \
-							scl_int _len_ = (scl_int) (_len); \
-							scl_int _hash_ = (scl_int) (_hash); \
-							scl_str self = ALLOC(str); \
-							self->data = (scl_int8*) _scl_migrate_foreign_array(_data_, _len_, sizeof(scl_int8)); \
-							self->length = (_len_); \
-							self->hash = (_hash_); \
-							self; \
-						})
+#define _scl_uninitialized_constant(_type) ({ \
+						extern const TypeInfo _scl_ti_ ## _type __asm__("__T" #_type); \
+						static _scl_symbol_hidden struct { \
+							memory_layout_t layout; \
+							struct Struct_ ## _type data; \
+						} _constant __asm__("l_scl_inline_constant" _scl_macro_to_string(__COUNTER__)) = { \
+							.layout = { \
+								.array_elem_size = 0, \
+								.flags = MEM_FLAG_INSTANCE, \
+								.size = sizeof(struct Struct_ ## _type), \
+							}, \
+							.data = { \
+								.$type = &_scl_ti_ ## _type, \
+							}, \
+						}; \
+						&((typeof(_constant)*) _scl_mark_static(&(_constant.layout)))->data; \
+					})
+
+#define _scl_static_string(_data, _hash, _len) ({ \
+						extern const TypeInfo _scl_ti_str __asm("__Tstr"); \
+						static _scl_symbol_hidden struct { \
+							memory_layout_t layout; \
+							scl_int8 data[(_len) + 1]; \
+						} CONCAT(_str_data, __LINE__) __asm__("l_scl_string_data" _scl_macro_to_string(__COUNTER__)) = { \
+							.layout = { \
+								.array_elem_size = sizeof(scl_int8), \
+								.flags = MEM_FLAG_ARRAY, \
+								.size = _len, \
+							}, \
+							.data = (_data), \
+						}; \
+						static _scl_symbol_hidden struct { \
+							memory_layout_t layout; \
+							struct scale_string data; \
+						} CONCAT(_str, __LINE__) __asm__("l_scl_string" _scl_macro_to_string(__COUNTER__)) = { \
+							.layout = { \
+								.array_elem_size = 0, \
+								.flags = MEM_FLAG_INSTANCE, \
+								.size = sizeof(struct scale_string), \
+							}, \
+							.data = { \
+								.$type = &_scl_ti_str, \
+								.hash = _hash, \
+								.data = &((CONCAT(_str_data, __LINE__)).data), \
+								.length = _len, \
+							}, \
+						}; \
+						_scl_mark_static(&((CONCAT(_str_data, __LINE__)).layout)); \
+						&(((typeof(CONCAT(_str, __LINE__))*) _scl_mark_static(&(CONCAT(_str, __LINE__).layout)))->data); \
+					})
 
 scl_any				_scl_realloc(scl_any ptr, scl_int size);
 scl_any				_scl_alloc(scl_int size);
 void				_scl_free(scl_any ptr);
 scl_int				_scl_sizeof(scl_any ptr);
-void				_scl_assert(scl_int b, const scl_int8* msg, ...);
 
 ID_t				type_id(const scl_int8* data);
 
@@ -500,8 +539,8 @@ scl_int				_scl_identity_hash(scl_any obj);
 scl_any				_scl_alloc_struct(const TypeInfo* statics);
 scl_any				_scl_init_struct(scl_any ptr, const TypeInfo* statics, memory_layout_t* layout);
 scl_int				_scl_is_instance(scl_any ptr);
+scl_any				_scl_mark_static(memory_layout_t* layout);
 scl_int				_scl_is_instance_of(scl_any ptr, ID_t type_id);
-_scl_lambda			_scl_get_method_on_type(scl_any type, ID_t method, ID_t signature, int onSuper);
 scl_any				_scl_get_vtable_function(scl_int onSuper, scl_any instance, const scl_int8* methodIdentifier);
 scl_any				_scl_checked_cast(scl_any instance, ID_t target_type, const scl_int8* target_type_name);
 scl_int8*			_scl_typename_or_else(scl_any instance, const scl_int8* else_);
@@ -511,6 +550,9 @@ void				_scl_unlock(scl_any obj);
 scl_any				_scl_copy_fields(scl_any dest, scl_any src, scl_int size);
 char*				vstrformat(const char* fmt, va_list args);
 char*				strformat(const char* fmt, ...);
+void				_scl_assert(scl_int b, const scl_int8* msg, ...);
+void				builtinUnreachable(void);
+scl_int				builtinIsInstanceOf(scl_any obj, scl_str type);
 
 scl_any				_scl_new_array_by_size(scl_int num_elems, scl_int elem_size);
 scl_any				_scl_migrate_foreign_array(const void* const arr, scl_int num_elems, scl_int elem_size);
@@ -545,6 +587,8 @@ void				cxx_std_recursive_mutex_unlock(scl_any* mutex);
 #define _scl_popn(n)						(_local_stack_ptr -= (n))
 #define _scl_dup()							_scl_push(scl_any, _scl_top(scl_any))
 #define _scl_drop()							(--_local_stack_ptr)
+#define _scl_cast_positive_offset(offset, _type, _other) \
+											((_other) (*(_type*) (_local_stack_ptr + offset)))
 
 #define _scl_swap() ({ \
 		scl_int tmp = _local_stack_ptr[-1]; \
@@ -593,6 +637,7 @@ void				cxx_std_recursive_mutex_unlock(scl_any* mutex);
 #define _scl_lxor(a, b)			(a) ^ (b)
 #define _scl_lnot(a)			~((a))
 #define _scl_lsr(a, b)			(a) >> (b)
+#define _scl_asr(a, b)			(a) >> (b)
 #define _scl_lsl(a, b)			(a) << (b)
 #define _scl_eq(a, b)			(a) == (b)
 #define _scl_ne(a, b)			(a) != (b)
@@ -608,12 +653,39 @@ void				cxx_std_recursive_mutex_unlock(scl_any* mutex);
 #define _scl_dec(a)				((a) - 1)
 #define _scl_ann(a)				({ typeof((a)) _a = (a); _scl_assert(_a, "Expected non-nil value"); _a; })
 #define _scl_elvis(a, b)		({ typeof((a)) _a = (a); _a ? _a : (b); })
-#define _scl_ror(a, b)			({ typeof((a)) _a = (a); typeof((b)) _b = (b); ((_a) >> (_b)) | ((_a) << ((sizeof(typeof(_a)) << 3) - (_b))); })
-#define _scl_rol(a, b)			({ typeof((a)) _a = (a); typeof((b)) _b = (b); ((_a) << (_b)) | ((_a) >> ((sizeof(typeof(_a)) << 3) - (_b))); })
 #define _scl_checked_index(a, i) \
 								({ typeof((a)) _a = (a); typeof((i)) _i = (i); _scl_array_check_bounds_or_throw((scl_any*) _a, _i); _a[_i]; })
 #define _scl_checked_write(a, i, w) \
 								({ typeof((a)) _a = (a); typeof((i)) _i = (i); _scl_array_check_bounds_or_throw((scl_any*) _a, _i); _a[_i] = (w); })
+#define _scl_putlocal(a, w) 	((a) = (w))
+
+static inline scl_uint8 _scl_ror8(scl_uint8 a, scl_int b) { return (a >> b) | (a << ((sizeof(scl_uint8) << 3) - b)); }
+static inline scl_uint16 _scl_ror16(scl_uint16 a, scl_int b) { return (a >> b) | (a << ((sizeof(scl_uint16) << 3) - b)); }
+static inline scl_uint32 _scl_ror32(scl_uint32 a, scl_int b) { return (a >> b) | (a << ((sizeof(scl_uint32) << 3) - b)); }
+static inline scl_uint64 _scl_ror64(scl_uint64 a, scl_int b) { return (a >> b) | (a << ((sizeof(scl_uint64) << 3) - b)); }
+
+static inline scl_uint8 _scl_rol8(scl_uint8 a, scl_int b) { return (a << b) | (a >> ((sizeof(scl_uint8) << 3) - b)); }
+static inline scl_uint16 _scl_rol16(scl_uint16 a, scl_int b) { return (a << b) | (a >> ((sizeof(scl_uint16) << 3) - b)); }
+static inline scl_uint32 _scl_rol32(scl_uint32 a, scl_int b) { return (a << b) | (a >> ((sizeof(scl_uint32) << 3) - b)); }
+static inline scl_uint64 _scl_rol64(scl_uint64 a, scl_int b) { return (a << b) | (a >> ((sizeof(scl_uint64) << 3) - b)); }
+
+#define _scl_ror(a, b)	(_Generic((a), \
+		scl_int8: _scl_ror8, scl_uint8: _scl_ror8, \
+		scl_int16: _scl_ror16, scl_uint16: _scl_ror16, \
+		scl_int32: _scl_ror32, scl_uint32: _scl_ror32, \
+		scl_int64: _scl_ror64, scl_uint64: _scl_ror64, \
+		scl_int: _scl_ror64, scl_uint: _scl_ror64 \
+	))((a), (b))
+#define _scl_rol(a, b)	(_Generic((a), \
+		scl_int8: _scl_ror8, scl_uint8: _scl_ror8, \
+		scl_int16: _scl_ror16, scl_uint16: _scl_ror16, \
+		scl_int32: _scl_ror32, scl_uint32: _scl_ror32, \
+		scl_int64: _scl_ror64, scl_uint64: _scl_ror64, \
+		scl_int: _scl_ror64, scl_uint: _scl_ror64 \
+	))((a), (b))
+
+#define likely(x) _scl_expect(!!(x), 1)
+#define unlikely(x) _scl_expect(!!(x), 0)
 
 #if defined(__cplusplus)
 }

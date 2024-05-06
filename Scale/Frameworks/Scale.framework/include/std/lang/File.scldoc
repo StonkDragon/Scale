@@ -26,33 +26,33 @@ Returns the name of this file.
 ### function File:close(): none
 Closes this file. Any further operations on this file will result in undefined behavior.
 
-### function readLine(): str
+### function File:readLine(): str
 Reads a line from this file and returns it.
 Throws an `EndOfFileException` if the end of the file has been reached.
 
-### function readLines(): [str]
+### function File:readLines(): [str]
 Returns a list of all lines in this file.
 
-### function size(): int
+### function File:size(): int
 Returns the size of this file in bytes.
 
-### function contents(): [int8]
+### function File:contents(): [int8]
 Returns the contents of this file as a byte array.
 
-### function stringContent(): str
+### function File:stringContent(): str
 Returns the contents of this file as a string.
 
-### function setContent(data: [int8]): none
+### function File:setContent(data: [int8]): none
 Sets the contents of this file to the byte array `data`.
 
-### function setContent(data: str): none
+### function File:setContent(data: str): none
 Sets the contents of this file to the string `data`.
 
-### function toStart(): none
+### function File:toStart(): none
 Sets the current offset of this file to the beginning of the file.
 This is equivalent to calling `0 f:offsetFromBegin`.
 
-### function toEnd(): none
+### function File:toEnd(): none
 Sets the current offset of this file to the end of the file.
 This is equivalent to calling `0 f:offsetFromEnd`.
 

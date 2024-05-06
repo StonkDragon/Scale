@@ -61,7 +61,15 @@ namespace sclc {
                 args += ", ";
 
             bool isValueStructParam = arg.type.front() == '@';
-            if (isValueStructParam) args += "*(";
+            if (isValueStructParam) {
+                args += "*(";
+            } else {
+                const std::string& stack = typeStack[typeStack.size() + i];
+                if (isPrimitiveIntegerType(stack) && isPrimitiveIntegerType(arg.type) && !typesCompatible(result, stack, arg.type, false)) {
+                    args += "_scl_cast_positive_offset(" + std::to_string(i) + ", " + sclTypeToCType(result, stack) + ", " + sclTypeToCType(result, arg.type) + ")";
+                    continue;
+                }
+            }
             args += "_scl_positive_offset(" + std::to_string(i) + ", " + sclTypeToCType(result, arg.type.substr(isValueStructParam)) + ")";
             if (isValueStructParam) args += ")";
         }
@@ -487,8 +495,8 @@ namespace sclc {
             std::vector<Function*>& overloads = self->overloads;
             bool argsEqual = ignoreArgs || checkStackType(result, self->args, withIntPromotion);
             if (checkOverloads && overloads.size() && !argsEqual && !ignoreArgs) {
-                for (bool b : bools) {
-                    for (Function* overload : overloads) {
+                for (Function* overload : overloads) {
+                    for (bool b : bools) {
                         if (!overload->isMethod) continue;
                         
                         bool argsEqual = checkStackType(result, overload->args, b);
@@ -801,17 +809,40 @@ namespace sclc {
             std::string decl = declassifyReify(param);
             reified_mappings[decl] = reifyType(param, removeTypeModifiers(types[i]));
         }
+        if (self->has_operator) {
+            std::string biggestType;
+            for (auto&& f : reified_mappings) {
+                if (!isPrimitiveType(f.second)) {
+                    biggestType = f.second;
+                    break;
+                }
+                if (typeEquals(f.second, "float")) {
+                    biggestType = "float";
+                    break;
+                }
+                if (
+                    typeEquals(f.second, "float32") ||
+                    intBitWidth(biggestType) < intBitWidth(f.second) ||
+                    (typeIsUnsigned(f.second) && !typeIsUnsigned(biggestType))
+                ) {
+                    biggestType = f.second;
+                }
+            }
+            if (biggestType.size()) {
+                reified_mappings["ArithmeticReturnType"] = biggestType;
+            }
+        }
         Function* f = self->clone();
         if (f->isMethod) {
             ((Method*) f)->force_add = true;
             f->addModifier("nonvirtual");
         }
-        f->return_type = reparseArgType(f->return_type, reified_mappings);
         f->clearArgs();
         for (Variable arg : self->args) {
             arg.type = reparseArgType(arg.type, reified_mappings);
             f->addArgument(arg);
         }
+        f->return_type = reparseArgType(f->return_type, reified_mappings);
         f->name_token.location = body[i].location;
         std::string sigident = argsToRTSignatureIdent(f);
         f->name = f->name_without_overload + sigident;
@@ -828,6 +859,7 @@ namespace sclc {
         }
         if (!contains) {
             result.functions.push_back(f);
+            // self->overloads.push_back(f);
         }
         f->has_reified = 0;
         f->reified_parameters = self->reified_parameters;
@@ -1020,8 +1052,8 @@ namespace sclc {
 
         {
             if (checkOverloads && overloads.size() && !argsEqual) {
-                for (bool b : bools) {
-                    for (Function* overload : overloads) {
+                for (Function* overload : overloads) {
+                    for (bool b : bools) {
                         if (overload->isMethod) continue;
 
                         bool argsEqual = checkStackType(result, overload->args, b);
@@ -1034,8 +1066,6 @@ namespace sclc {
             }
 
             if (self->has_operator) {
-                size_t sym = self->has_operator;
-
                 Method* overloaded = getMethodByName(result, self->name, typeStackTop);
                 if (!hasToCallStatic && overloaded) {
                     methodCall(overloaded, fp, result, warns, errors, body, i);
@@ -1043,8 +1073,24 @@ namespace sclc {
                 }
 
                 if (self->has_reified) {
+                    for (Function* overload : overloads) {
+                        if (overload->isMethod) continue;
+
+                        bool argsEqual = checkStackType(result, overload->args, false);
+                        if (argsEqual && !overload->has_reified) {
+                            if (overload->has_operator) {
+                                self = overload;
+                                goto after;
+                            } else {
+                                functionCall(overload, fp, result, warns, errors, body, i, false, hasToCallStatic, false);
+                                return;
+                            }
+                        }
+                    }
                     self = reifiedPreamble(self, fp, result, errors, body, i);
                 }
+            after:
+                size_t sym = self->has_operator;
 
                 if (!checkStackType(result, self->args, true)) {
                     {
@@ -1074,11 +1120,6 @@ namespace sclc {
                     return;
                 }
 
-                // std::string argType = "";
-                // if (op == "at") {
-                //     argType = typeStackTop;
-                // }
-
                 std::string type = typeStackTop;
                 for (size_t m = 0; m < self->args.size(); m++) {
                     typePop;
@@ -1086,28 +1127,6 @@ namespace sclc {
                 append("_scl_popn(%zu);\n", self->args.size());
                 std::string args = generateArgumentsForFunction(result, self);
 
-                // if (op == "at") {
-                //     args = "_scl_positive_offset(0, " + sclTypeToCType(result, argType) + ")";
-                //     if (argType.front() == '[' && argType.back() == ']') {
-                //         argType = argType.substr(1, argType.size() - 2);
-                //     } else {
-                //         argType = "any";
-                //     }
-                //     typeStack.push_back(argType);
-                // } else {
-                //     if (isSelfType(self->return_type)) {
-                //         std::string retType = "";
-                //         if (self->return_type.front() == '@') {
-                //             retType += "@";
-                //         }
-                //         retType += removeTypeModifiers(type);
-                //         if (typeCanBeNil(self->return_type)) {
-                //             retType += "?";
-                //         }
-                //         typeStack.push_back(retType);
-                //     } else {
-                //     }
-                // }
                 typeStack.push_back(self->return_type);
 
                 append("_scl_push(%s, _scl_%s(%s));\n", sclTypeToCType(result, typeStackTop).c_str(), op.c_str(), args.c_str());
@@ -1369,7 +1388,7 @@ namespace sclc {
         if (s.super.size()) {
             auto parent = getStructByName(res, s.super);
             if (parent == Struct::Null) {
-                fprintf(stderr, "Error: Struct '%s' extends '%s', but '%s' does not exist.\n", s.name.c_str(), s.super.c_str(), s.super.c_str());
+                std::cerr << "Error: Struct '" << s.name << "' extends '" << s.super << "', but '" << s.super << "' does not exist." << std::endl;
                 exit(1);
             }
             const std::vector<Method*>& parentVTable = makeVTable(res, parent.name);

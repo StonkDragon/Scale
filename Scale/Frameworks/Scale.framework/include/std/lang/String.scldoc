@@ -30,6 +30,10 @@ Returns false if `other` is not a string.
 ### function str:size(): int
 Returns the size of `self`.
 
+### function str:utfLength(): int
+Returns the amount of utf8 codepoints in `self`.
+`s:utfLength s:size ==` is true if `self` only contains ascii characters.
+
 ### function str:at(i: int): int
 Returns the character at index `i` in `self`.
 
@@ -84,21 +88,35 @@ Returns a copy of `self` with leading and trailing whitespace removed.
 ### function str:view(): [int8]
 Returns a pointer to the memory block containing the data of `self`.
 
-### static function str::new(data: [int8]): str
-Returns a new instance of `str` with the data `data`.
-
-### static function str::new(data: [int8], n: int): none
-Returns a new instance of `str` with the data `data` and size `n`.
-The resulting string will contain at most `n` characters.
-
-### static function str::new(): none
-Returns a new instance of `str` with size 0.
-
 ### function str:iterate(): StringIterator
 Returns an iterator over the characters of `self`.
 
 ### function str:hashCode(): int
 Returns the hash code of `self`.
+
+### static function str::new(data: [int8]): str
+Returns a new instance of `str` with the data `data`.
+
+### static function str::new(data: [int8], n: int): str
+Returns a new instance of `str` with the data `data` and size `n`.
+The resulting string will contain at most `n` characters.
+
+### static function str::new(): str
+Returns a new instance of `str` with size 0.
+
+### static function str::format(fmt: str, args: varargs): str
+Formats the string `fmt` with the given arguments.
+The format string `fmt` is a string that may contain format specifiers.
+Format specifiers are replaced by the values of the arguments `args`.
+The format specifiers are introduced by a `%` character.
+The following format specifiers are supported:
+- `"%s"`: string
+- `"%i"`: integer
+- `"%f"`: float
+- `"%c"`: character
+- `"%@"`: object
+- `"%p"`: pointer
+- `"%b"`: boolean
 
 ### static function str::=>(data: [int8]): str
 Allows assigning C strings to `str` variables.

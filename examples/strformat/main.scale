@@ -1,0 +1,3 @@
+function main(args: [str]): none
+    "%i %s %@ %f %b %c" varargs 123 "Hello!" SclObject{} 1.23 true 'a' str::format puts
+end

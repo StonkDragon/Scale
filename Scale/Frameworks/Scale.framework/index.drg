@@ -1,5 +1,5 @@
 framework: {
-    version: "24.1";
+    version: "24.1.2";
     headerDir: "include";
     implDir: "impl";
     implementers: [

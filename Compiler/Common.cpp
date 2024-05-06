@@ -1175,12 +1175,15 @@ namespace sclc
                 funcFound = true;
             }
             if (!funcFound) {
-                path += " = ";
+                path = "_scl_putlocal(" + path + ", ";
+                // path += " = ";
                 if (currentType.front() == '@') {
                     path += "*";
                 }
-                path += "tmp";
+                path += "tmp)";
             }
+        // } else {
+        //     path = "_scl_getlocal(" + path + ")";
         }
         
         onComplete(path, currentType);

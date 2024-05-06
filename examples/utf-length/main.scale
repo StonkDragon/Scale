@@ -1,0 +1,8 @@
+function main(): none
+    "привет" => decl nonAsciiStr: str
+    "Hello!" => decl asciiStr: str
+    nonAsciiStr:utfLength puts
+    nonAsciiStr:size puts
+    asciiStr:utfLength puts
+    asciiStr:size puts
+end

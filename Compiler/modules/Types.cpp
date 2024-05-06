@@ -125,7 +125,13 @@ namespace sclc {
             if (i) 
                 arg += ", ";
             const Variable& v = args[i];
+            if (v.type.front() == '@') {
+                arg += "@";
+            }
             arg += retemplate(removeTypeModifiers(v.type));
+            if (v.type.back() == '?') {
+                arg += "?";
+            }
         }
         return arg;
     }
@@ -135,7 +141,13 @@ namespace sclc {
         for (size_t i = 0; i < args.size(); i++) {
             if (i) 
                 arg += ", ";
+            if (args[i].front() == '@') {
+                arg += "@";
+            }
             arg += retemplate(removeTypeModifiers(args[i]));
+            if (args[i].back() == '?') {
+                arg += "?";
+            }
         }
         return arg;
     }
@@ -451,6 +463,7 @@ namespace sclc {
         if (rtType == "a") return "any";
         if (rtType == "i") return "int";
         if (rtType == "f") return "float";
+        if (rtType == "f32") return "float32";
         if (rtType == "s") return "str";
         if (rtType == "V") return "none";
         if (rtType == "cs") return "[int8]";
@@ -486,6 +499,7 @@ namespace sclc {
         if (type == "any") return "a;";
         if (type == "int" || type == "bool") return "i;";
         if (type == "float") return "f;";
+        if (type == "float32") return "f32;";
         if (type == "str") return "s;";
         if (type == "none") return "V;";
         if (type == "[int8]") return "cs;";
@@ -559,6 +573,7 @@ namespace sclc {
         if (type == "any") return "a$";
         if (type == "int" || type == "bool") return "i$";
         if (type == "float") return "f$";
+        if (type == "float") return "f32$";
         if (type == "str") return "s$";
         if (type == "none") return "V$";
         if (type == "[int8]") return "cs$";
