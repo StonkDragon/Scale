@@ -651,7 +651,7 @@ namespace sclc {
                 }
             } else if (UNLIKELY(function->has_lambda)) {
                 if (function->captures.size()) {
-                    append("  extern struct {\n");
+                    append("  extern tls struct {\n");
                     for (Variable cap : function->captures) {
                         append("    %s %s_;\n", sclTypeToCType(result, cap.type).c_str(), cap.name.c_str());
                         vars.push_back(Variable(cap.name, cap.type));
@@ -663,7 +663,7 @@ namespace sclc {
                     n_captures++;
                 }
                 if (function->ref_captures.size()) {
-                    append("  extern struct {\n");
+                    append("  extern tls struct {\n");
                     for (Variable cap : function->ref_captures) {
                         append("    %s* %s_;\n", sclTypeToCType(result, cap.type).c_str(), cap.name.c_str());
                         vars.push_back(Variable(cap.name, cap.type));
@@ -684,7 +684,11 @@ namespace sclc {
             if (UNLIKELY(!function->namedReturnValue.name.empty())) {
                 const std::string& nrvName = function->namedReturnValue.name;
                 checkShadow(nrvName, function->namedReturnValue.name_token, function, result, warns);
-                append("%s Var_%s;\n", sclTypeToCType(result, function->namedReturnValue.type).c_str(), function->namedReturnValue.name.c_str());
+                if (isPrimitiveType(function->namedReturnValue.type)) {
+                    append("%s Var_%s = 0;\n", sclTypeToCType(result, function->namedReturnValue.type).c_str(), function->namedReturnValue.name.c_str());
+                } else {
+                    append("%s Var_%s = {0};\n", sclTypeToCType(result, function->namedReturnValue.type).c_str(), function->namedReturnValue.name.c_str());
+                }
 
                 vars.push_back(function->namedReturnValue);
             }

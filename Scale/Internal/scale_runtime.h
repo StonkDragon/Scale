@@ -468,46 +468,65 @@ _scl_no_return void	_scl_throw(scl_any ex);
 _scl_constructor
 void				_scl_setup(void);
 
-#define				_scl_create_string(_data) ({ \
-							const scl_int8* _data_ = (scl_int8*) (_data); \
-							scl_str self = ALLOC(str); \
-							self->length = strlen((_data_)); \
-							self->data = (scl_int8*) _scl_migrate_foreign_array(_data_, self->length, sizeof(scl_int8)); \
-							self->hash = type_id((_data_)); \
-							self; \
-						})
+#define _scl_create_string(_data) ({ \
+						const scl_int8* _data_ = (scl_int8*) (_data); \
+						scl_str self = ALLOC(str); \
+						self->length = strlen((_data_)); \
+						self->data = (scl_int8*) _scl_migrate_foreign_array(_data_, self->length, sizeof(scl_int8)); \
+						self->hash = type_id((_data_)); \
+						self; \
+					})
 
-#define				_scl_string_with_hash_len(_data, _hash, _len) ({ \
-							scl_int8* _data_ = (scl_int8*) (_data); \
-							scl_int _len_ = (scl_int) (_len); \
-							scl_int _hash_ = (scl_int) (_hash); \
-							scl_str self = ALLOC(str); \
-							self->data = (scl_int8*) _scl_migrate_foreign_array(_data_, _len_, sizeof(scl_int8)); \
-							self->length = (_len_); \
-							self->hash = (_hash_); \
-							self; \
-						})
+#define _scl_uninitialized_constant(_type) ({ \
+						extern const TypeInfo _scl_ti_ ## _type __asm__("__T" #_type); \
+						static _scl_symbol_hidden struct { \
+							memory_layout_t layout; \
+							struct Struct_ ## _type data; \
+						} _constant __asm__("l_scl_inline_constant" _scl_macro_to_string(__COUNTER__)) = { \
+							.layout = { \
+								.array_elem_size = 0, \
+								.flags = MEM_FLAG_INSTANCE, \
+								.size = sizeof(struct Struct_ ## _type), \
+							}, \
+							.data = { \
+								.$type = &_scl_ti_ ## _type, \
+							}, \
+						}; \
+						&((typeof(_constant)*) _scl_mark_static(&(_constant.layout)))->data; \
+					})
 
-static inline void _scl_assert(scl_int b, const scl_int8* msg, ...) {
-	if (unlikely(!b)) {
-		scl_AssertError e = ALLOC(AssertError);
-		va_list list;
-		va_start(list, msg);
-		virtual_call(e, "init(s;)V;", str_of_exact(strformat("Assertion failed: %s", vstrformat(msg, list))));
-		va_end(list);
-		_scl_throw(e);
-	}
-}
-
-static inline void builtinUnreachable(void) {
-	scl_UnreachableError e = ALLOC(UnreachableError);
-	virtual_call(e, "init(s;)V;", str_of_exact("Unreachable"));
-	_scl_throw(e);
-}
-
-static inline scl_int builtinIsInstanceOf(scl_any obj, scl_str type) {
-	return _scl_is_instance_of(obj, type->hash);
-}
+#define _scl_static_string(_data, _hash, _len) ({ \
+						extern const TypeInfo _scl_ti_str __asm("__Tstr"); \
+						static _scl_symbol_hidden struct { \
+							memory_layout_t layout; \
+							scl_int8 data[(_len) + 1]; \
+						} CONCAT(_str_data, __LINE__) __asm__("l_scl_string_data" _scl_macro_to_string(__COUNTER__)) = { \
+							.layout = { \
+								.array_elem_size = sizeof(scl_int8), \
+								.flags = MEM_FLAG_ARRAY, \
+								.size = _len, \
+							}, \
+							.data = (_data), \
+						}; \
+						static _scl_symbol_hidden struct { \
+							memory_layout_t layout; \
+							struct scale_string data; \
+						} CONCAT(_str, __LINE__) __asm__("l_scl_string" _scl_macro_to_string(__COUNTER__)) = { \
+							.layout = { \
+								.array_elem_size = 0, \
+								.flags = MEM_FLAG_INSTANCE, \
+								.size = sizeof(struct scale_string), \
+							}, \
+							.data = { \
+								.$type = &_scl_ti_str, \
+								.hash = _hash, \
+								.data = &((CONCAT(_str_data, __LINE__)).data), \
+								.length = _len, \
+							}, \
+						}; \
+						_scl_mark_static(&((CONCAT(_str_data, __LINE__)).layout)); \
+						&(((typeof(CONCAT(_str, __LINE__))*) _scl_mark_static(&(CONCAT(_str, __LINE__).layout)))->data); \
+					})
 
 scl_any				_scl_realloc(scl_any ptr, scl_int size);
 scl_any				_scl_alloc(scl_int size);
@@ -520,6 +539,7 @@ scl_int				_scl_identity_hash(scl_any obj);
 scl_any				_scl_alloc_struct(const TypeInfo* statics);
 scl_any				_scl_init_struct(scl_any ptr, const TypeInfo* statics, memory_layout_t* layout);
 scl_int				_scl_is_instance(scl_any ptr);
+scl_any				_scl_mark_static(memory_layout_t* layout);
 scl_int				_scl_is_instance_of(scl_any ptr, ID_t type_id);
 scl_any				_scl_get_vtable_function(scl_int onSuper, scl_any instance, const scl_int8* methodIdentifier);
 scl_any				_scl_checked_cast(scl_any instance, ID_t target_type, const scl_int8* target_type_name);
@@ -530,6 +550,9 @@ void				_scl_unlock(scl_any obj);
 scl_any				_scl_copy_fields(scl_any dest, scl_any src, scl_int size);
 char*				vstrformat(const char* fmt, va_list args);
 char*				strformat(const char* fmt, ...);
+void				_scl_assert(scl_int b, const scl_int8* msg, ...);
+void				builtinUnreachable(void);
+scl_int				builtinIsInstanceOf(scl_any obj, scl_str type);
 
 scl_any				_scl_new_array_by_size(scl_int num_elems, scl_int elem_size);
 scl_any				_scl_migrate_foreign_array(const void* const arr, scl_int num_elems, scl_int elem_size);
@@ -660,6 +683,9 @@ static inline scl_uint64 _scl_rol64(scl_uint64 a, scl_int b) { return (a << b) |
 		scl_int64: _scl_ror64, scl_uint64: _scl_ror64, \
 		scl_int: _scl_ror64, scl_uint: _scl_ror64 \
 	))((a), (b))
+
+#define likely(x) _scl_expect(!!(x), 1)
+#define unlikely(x) _scl_expect(!!(x), 0)
 
 #if defined(__cplusplus)
 }

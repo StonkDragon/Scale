@@ -12,9 +12,6 @@ extern "C" {
 
 #define unimplemented do { fprintf(stderr, "%s:%d: %s: Not Implemented\n", __FILE__, __LINE__, __FUNCTION__); exit(1); } while (0)
 
-#define likely(x) _scl_expect(!!(x), 1)
-#define unlikely(x) _scl_expect(!!(x), 0)
-
 typedef struct Struct {
 	// Typeinfo for this object
 	TypeInfo*		type;
@@ -75,10 +72,43 @@ typedef struct Struct_InvalidArgumentException {
 
 tls scl_int8* thread_name;
 
+static memory_layout_t** static_ptrs = nil;
+static scl_int static_ptrs_cap = 0;
+static scl_int static_ptrs_count = 0;
+static scl_any lock = nil;
+
+scl_any _scl_mark_static(memory_layout_t* layout) {
+	cxx_std_recursive_mutex_lock(&lock);
+	for (scl_int i = 0; i < static_ptrs_count; i++) {
+		if (static_ptrs[i] == layout) {
+			cxx_std_recursive_mutex_unlock(&lock);
+			return layout;
+		}
+	}
+	static_ptrs_count++;
+	if (static_ptrs_count >= static_ptrs_cap) {
+		static_ptrs_cap = static_ptrs_cap == 0 ? 16 : (static_ptrs_cap * 2);
+		static_ptrs = realloc(static_ptrs, static_ptrs_cap * sizeof(memory_layout_t*));
+	}
+	static_ptrs[static_ptrs_count - 1] = layout;
+	cxx_std_recursive_mutex_unlock(&lock);
+	return layout;
+}
+
 _scl_symbol_hidden static memory_layout_t* _scl_get_memory_layout(scl_any ptr) {
 	if (likely(GC_is_heap_ptr(ptr))) {
 		return (memory_layout_t*) GC_base(ptr);
 	}
+	cxx_std_recursive_mutex_lock(&lock);
+	ptr -= sizeof(memory_layout_t);
+	for (scl_int i = 0; i < static_ptrs_count; i++) {
+		if (static_ptrs[i] == ptr) {
+			memory_layout_t* l = static_ptrs[i];
+			cxx_std_recursive_mutex_unlock(&lock);
+			return l;
+		}
+	}
+	cxx_std_recursive_mutex_unlock(&lock);
 	return nil;
 }
 
@@ -239,6 +269,27 @@ void _scl_unlock(scl_any obj) {
 		return;
 	}
 	cxx_std_recursive_mutex_unlock(&((Struct*) obj)->mutex);
+}
+
+void _scl_assert(scl_int b, const scl_int8* msg, ...) {
+	if (unlikely(!b)) {
+		scl_AssertError e = ALLOC(AssertError);
+		va_list list;
+		va_start(list, msg);
+		virtual_call(e, "init(s;)V;", str_of_exact(strformat("Assertion failed: %s", vstrformat(msg, list))));
+		va_end(list);
+		_scl_throw(e);
+	}
+}
+
+void builtinUnreachable(void) {
+	scl_UnreachableError e = ALLOC(UnreachableError);
+	virtual_call(e, "init(s;)V;", str_of_exact("Unreachable"));
+	_scl_throw(e);
+}
+
+scl_int builtinIsInstanceOf(scl_any obj, scl_str type) {
+	return _scl_is_instance_of(obj, type->hash);
 }
 
 #if !defined(__pure2)

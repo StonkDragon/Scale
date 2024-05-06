@@ -200,7 +200,7 @@ namespace sclc
                     return false;
                 }
                 if (ver < FrameworkMinimumVersion) {
-                    fprintf(stderr, "Error: Framework '%s' is too outdated (%s). Please update it to at least version %s\n", framework.c_str(), ver.asString().c_str(), FrameworkMinimumVersion.asString().c_str());
+                    std::cerr << "Error: Framework '" << framework << "' is too outdated (" << ver.asString() << "). Please update it to at least version " << FrameworkMinimumVersion.asString() << std::endl;
                     return false;
                 }
 
@@ -1253,5 +1253,8 @@ int main(int argc, char const *argv[]) {
     for (int i = 0; i < argc; i++) {
         args.push_back(argv[i]);
     }
+    std::ios_base::sync_with_stdio(false);
+    std::cout.tie(nullptr);
+    std::cin.tie(nullptr);
     return sclc::main(args);
 }

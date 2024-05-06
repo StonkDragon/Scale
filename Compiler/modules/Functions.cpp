@@ -1388,7 +1388,7 @@ namespace sclc {
         if (s.super.size()) {
             auto parent = getStructByName(res, s.super);
             if (parent == Struct::Null) {
-                fprintf(stderr, "Error: Struct '%s' extends '%s', but '%s' does not exist.\n", s.name.c_str(), s.super.c_str(), s.super.c_str());
+                std::cerr << "Error: Struct '" << s.name << "' extends '" << s.super << "', but '" << s.super << "' does not exist." << std::endl;
                 exit(1);
             }
             const std::vector<Method*>& parentVTable = makeVTable(res, parent.name);

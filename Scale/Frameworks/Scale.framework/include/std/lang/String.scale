@@ -305,6 +305,16 @@ final sealed struct str is Equatable, Cloneable, Stringifyable, Iterable
     self.data any::delete
   end
 
+  function utfLength(): int
+    self do 'reduce lambda(acc: int, val: int8): int
+      if val as uint8 0b11000000u8 & 0b10000000u8 == then
+        acc return
+      else
+        acc++ return
+      fi
+    end return
+  end
+
   static function format(fmt: str, args: varargs): str
     decl out: str
     

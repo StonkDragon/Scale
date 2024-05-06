@@ -497,7 +497,7 @@ namespace sclc
         Token token;
         bool inBlockComment = false;
         if (fp == NULL) {
-            printf("IO Error: Could not open file %s\n", source.c_str());
+            std::cerr << "IO Error: Could not open file " << source << std::endl;
             FPResult r;
             r.message = "IO Error: Could not open file " + source;
             r.location = SourceLocation(source, 0, 0);

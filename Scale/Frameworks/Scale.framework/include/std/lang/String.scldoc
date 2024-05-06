@@ -30,6 +30,10 @@ Returns false if `other` is not a string.
 ### function str:size(): int
 Returns the size of `self`.
 
+### function str:utfLength(): int
+Returns the amount of utf8 codepoints in `self`.
+`s:utfLength s:size ==` is true if `self` only contains ascii characters.
+
 ### function str:at(i: int): int
 Returns the character at index `i` in `self`.
 

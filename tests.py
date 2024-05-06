@@ -47,11 +47,11 @@ def runTest(file, directory="examples", current=1, total=1):
         theseTestsFailed.append(file)
         print("Compiler Output:")
         print(compOut)
-        print("Program Output:")
+        print(f"Program Output (characters: {len(output)}):")
         print(output)
-        print("Expected Output:")
+        print(f"Expected Output (characters: {len(expected)}):")
         print(expected)
-        print("")
+    os.remove("./out.scl")
     os.chdir(curDir)
 
 # loop over every file in the directory examples

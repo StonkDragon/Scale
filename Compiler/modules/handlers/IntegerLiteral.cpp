@@ -12,15 +12,22 @@ namespace sclc {
 
         // only parse to verify bounds and make very large integer literals defined behavior
         size_t suf_idx = -1;
+        union {
+            long long s;
+            unsigned long long u;
+        } val;
         try {
             if (strstarts(stringValue, "0x")) {
-                std::stoul(stringValue, &suf_idx, 16);
+                stringValue = stringValue.substr(2);
+                val.u = std::stoull(stringValue, &suf_idx, 16);
             } else if (strstarts(stringValue, "0b")) {
-                std::stoul(stringValue, &suf_idx, 2);
+                stringValue = stringValue.substr(2);
+                val.u = std::stoull(stringValue, &suf_idx, 2);
             } else if (strstarts(stringValue, "0c")) {
-                std::stoul(stringValue, &suf_idx, 8);
+                stringValue = stringValue.substr(2);
+                val.u = std::stoull(stringValue, &suf_idx, 8);
             } else {
-                std::stol(stringValue, &suf_idx, 10);
+                val.s = std::stoll(stringValue, &suf_idx, 10);
             }
         } catch (const std::invalid_argument& e) {
             transpilerError("Invalid integer literal: '" + stringValue + "'", i);
@@ -35,7 +42,6 @@ namespace sclc {
         std::string suffix = "";
         if (suf_idx != (size_t) -1) {
             suffix = stringValue.substr(suf_idx);
-            stringValue = stringValue.substr(0, suf_idx);
         }
 
         if (suffix == "u") typeStack.push_back("uint");
@@ -49,7 +55,7 @@ namespace sclc {
         else if (suffix == "u64") typeStack.push_back("uint64");
         else typeStack.push_back("int");
 
-        append("_scl_push(%s, %s & SCL_%s_MASK);\n", sclTypeToCType(result, typeStackTop).c_str(), stringValue.c_str(), typeStackTop.c_str());
+        append("_scl_push(%s, 0x%llx & SCL_%s_MASK);\n", sclTypeToCType(result, typeStackTop).c_str(), val.u, typeStackTop.c_str());
     }
 } // namespace sclc
 
