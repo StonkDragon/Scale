@@ -11,11 +11,22 @@ Scale supports both 32-bit and 64-bit systems, but 64-bit is strongly recommende
 Examples can be found in the [examples](./examples) directory.
 
 ## Installation
+
 Run the following commands:
 ```shell
 $ clang++ install-sclc.cpp -o install-sclc -std=gnu++17
 $ ./install-sclc
 ```
+
+### Runtime-Time Dependencies
+- `clang`
+
+### Build-Time Dependencies
+- `clang++`
+- `make`
+- `automake`
+- `autoconf`
+- `libtool`
 
 # Documentation
 

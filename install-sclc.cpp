@@ -94,7 +94,6 @@ int main(int argc, char const *argv[]) {
 
     depends_on("clang --version", "clang is required!");
     depends_on("clang++ --version", "clang++ is required!");
-    depends_on("cmake --version", "cmake is required!");
 #if !defined(_WIN32)
     depends_on("make --version", "make is required!");
 #else
