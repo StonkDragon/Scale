@@ -197,6 +197,7 @@ namespace sclc {
     extern std::string scaleFolder;
     extern std::vector<Variable> vars;
     extern std::vector<size_t> var_indices;
+    extern const std::unordered_map<std::string, std::string> funcNameIdents;
 
     long long parseNumber(std::string str);
     Result<double, FPResult> parseDouble(const Token& tok);

@@ -39,7 +39,7 @@ namespace sclc
         tok_in,                     // in
         tok_step,                   // step
         tok_to,                     // to
-        tok_addr_ref,               // addr
+        tok_addr_ref,               // ref
         tok_load,                   // load
         tok_store,                  // store
         tok_declare,                // decl

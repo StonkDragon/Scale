@@ -46,3 +46,9 @@
 |Function|Replacement|Removed in|
 |-|-|-|
 |`Array:immutableCopy`|none|`23.9`|
+
+## Since Version 24.2
+|Function|Replacement|Removed in|
+|-|-|-|
+|`str:@`|`str:[]`|none|
+|`str:toChars`|`str:view`|none|

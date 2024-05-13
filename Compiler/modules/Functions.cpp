@@ -285,31 +285,12 @@ namespace sclc {
 
     bool opFunc(std::string name) {
         name = name.substr(0, name.find("$$ol"));
-        return (name == "operator$add") ||
-               (name == "operator$sub") ||
-               (name == "operator$mul") ||
-               (name == "operator$div") ||
-               (name == "operator$mod") ||
-               (name == "operator$logic_and") ||
-               (name == "operator$logic_or") ||
-               (name == "operator$logic_xor") ||
-               (name == "operator$logic_not") ||
-               (name == "operator$logic_lsh") ||
-               (name == "operator$logic_rsh") ||
-               (name == "operator$pow") ||
-               (name == "operator$equal") ||
-               (name == "operator$not_equal") ||
-               (name == "operator$less") ||
-               (name == "operator$more") ||
-               (name == "operator$less_equal") ||
-               (name == "operator$more_equal") ||
-               (name == "operator$bool_and") ||
-               (name == "operator$bool_or") ||
-               (name == "operator$get") ||
-               (name == "operator$set") ||
-               (name == "operator$elvis") ||
-               (name == "operator$assert_not_nil") ||
-               (name == "operator$not");
+        for (auto&& p : funcNameIdents) {
+            if (p.first == name || p.second == name) {
+                return true;
+            }
+        }
+        return false;
     }
 
     std::string getFunctionType(TPResult& result, Function* self) {
@@ -809,7 +790,20 @@ namespace sclc {
             std::string decl = declassifyReify(param);
             reified_mappings[decl] = reifyType(param, removeTypeModifiers(types[i]));
         }
-        if (self->has_operator) {
+        bool has_A_type = false;
+        bool has_B_type = false;
+        bool has_AB_type = false;
+        if (reified_mappings.size() == 2) {
+            for (auto&& f : reified_mappings) {
+                if (f.first == "A") {
+                    has_A_type = true;
+                } else if (f.first == "B") {
+                    has_B_type = true;
+                }
+            }
+            has_AB_type = has_A_type && has_B_type;
+        }
+        if (has_AB_type) {
             std::string biggestType;
             for (auto&& f : reified_mappings) {
                 if (!isPrimitiveType(f.second)) {
@@ -829,7 +823,7 @@ namespace sclc {
                 }
             }
             if (biggestType.size()) {
-                reified_mappings["ArithmeticReturnType"] = biggestType;
+                reified_mappings["_ABBigger"] = biggestType;
             }
         }
         Function* f = self->clone();
@@ -901,7 +895,7 @@ namespace sclc {
         }
         if (f->isMethod) {
             append("%s mt_%s$%s(%s) __asm(%s);\n", sclTypeToCType(result, f->return_type).c_str(), f->member_type.c_str(), f->name.c_str(), arguments.c_str(), generateSymbolForFunction(f).c_str());
-        } else if (!f->has_operator) {
+        } else if (!f->has_reified) {
             append("%s fn_%s(%s) __asm(%s);\n", sclTypeToCType(result, f->return_type).c_str(), f->name.c_str(), arguments.c_str(), generateSymbolForFunction(f).c_str());
         }
         return f;
@@ -910,15 +904,49 @@ namespace sclc {
 
     Function* reifiedPreamble(Function* self, std::ostream& fp, TPResult& result, std::vector<FPResult>& errors, std::vector<Token>& body, size_t& i) {
         std::vector<std::string> types;
-        if (typeStack.size() < self->reified_parameters.size()) {
-            transpilerError("Wrong amount of parameters for reified function call. Expected " + std::to_string(self->reified_parameters.size()) + " but got " + std::to_string(typeStack.size()), i);
-            errors.push_back(err);
-            return nullptr;
-        }
-        size_t startIndex = typeStack.size() - self->reified_parameters.size();
-        types.reserve(typeStack.size() - startIndex);
-        for (size_t i = startIndex; i < typeStack.size(); i++) {
-            types.push_back(typeStack[i]);
+        if (i + 1 < body.size() && body[i + 1].type == tok_double_column) {
+            safeInc();
+            safeInc();
+            if (body[i].type != tok_identifier || body[i].value != "<") {
+                transpilerError("Expected '<' to specify argument types, but got '" + body[i].value + "'", i);
+                errors.push_back(err);
+                return nullptr;
+            }
+            safeInc();
+            while (body[i].value != ">") {
+                FPResult type = parseType(body, &i, getTemplates(result, currentFunction));
+                if (!type.success) {
+                    errors.push_back(type);
+                    return nullptr;
+                }
+                types.push_back(removeTypeModifiers(type.value));
+                safeInc();
+                if (body[i].type != tok_comma && (body[i].value != ">" || body[i].type != tok_identifier)) {
+                    transpilerError("Expected ',' or '>', but got '" + body[i].value + "'", i);
+                    errors.push_back(err);
+                    return nullptr;
+                }
+                if (body[i].type == tok_comma) {
+                    safeInc();
+                }
+            }
+            types.push_back(self->member_type);
+            if (types.size() < (self->reified_parameters.size() - self->isMethod)) {
+                transpilerError("Wrong amount of parameters for reified function call. Expected " + std::to_string(self->reified_parameters.size()) + " but got " + std::to_string(types.size()), i);
+                errors.push_back(err);
+                return nullptr;
+            }
+        } else {
+            if (typeStack.size() < self->reified_parameters.size()) {
+                transpilerError("Wrong amount of parameters for reified function call. Expected " + std::to_string(self->reified_parameters.size()) + " but got " + std::to_string(typeStack.size()), i);
+                errors.push_back(err);
+                return nullptr;
+            }
+            size_t startIndex = typeStack.size() - self->reified_parameters.size();
+            types.reserve(typeStack.size() - startIndex);
+            for (size_t i = startIndex; i < typeStack.size(); i++) {
+                types.push_back(typeStack[i]);
+            }
         }
         Function* f = generateReifiedFunction(self, fp, result, errors, body, i, types);
         if (f == nullptr) return nullptr;
@@ -938,6 +966,8 @@ namespace sclc {
             functionCall(f, fp, result, warns, errors, body, i);
         }
     }
+
+    void emitFunction(Function* function, std::ostream& fp, TPResult& result, bool isMainFunction, std::vector<FPResult>& errors, std::vector<FPResult>& warns);
 
     void functionCall(Function* self, std::ostream& fp, TPResult& result, std::vector<FPResult>& warns, std::vector<FPResult>& errors, std::vector<Token>& body, size_t& i, bool withIntPromotion, bool hasToCallStatic, bool checkOverloads) {
         if (!shouldCall(self, warns, errors, body, i)) {
@@ -1172,7 +1202,6 @@ namespace sclc {
 
     callFunction:
 
-
         append("_scl_popn(%zu);\n", self->args.size());
         std::string type = typeStackTop;
         if (isSelfType(self->return_type)) {
@@ -1269,40 +1298,12 @@ namespace sclc {
 
     std::string sclFunctionNameToFriendlyString(std::string name) {
         name = name.substr(0, name.find("$$ol"));
-        if (name == "operator$add") name = "+";
-        else if (name == "operator$sub") name = "-";
-        else if (name == "operator$mul") name = "*";
-        else if (name == "operator$div") name = "/";
-        else if (name == "operator$mod") name = "%";
-        else if (name == "operator$logic_and") name = "&";
-        else if (name == "operator$logic_or") name = "|";
-        else if (name == "operator$logic_xor") name = "^";
-        else if (name == "operator$logic_not") name = "~";
-        else if (name == "operator$logic_lsh") name = "<<";
-        else if (name == "operator$logic_rol") name = "<<<";
-        else if (name == "operator$logic_rsh") name = ">>";
-        else if (name == "operator$logic_ror") name = ">>>";
-        else if (name == "operator$pow") name = "**";
-        else if (name == "operator$dot") name = ".";
-        else if (name == "operator$less") name = "<";
-        else if (name == "operator$less_equal") name = "<=";
-        else if (name == "operator$more") name = ">";
-        else if (name == "operator$more_equal") name = ">=";
-        else if (name == "operator$equal") name = "==";
-        else if (name == "operator$not") name = "!";
-        else if (name == "operator$assert_not_nil") name = "!!";
-        else if (name == "operator$not_equal") name = "!=";
-        else if (name == "operator$bool_and") name = "&&";
-        else if (name == "operator$bool_or") name = "||";
-        else if (name == "operator$inc") name = "++";
-        else if (name == "operator$dec") name = "--";
-        else if (name == "operator$at") name = "@";
-        else if (name == "operator$store") name = "=>";
-        else if (strcontains(name, "operator$store")) name = replaceAll(name, "operator\\$store", "=>");
-        else if (name == "operator$set") name = "=>[]";
-        else if (name == "operator$get") name = "[]";
-        else if (name == "operator$wildcard") name = "?";
-        else if (name == "operator$elvis") name = "?:";
+        for (auto&& p : funcNameIdents) {
+            if (p.second == name) {
+                name = p.first;
+                break;
+            }
+        }
         name = replaceAll(name, "\\$\\d+", "");
         name = replaceAll(name, "\\$", "::");
 

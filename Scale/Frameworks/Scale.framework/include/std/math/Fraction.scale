@@ -141,15 +141,13 @@ final struct Fraction
                     continue
                 fi
 
-                unsafe
-                    if inWholePart then
-                        s[i] => @(whole as int wholePtr +)
-                        wholePtr 1 + => wholePtr
-                    else
-                        s[i] => @(decimal as int decimalPtr +)
-                        decimalPtr 1 + => decimalPtr
-                    fi
-                end
+                if inWholePart then
+                    s[i] => whole[wholePtr]
+                    wholePtr 1 + => wholePtr
+                else
+                    s[i] => decimal[decimalPtr]
+                    decimalPtr 1 + => decimalPtr
+                fi
             done
 
             whole str::new int::parse => decl numWhole: int
@@ -165,8 +163,7 @@ final struct Fraction
 
             10 decimalLen ** => den
 
-            numWhole den * numDecimal + => num
-            num numSign * => num
+            ((numWhole den *) numDecimal +) numSign * => num
 
             num den Fraction::new return
         fi

@@ -54,6 +54,7 @@ namespace sclc
         long has_nonvirtual;
         long has_async;
         long has_reified;
+        long has_inline;
         
         std::vector<Variable> captures;
         std::vector<Variable> ref_captures;

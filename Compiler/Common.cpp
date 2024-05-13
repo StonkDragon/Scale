@@ -541,7 +541,7 @@ namespace sclc
         return r;
     }
 
-    std::unordered_map<std::string, std::string> funcNameIdents = {
+    const std::unordered_map<std::string, std::string> funcNameIdents = {
         std::pair("+", "operator$add"),
         std::pair("-", "operator$sub"),
         std::pair("*", "operator$mul"),
@@ -575,23 +575,27 @@ namespace sclc
         std::pair("[]", "operator$get"),
         std::pair("?", "operator$wildcard"),
         std::pair("?:", "operator$elvis"),
+        std::pair("/.", "operator$lcm"),
+        std::pair("*.", "operator$gcd"),
+        std::pair(">.", "operator$max"),
+        std::pair("<.", "operator$min"),
     };
 
     Function* getFunctionByName0(TPResult& result, const std::string& name) {
         for (Function* func : result.functions) {
             if (func->isMethod) continue;
-            if (func->name == name) {
+            if ((func->name_without_overload == name || func->name == name)) {
                 return func;
             }
         }
         return nullptr;
     }
     Function* getFunctionByName(TPResult& result, const std::string& name2) {
-        const std::string& name = funcNameIdents[name2];
-        if (name.empty()) {
-            return getFunctionByName0(result, name2);
-        } else {
+        try {
+            const std::string& name = funcNameIdents.at(name2);
             return getFunctionByName0(result, name);
+        } catch (std::out_of_range& _) {
+            return getFunctionByName0(result, name2);
         }
     }
 
@@ -624,7 +628,7 @@ namespace sclc
 
         for (Function* func : result.functions) {
             if (!func->isMethod) continue;
-            if (func->name == name && func->member_type == type) {
+            if ((func->name_without_overload == name || func->name == name) && func->member_type == type) {
                 return (Method*) func;
             }
         }
@@ -636,11 +640,11 @@ namespace sclc
     }
 
     Method* getMethodByName(TPResult& result, const std::string& name2, const std::string& type) {
-        const std::string& name = funcNameIdents[name2];
-        if (name.empty()) {
-            return getMethodByName0(result, name2.substr(0, name2.find("$$ol")), removeTypeModifiers(type));
-        } else {
+        try {
+            const std::string& name = funcNameIdents.at(name2);
             return getMethodByName0(result, name, removeTypeModifiers(type));
+        } catch (std::out_of_range& _) {
+            return getMethodByName0(result, name2.substr(0, name2.find("$$ol")), removeTypeModifiers(type));
         }
     }
     Method* getMethodByNameOnThisType0(TPResult& result, const std::string& name, const std::string& type) {
@@ -650,18 +654,18 @@ namespace sclc
 
         for (Function* func : result.functions) {
             if (!func->isMethod) continue;
-            if (func->name == name && func->member_type == type) {
+            if ((func->name_without_overload == name || func->name == name) && func->member_type == type) {
                 return (Method*) func;
             }
         }
         return nullptr;
     }
     Method* getMethodByNameOnThisType(TPResult& result, const std::string& name2, const std::string& type) {
-        const std::string& name = funcNameIdents[name2];
-        if (name.empty()) {
-            return getMethodByNameOnThisType0(result, name2.substr(0, name2.find("$$ol")), removeTypeModifiers(type));
-        } else {
+        try {
+            const std::string& name = funcNameIdents.at(name2);
             return getMethodByNameOnThisType0(result, name, removeTypeModifiers(type));
+        } catch (std::out_of_range& _) {
+            return getMethodByNameOnThisType0(result, name2.substr(0, name2.find("$$ol")), removeTypeModifiers(type));
         }
     }
 
@@ -952,7 +956,7 @@ namespace sclc
                             path = "mt_" + f->member_type + "$" + f->name + "(" + path + ", ";
                             std::vector<Function*> funcs;
                             for (auto&& f : result.functions) {
-                                if (f->name_without_overload == v.type + "$operator$store") {
+                                if (f->name_without_overload == v.type + "$operator$store" || f->name_without_overload == v.type + "$=>") {
                                     funcs.push_back(f);
                                 }
                             }
@@ -1061,7 +1065,7 @@ namespace sclc
                         path = "_scl_checked_write(" + path + ", " + index + ", ";
                         std::vector<Function*> funcs;
                         for (auto&& f : result.functions) {
-                            if (f->name_without_overload == v.type + "$operator$store") {
+                            if (f->name_without_overload == v.type + "$operator$store" || f->name_without_overload == v.type + "$=>") {
                                 funcs.push_back(f);
                             }
                         }
@@ -1104,7 +1108,7 @@ namespace sclc
                         path = "mt_" + arrayType + "$" + m->name + "(" + path + ", " + index + ", ";
                         std::vector<Function*> funcs;
                         for (auto&& f : result.functions) {
-                            if (f->name_without_overload == v.type + "$operator$store") {
+                            if (f->name_without_overload == v.type + "$operator$store" || f->name_without_overload == v.type + "$=>") {
                                 funcs.push_back(f);
                             }
                         }
@@ -1148,7 +1152,7 @@ namespace sclc
         if (doesWriteAfter) {
             std::vector<Function*> funcs;
             for (auto&& f : result.functions) {
-                if (f->name_without_overload == v.type + "$operator$store") {
+                if (f->name_without_overload == v.type + "$operator$store" || f->name_without_overload == v.type + "$=>") {
                     funcs.push_back(f);
                 }
             }

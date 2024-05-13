@@ -1,0 +1,5 @@
+function main(): none
+    "World" "Hello, World!":indexOf puts
+    "orld" "Hello, Wolrd!":indexOf puts
+    "orld" "Hello, Wolrd World!":indexOf puts
+end

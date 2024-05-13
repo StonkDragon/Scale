@@ -1,0 +1,5 @@
+function main(): none
+    7 "Hello, World!":subString puts
+    (0 to 4) "Hello, World!":subString puts
+    (3 to 4) "Hello, World!":subString puts
+end

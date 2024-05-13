@@ -6,39 +6,12 @@ using namespace sclc;
 
 Function::Function(std::string name, Token name_token) : Function(name, false, name_token) {}
 Function::Function(std::string name, bool isMethod, Token name_token) : namedReturnValue("", "") {
-    if (name == "+") name = "operator$add";
-    else if (name == "-") name = "operator$sub";
-    else if (name == "*") name = "operator$mul";
-    else if (name == "/") name = "operator$div";
-    else if (name == "%") name = "operator$mod";
-    else if (name == "&") name = "operator$logic_and";
-    else if (name == "|") name = "operator$logic_or";
-    else if (name == "^") name = "operator$logic_xor";
-    else if (name == "~") name = "operator$logic_not";
-    else if (name == "<<") name = "operator$logic_lsh";
-    else if (name == "<<<") name = "operator$logic_rol";
-    else if (name == ">>") name = "operator$logic_rsh";
-    else if (name == ">>>") name = "operator$logic_ror";
-    else if (name == "**") name = "operator$pow";
-    else if (name == ".") name = "operator$dot";
-    else if (name == "<") name = "operator$less";
-    else if (name == "<=") name = "operator$less_equal";
-    else if (name == ">") name = "operator$more";
-    else if (name == ">=") name = "operator$more_equal";
-    else if (name == "==") name = "operator$equal";
-    else if (name == "!") name = "operator$not";
-    else if (name == "!!") name = "operator$assert_not_nil";
-    else if (name == "!=") name = "operator$not_equal";
-    else if (name == "&&") name = "operator$bool_and";
-    else if (name == "||") name = "operator$bool_or";
-    else if (name == "++") name = "operator$inc";
-    else if (name == "--") name = "operator$dec";
-    else if (name == "@") name = "operator$at";
-    else if (name == "=>") name = "operator$store";
-    else if (name == "=>[]") name = "operator$set";
-    else if (name == "[]") name = "operator$get";
-    else if (name == "?") name = "operator$wildcard";
-    else if (name == "?:") name = "operator$elvis";
+    for (auto&& p : funcNameIdents) {
+        if (p.first == name) {
+            name = p.second;
+            break;
+        }
+    }
 
     this->name_token = name_token;
     this->name = name;
@@ -68,6 +41,7 @@ Function::Function(std::string name, bool isMethod, Token name_token) : namedRet
     this->has_nonvirtual = 0;
     this->has_async = 0;
     this->has_reified = 0;
+    this->has_inline = 0;
 }
 Function::~Function() {}
 std::vector<Token>& Function::getBody() {
@@ -101,6 +75,7 @@ void Function::addModifier(std::string modifier) {
     else if (has_binary_inherited == 0 && modifier == "<binary-inherited>") has_binary_inherited = modifiers.size();
     else if (has_nonvirtual == 0 && modifier == "nonvirtual") has_nonvirtual = modifiers.size();
     else if (has_async == 0 && modifier == "async") has_async = modifiers.size();
+    else if (has_inline == 0 && modifier == "inline") has_inline = modifiers.size();
     else if (has_reified == 0 && modifier == "reified") {
         has_reified = modifiers.size();
         has_nonvirtual = modifiers.size();
@@ -155,7 +130,7 @@ const std::string& Function::getModifier(size_t index) {
     return this->modifiers.at(index - 1);
 }
 Function* Function::clone() {
-    Function* f = new Function(name, isMethod, name_token);
+    Function* f = new Function(this->name, this->isMethod, this->name_token);
     f->isMethod = isMethod;
     f->return_type = return_type;
     f->member_type = member_type;

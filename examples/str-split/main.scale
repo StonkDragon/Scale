@@ -1,0 +1,7 @@
+function main(): none
+    "" "Hello, World!":split puts
+    "l" "Hello, World!":split puts
+    ", " "Hello, World!":split puts
+    "e" "Hello, World!":split puts
+    "!" "Hello, World!":split puts
+end

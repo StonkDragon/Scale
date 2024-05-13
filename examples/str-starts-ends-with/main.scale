@@ -1,0 +1,6 @@
+function main(): none
+    "Hello" "Hello, World!":startsWith puts
+    "Henlo" "Hello, World!":startsWith puts
+    "World!" "Hello, World!":endsWith puts
+    "Wolrd!" "Hello, World!":endsWith puts
+end

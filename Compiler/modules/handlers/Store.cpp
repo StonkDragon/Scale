@@ -131,7 +131,7 @@ namespace sclc {
             
             std::vector<Function*> funcs;
             for (auto&& f : result.functions) {
-                if (f->name_without_overload == v.type + "$operator$store") {
+                if (f->name_without_overload == v.type + "$operator$store" || f->name_without_overload == v.type + "$=>") {
                     funcs.push_back(f);
                 }
             }

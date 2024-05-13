@@ -8,7 +8,7 @@
     "icon": "icon.png",
     "publisher": "StonkDragon",
     "description": "Language Support for the Scale Programming Language",
-    "version": "24.1.2",
+    "version": "24.2.0",
     "engines": {
         "vscode": "^1.61.0"
     },

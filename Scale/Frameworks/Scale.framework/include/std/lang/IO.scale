@@ -10,12 +10,13 @@ cdecl "_scl_get_stderr"
 private expect foreign unsafe function __c_get_stderr(): any
 cdecl "getchar"
 private expect foreign unsafe function __c_getchar(): int8
-
 cdecl "puts"
-private expect foreign function puts0(:[int8]): none
+private expect foreign unsafe function __c_puts(:[int8]): none
 
 function puts(value: [int8]): none
-    value puts0
+    unsafe
+        value __c_puts
+    end
 end
 
 reified function puts<T>(value: T): none

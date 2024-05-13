@@ -15,6 +15,7 @@ namespace sclc {
     bool hasImplementation(TPResult& result, Function* func);
     bool shouldCall(Function* self, std::vector<FPResult>& warns, std::vector<FPResult>& errors, std::vector<Token>& body, size_t i);
     std::string opToString(std::string op);
+    bool opFunc(std::string name);
     void functionCall(Function* self, std::ostream& fp, TPResult& result, std::vector<FPResult>& warns, std::vector<FPResult>& errors, std::vector<Token>& body, size_t& i, bool withIntPromotion = false, bool hasToCallStatic = false, bool checkOverloads = true);
     std::string sclFunctionNameToFriendlyString(std::string name);
     std::string sclFunctionNameToFriendlyString(Function* f);

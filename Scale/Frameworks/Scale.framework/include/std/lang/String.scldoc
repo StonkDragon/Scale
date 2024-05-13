@@ -42,6 +42,7 @@ Returns `self`.
 
 ### function str:@(i: int): int
 Returns the character at index `i` in `self`.
+Method is deprecated in favor of `str:[]`.
 
 ### function str:[](index: int): int8
 Returns the character at index `index` in `self`.
@@ -51,6 +52,7 @@ Returns a reversed copy of `self`.
 
 ### function str:toChars(): Array
 Returns an array containing the characters of `self`.
+Method is deprecated in favor of `str:view`.
 
 ### function str:split(delimiter: str): [str]
 Splits `self` at `delimiter` and returns the resulting substrings.

@@ -90,40 +90,12 @@ namespace sclc {
             }
         }
 
-        if (name == "+") name = "operator$add";
-        else if (name == "-") name = "operator$sub";
-        else if (name == "*") name = "operator$mul";
-        else if (name == "/") name = "operator$div";
-        else if (name == "%") name = "operator$mod";
-        else if (name == "&") name = "operator$logic_and";
-        else if (name == "|") name = "operator$logic_or";
-        else if (name == "^") name = "operator$logic_xor";
-        else if (name == "~") name = "operator$logic_not";
-        else if (name == "<<") name = "operator$logic_lsh";
-        else if (name == "<<<") name = "operator$logic_rol";
-        else if (name == ">>") name = "operator$logic_rsh";
-        else if (name == ">>>") name = "operator$logic_ror";
-        else if (name == "**") name = "operator$pow";
-        else if (name == ".") name = "operator$dot";
-        else if (name == "<") name = "operator$less";
-        else if (name == "<=") name = "operator$less_equal";
-        else if (name == ">") name = "operator$more";
-        else if (name == ">=") name = "operator$more_equal";
-        else if (name == "==") name = "operator$equal";
-        else if (name == "!") name = "operator$not";
-        else if (name == "!!") name = "operator$assert_not_nil";
-        else if (name == "!=") name = "operator$not_equal";
-        else if (name == "&&") name = "operator$bool_and";
-        else if (name == "||") name = "operator$bool_or";
-        else if (name == "++") name = "operator$inc";
-        else if (name == "--") name = "operator$dec";
-        else if (name == "@") name = "operator$at";
-        else if (name == "=>") name = "operator$store";
-        else if (name == "=>[]") name = "operator$set";
-        else if (strcontains(name, "=>")) name = replaceAll(name, "=>", "operator$store");
-        else if (name == "[]") name = "operator$get";
-        else if (name == "?") name = "operator$wildcard";
-        else if (name == "?:") name = "operator$elvis";
+        for (auto&& p : funcNameIdents) {
+            if (p.first == name) {
+                name = p.second;
+                break;
+            }
+        }
 
         Function* func = new Function(name, name_token);
         i += 2;
@@ -350,39 +322,12 @@ namespace sclc {
             }
         }
 
-        if (name == "+") name = "operator$add";
-        else if (name == "-") name = "operator$sub";
-        else if (name == "*") name = "operator$mul";
-        else if (name == "/") name = "operator$div";
-        else if (name == "%") name = "operator$mod";
-        else if (name == "&") name = "operator$logic_and";
-        else if (name == "|") name = "operator$logic_or";
-        else if (name == "^") name = "operator$logic_xor";
-        else if (name == "~") name = "operator$logic_not";
-        else if (name == "<<") name = "operator$logic_lsh";
-        else if (name == "<<<") name = "operator$logic_rol";
-        else if (name == ">>") name = "operator$logic_rsh";
-        else if (name == ">>>") name = "operator$logic_ror";
-        else if (name == "**") name = "operator$pow";
-        else if (name == ".") name = "operator$dot";
-        else if (name == "<") name = "operator$less";
-        else if (name == "<=") name = "operator$less_equal";
-        else if (name == ">") name = "operator$more";
-        else if (name == ">=") name = "operator$more_equal";
-        else if (name == "==") name = "operator$equal";
-        else if (name == "!") name = "operator$not";
-        else if (name == "!!") name = "operator$assert_not_nil";
-        else if (name == "!=") name = "operator$not_equal";
-        else if (name == "&&") name = "operator$bool_and";
-        else if (name == "||") name = "operator$bool_or";
-        else if (name == "++") name = "operator$inc";
-        else if (name == "--") name = "operator$dec";
-        else if (name == "@") name = "operator$at";
-        else if (name == "=>") name = "operator$store";
-        else if (name == "=>[]") name = "operator$set";
-        else if (name == "[]") name = "operator$get";
-        else if (name == "?") name = "operator$wildcard";
-        else if (name == "?:") name = "operator$elvis";
+        for (auto&& p : funcNameIdents) {
+            if (p.first == name) {
+                name = p.second;
+                break;
+            }
+        }
 
         Method* method = new Method(memberName, name, name_token);
         method->force_add = true;
@@ -1742,7 +1687,9 @@ namespace sclc {
                     if (contains<std::string>(nextAttributes, "static") || currentStructs.back()->isStatic()) {
                         std::string name = tokens[i + 1].value;
                         Token& func = tokens[i + 1];
-                        currentFunction = parseFunction(currentStructs.back()->name + "$" + name, func, errors, i, tokens);
+                        currentFunction = parseFunction(name, func, errors, i, tokens);
+                        currentFunction->name = currentStructs.back()->name + "$" + currentFunction->name;
+                        currentFunction->name_without_overload = currentStructs.back()->name + "$" + currentFunction->name_without_overload;
                         currentFunction->deprecated = currentDeprecation;
                         currentDeprecation.clear();
                         currentFunction->member_type = currentStructs.back()->name;
@@ -1753,7 +1700,7 @@ namespace sclc {
                         if (f) {
                             currentFunction->name = currentFunction->name + "$$ol" + argsToRTSignatureIdent(currentFunction);
                         }
-                        if (currentFunction->has_expect) {
+                        if (currentFunction->has_expect || currentFunction->has_operator) {
                             functions.push_back(currentFunction);
                             currentFunction = nullptr;
                         }
@@ -1770,6 +1717,8 @@ namespace sclc {
                     Token& func = tokens[i + 1];
                     std::string name = func.value;
                     currentFunction = parseMethod(name, func, currentStructs.back()->name, errors, i, tokens);
+                    currentFunction->deprecated = currentDeprecation;
+                    currentDeprecation.clear();
                     for (std::string& s : nextAttributes) {
                         currentFunction->addModifier(s);
                     }
@@ -1777,7 +1726,7 @@ namespace sclc {
                     if (f) {
                         currentFunction->name = currentFunction->name + "$$ol" + argsToRTSignatureIdent(currentFunction);
                     }
-                    if (currentFunction->has_expect) {
+                    if (currentFunction->has_expect || currentFunction->has_operator) {
                         functions.push_back(currentFunction);
                         currentFunction = nullptr;
                     }
@@ -1796,6 +1745,8 @@ namespace sclc {
                         Token& func = tokens[i + 1];
                         std::string name = func.value;
                         currentFunction = parseMethod(name, func, "", errors, i, tokens);
+                        currentFunction->deprecated = currentDeprecation;
+                        currentDeprecation.clear();
                         for (std::string& s : nextAttributes) {
                             currentFunction->addModifier(s);
                         }
@@ -1839,6 +1790,8 @@ namespace sclc {
                     Token& func = tokens[i + 1];
                     std::string name = func.value;
                     currentFunction = parseMethod(name, func, member_type, errors, i, tokens);
+                    currentFunction->deprecated = currentDeprecation;
+                    currentDeprecation.clear();
                     if (contains<std::string>(nextAttributes, "private")) {
                         FPResult result;
                         result.message = "Methods cannot be declared 'private' if they are not in the struct body!";
@@ -1857,7 +1810,9 @@ namespace sclc {
                         i++;
                         std::string name = tokens[i + 1].value;
                         Token& func = tokens[i + 1];
-                        currentFunction = parseFunction(memberType + "$" + name, func, errors, i, tokens);
+                        currentFunction = parseFunction(name, func, errors, i, tokens);
+                        currentFunction->name = memberType + "$" + currentFunction->name;
+                        currentFunction->name_without_overload = memberType + "$" + currentFunction->name_without_overload;
                         currentFunction->deprecated = currentDeprecation;
                         currentDeprecation.clear();
                         currentFunction->addModifier("static");
@@ -1882,7 +1837,7 @@ namespace sclc {
                 if (f) {
                     currentFunction->name = currentFunction->name + "$$ol" + argsToRTSignatureIdent(currentFunction);
                 }
-                if (currentFunction->has_expect) {
+                if (currentFunction->has_expect || currentFunction->has_operator) {
                     functions.push_back(currentFunction);
                     currentFunction = nullptr;
                 }
@@ -2079,11 +2034,15 @@ namespace sclc {
                     if (removed == "none" || removed == "nothing") {
                         return getter;
                     }
+                    getter->addToken(Token(tok_addr_ref, "ref", v.name_token.location));
                     getter->addToken(Token(tok_identifier, "self", v.name_token.location));
                     getter->addToken(Token(tok_dot, ".", v.name_token.location));
                     getter->addToken(Token(tok_identifier, "__value", v.name_token.location));
                     getter->addToken(Token(tok_as, "as", v.name_token.location));
+                    getter->addToken(Token(tok_bracket_open, "[", v.name_token.location));
                     getter->addToken(Token(tok_identifier, removeTypeModifiers(v.type), v.name_token.location));
+                    getter->addToken(Token(tok_bracket_close, "]", v.name_token.location));
+                    getter->addToken(Token(tok_addr_of, "@", v.name_token.location));
                     getter->addToken(Token(tok_return, "return", v.name_token.location));
                     return getter;
                 };
@@ -2099,7 +2058,13 @@ namespace sclc {
                     }
                     setter->addToken(Token(tok_number, std::to_string(n), v.name_token.location));
                     if (removed != "none" && removed != "nothing") {
+                        setter->addToken(Token(tok_addr_ref, "ref", v.name_token.location));
                         setter->addToken(Token(tok_identifier, "what", v.name_token.location));
+                        setter->addToken(Token(tok_as, "as", v.name_token.location));
+                        setter->addToken(Token(tok_bracket_open, "[", v.name_token.location));
+                        setter->addToken(Token(tok_identifier, "any", v.name_token.location));
+                        setter->addToken(Token(tok_bracket_close, "]", v.name_token.location));
+                        setter->addToken(Token(tok_addr_of, "@", v.name_token.location));
                     } else {
                         setter->addToken(Token(tok_nil, "nil", v.name_token.location));
                     }
@@ -2802,6 +2767,7 @@ namespace sclc {
                            t.value == "default" ||
                            t.value == "private" ||
                            t.value == "reified" ||
+                           t.value == "inline" ||
                            t.value == "static" ||
                            t.value == "export" ||
                            t.value == "expect" ||

@@ -511,6 +511,171 @@ namespace sclc {
         append("#endif\n");
     }
 
+    int n_captures = 0;
+    void emitFunction(Function* function, std::ostream& fp, TPResult& result, bool isMainFunction, std::vector<FPResult>& errors, std::vector<FPResult>& warns) {
+        varScopePush();
+        if (UNLIKELY(function->has_async)) {
+            for (Variable& var : function->args) {
+                append("  %s Var_%s = __args->_Var_%s;\n", sclTypeToCType(result, var.type).c_str(), var.name.c_str(), var.name.c_str());
+            }
+        } else if (UNLIKELY(function->has_lambda)) {
+            if (function->captures.size()) {
+                append("  extern tls struct {\n");
+                for (Variable cap : function->captures) {
+                    append("    %s %s_;\n", sclTypeToCType(result, cap.type).c_str(), cap.name.c_str());
+                    vars.push_back(Variable(cap.name, cap.type));
+                }
+                append("  } cap%d __asm(%s\".caps\");\n", n_captures, generateSymbolForFunction(function).c_str());
+                for (Variable cap : function->captures) {
+                    append("  %s Var_%s = (cap%d.%s_);\n", sclTypeToCType(result, cap.type).c_str(), cap.name.c_str(), n_captures, cap.name.c_str());
+                }
+                n_captures++;
+            }
+            if (function->ref_captures.size()) {
+                append("  extern tls struct {\n");
+                for (Variable cap : function->ref_captures) {
+                    append("    %s* %s_;\n", sclTypeToCType(result, cap.type).c_str(), cap.name.c_str());
+                    vars.push_back(Variable(cap.name, cap.type));
+                }
+                append("  } cap%d __asm(%s\".refs\");\n", n_captures, generateSymbolForFunction(function).c_str());
+                for (Variable cap : function->ref_captures) {
+                    append("  #define Var_%s (*cap%d.%s_)\n", cap.name.c_str(), n_captures, cap.name.c_str());
+                }
+                n_captures++;
+            }
+        }
+        append("  scl_uint64* _local_stack = alloca(%zu * sizeof(scl_uint64));\n", Main::options::stackSize);
+        append("  scl_uint64* _local_stack_ptr = _local_stack;\n");
+        
+        scopeDepth++;
+        std::vector<Token> body = function->getBody();
+        
+        if (UNLIKELY(!function->namedReturnValue.name.empty())) {
+            const std::string& nrvName = function->namedReturnValue.name;
+            checkShadow(nrvName, function->namedReturnValue.name_token, function, result, warns);
+            if (isPrimitiveType(function->namedReturnValue.type)) {
+                append("%s Var_%s = 0;\n", sclTypeToCType(result, function->namedReturnValue.type).c_str(), function->namedReturnValue.name.c_str());
+            } else {
+                append("%s Var_%s = {0};\n", sclTypeToCType(result, function->namedReturnValue.type).c_str(), function->namedReturnValue.name.c_str());
+            }
+
+            vars.push_back(function->namedReturnValue);
+        }
+        for (size_t i = 0; i < function->args.size(); i++) {
+            const Variable& var = function->args[i];
+            if (var.type != "varargs") {
+                vars.push_back(var);
+            }
+        }
+
+        if (UNLIKELY(!function->has_operator)) {
+            append("SCL_BACKTRACE(\"%s\");\n", sclFunctionNameToFriendlyString(function).c_str());
+        }
+        if (function->isMethod) {
+            const std::string& superType = currentStruct.super;
+            if (LIKELY(superType.size() > 0)) {
+                append("%s Var_super = (%s) %sVar_self;\n", sclTypeToCType(result, superType).c_str(), sclTypeToCType(result, superType).c_str(), function->args[function->args.size() - 1].type.front() == '@' ? "&" : "");
+                vars.push_back(Variable("super", "const " + superType));
+            }
+        }
+
+        if (isMainFunction && function->args.size()) {
+            if (!Main::options::noScaleFramework) {
+                append("scl_str* ");
+            } else {
+                append("scl_int8** ");
+            }
+            append2("Var_%s = _scl_new_array_by_size(__argc, sizeof(Var_%s));\n", function->args[0].name.c_str(), function->args[0].name.c_str());
+            append("for (scl_int i = 0; i < __argc; i++) {\n");
+            append("  Var_%s[i] = ", function->args[0].name.c_str());
+            if (!Main::options::noScaleFramework) {
+                append2("_scl_create_string(__argv[i]);\n");
+            } else {
+                append2("__argv[i];\n");
+            }
+            append("}\n");
+        }
+
+        for (ssize_t a = (ssize_t) function->args.size() - 1; a >= 0; a--) {
+            const Variable& arg = function->args[a];
+            if (UNLIKELY(typeCanBeNil(arg.type) || hasEnum(result, arg.type) || arg.type == "varargs" || (hasTypealias(result, arg.type) && typealiasCanBeNil(result, arg.type)))) continue;
+
+            if (!arg.name.empty()) {
+                append("SCL_ASSUME(*(scl_int*) &Var_%s, \"Argument '%%s' is nil\", \"%s\");\n", arg.name.c_str(), arg.name.c_str());
+            }
+        }
+        if (!function->has_async) {
+            for (size_t i = 0; i < function->args.size(); i++) {
+                const Variable& arg = function->args[i];
+                if (arg.name.empty()) {
+                    append("_scl_push(%s, param%ld);\n", sclTypeToCType(result, arg.type).c_str(), i);
+                    typeStack.push_back(arg.type);
+                }
+            }
+        }
+        
+        if (function->has_unsafe) {
+            isInUnsafe++;
+        }
+        if (function->has_restrict) {
+            if (function->isMethod) {
+                append("cxx_std_recursive_mutex_lock(&(Var_self->$mutex));\n");
+            } else {
+                append("cxx_std_recursive_mutex_lock(&(function_lock$%s));\n", function->name.c_str());
+            }
+        }
+
+        if (UNLIKELY(function->isCVarArgs() && function->varArgsParam().name.size())) {
+            append("va_list _cvarargs;\n");
+            append("va_start(_cvarargs, Var_%s$size);\n", function->varArgsParam().name.c_str());
+            append("scl_int _cvarargs_count = Var_%s$size;\n", function->varArgsParam().name.c_str());
+            append("scl_any* Var_%s SCL_AUTO_DELETE = (scl_any*) _scl_cvarargs_to_array(_cvarargs, _cvarargs_count);\n", function->varArgsParam().name.c_str());
+            append("va_end(_cvarargs);\n");
+            vars.push_back(Variable(function->varArgsParam().name, "const [any]"));
+        }
+
+        if (UNLIKELY(function->has_setter || function->has_getter)) {
+            std::string fieldName;
+            if (function->has_setter) {
+                fieldName = function->getModifier(function->has_setter + 1);
+            } else {
+                fieldName = function->getModifier(function->has_getter + 1);
+            }
+            append("#define Var_field (Var_self->%s)\n", fieldName.c_str());
+
+            vars.push_back(Variable("field", currentStruct.getMember(fieldName).type));
+        }
+
+        if (function->has_operator) {
+            functionCall(function, fp, result, warns, errors, body, i);
+        } else {
+            for (i = 0; i < body.size(); i++) {
+                handle(Token);
+            }
+        }
+
+        if (opFunc(function->name_without_overload) && typeStack.size()) {
+            handle(Return);
+        }
+
+        if (UNLIKELY(function->has_setter || function->has_getter)) {
+            append("#undef Var_field\n");
+        } else if (UNLIKELY(function->has_lambda)) {
+            for (Variable cap : function->ref_captures) {
+                append("#undef Var_%s\n", cap.name.c_str());
+            }
+        }
+        
+        if (function->has_unsafe) {
+            isInUnsafe--;
+        }
+
+        if (isMainFunction) {
+            append("return 0;\n");
+        }
+        scopeDepth--;
+    }
+
     void Transpiler::writeFunctions(const std::string& header_file) {
         filePreamble(header_file);
 
@@ -531,7 +696,6 @@ namespace sclc {
             }
         }
 
-        int n_captures = 0;
         for (size_t f = 0; f < result.functions.size(); f++) {
             Function* function = currentFunction = result.functions[f];
             if (UNLIKELY(function->has_reified || function->has_expect || function->has_binary_inherited || getInterfaceByName(result, function->member_type))) {
@@ -613,6 +777,9 @@ namespace sclc {
                 append("static volatile scl_any function_lock$%s = NULL;\n", function->name.c_str());
             }
 
+            if (function->has_inline && !isMainFunction) {
+                append("_scl_always_inline\n");
+            }
             if (isMainFunction) {
                 append("int ");
             } else if (UNLIKELY(function->return_type.front() == '@' && function->has_async)) {
@@ -644,150 +811,9 @@ namespace sclc {
             } else {
                 append2("fn_%s(%s) {\n", function->name.c_str(), arguments.c_str());
             }
-            varScopePush();
-            if (UNLIKELY(function->has_async)) {
-                for (Variable& var : function->args) {
-                    append("  %s Var_%s = __args->_Var_%s;\n", sclTypeToCType(result, var.type).c_str(), var.name.c_str(), var.name.c_str());
-                }
-            } else if (UNLIKELY(function->has_lambda)) {
-                if (function->captures.size()) {
-                    append("  extern tls struct {\n");
-                    for (Variable cap : function->captures) {
-                        append("    %s %s_;\n", sclTypeToCType(result, cap.type).c_str(), cap.name.c_str());
-                        vars.push_back(Variable(cap.name, cap.type));
-                    }
-                    append("  } cap%d __asm(%s\".caps\");\n", n_captures, generateSymbolForFunction(function).c_str());
-                    for (Variable cap : function->captures) {
-                        append("  %s Var_%s = (cap%d.%s_);\n", sclTypeToCType(result, cap.type).c_str(), cap.name.c_str(), n_captures, cap.name.c_str());
-                    }
-                    n_captures++;
-                }
-                if (function->ref_captures.size()) {
-                    append("  extern tls struct {\n");
-                    for (Variable cap : function->ref_captures) {
-                        append("    %s* %s_;\n", sclTypeToCType(result, cap.type).c_str(), cap.name.c_str());
-                        vars.push_back(Variable(cap.name, cap.type));
-                    }
-                    append("  } cap%d __asm(%s\".refs\");\n", n_captures, generateSymbolForFunction(function).c_str());
-                    for (Variable cap : function->ref_captures) {
-                        append("  #define Var_%s (*cap%d.%s_)\n", cap.name.c_str(), n_captures, cap.name.c_str());
-                    }
-                    n_captures++;
-                }
-            }
-            append("  scl_uint64* _local_stack = alloca(%zu * sizeof(scl_uint64));\n", Main::options::stackSize);
-            append("  scl_uint64* _local_stack_ptr = _local_stack;\n");
-            
-            scopeDepth++;
-            std::vector<Token> body = function->getBody();
-            
-            if (UNLIKELY(!function->namedReturnValue.name.empty())) {
-                const std::string& nrvName = function->namedReturnValue.name;
-                checkShadow(nrvName, function->namedReturnValue.name_token, function, result, warns);
-                if (isPrimitiveType(function->namedReturnValue.type)) {
-                    append("%s Var_%s = 0;\n", sclTypeToCType(result, function->namedReturnValue.type).c_str(), function->namedReturnValue.name.c_str());
-                } else {
-                    append("%s Var_%s = {0};\n", sclTypeToCType(result, function->namedReturnValue.type).c_str(), function->namedReturnValue.name.c_str());
-                }
-
-                vars.push_back(function->namedReturnValue);
-            }
-            for (size_t i = 0; i < function->args.size(); i++) {
-                const Variable& var = function->args[i];
-                if (var.type != "varargs") {
-                    vars.push_back(var);
-                }
-            }
-
-            append("SCL_BACKTRACE(\"%s\");\n", sclFunctionNameToFriendlyString(function).c_str());
-            if (function->isMethod) {
-                const std::string& superType = currentStruct.super;
-                if (LIKELY(superType.size() > 0)) {
-                    append("%s Var_super = (%s) %sVar_self;\n", sclTypeToCType(result, superType).c_str(), sclTypeToCType(result, superType).c_str(), function->args[function->args.size() - 1].type.front() == '@' ? "&" : "");
-                    vars.push_back(Variable("super", "const " + superType));
-                }
-            }
-
-            if (isMainFunction && function->args.size()) {
-                if (!Main::options::noScaleFramework) {
-                    append("scl_str* ");
-                } else {
-                    append("scl_int8** ");
-                }
-                append2("Var_%s = _scl_new_array_by_size(__argc, sizeof(Var_%s));\n", function->args[0].name.c_str(), function->args[0].name.c_str());
-                append("for (scl_int i = 0; i < __argc; i++) {\n");
-                append("  Var_%s[i] = ", function->args[0].name.c_str());
-                if (!Main::options::noScaleFramework) {
-                    append2("_scl_create_string(__argv[i]);\n");
-                } else {
-                    append2("__argv[i];\n");
-                }
-                append("}\n");
-            }
-
-            for (ssize_t a = (ssize_t) function->args.size() - 1; a >= 0; a--) {
-                const Variable& arg = function->args[a];
-                if (UNLIKELY(typeCanBeNil(arg.type) || hasEnum(result, arg.type) || arg.type == "varargs" || (hasTypealias(result, arg.type) && typealiasCanBeNil(result, arg.type)))) continue;
-
-                if (!arg.name.empty()) {
-                    append("SCL_ASSUME(*(scl_int*) &Var_%s, \"Argument '%%s' is nil\", \"%s\");\n", arg.name.c_str(), arg.name.c_str());
-                }
-            }
-            
-            if (function->has_unsafe) {
-                isInUnsafe++;
-            }
-            if (function->has_restrict) {
-                if (function->isMethod) {
-                    append("cxx_std_recursive_mutex_lock(&(Var_self->$mutex));\n");
-                } else {
-                    append("cxx_std_recursive_mutex_lock(&(function_lock$%s));\n", function->name.c_str());
-                }
-            }
-
-            if (UNLIKELY(function->isCVarArgs() && function->varArgsParam().name.size())) {
-                append("va_list _cvarargs;\n");
-                append("va_start(_cvarargs, Var_%s$size);\n", function->varArgsParam().name.c_str());
-                append("scl_int _cvarargs_count = Var_%s$size;\n", function->varArgsParam().name.c_str());
-                append("scl_any* Var_%s SCL_AUTO_DELETE = (scl_any*) _scl_cvarargs_to_array(_cvarargs, _cvarargs_count);\n", function->varArgsParam().name.c_str());
-                append("va_end(_cvarargs);\n");
-                vars.push_back(Variable(function->varArgsParam().name, "const [any]"));
-            }
-
-            if (UNLIKELY(function->has_setter || function->has_getter)) {
-                std::string fieldName;
-                if (function->has_setter) {
-                    fieldName = function->getModifier(function->has_setter + 1);
-                } else {
-                    fieldName = function->getModifier(function->has_getter + 1);
-                }
-                append("#define Var_field (Var_self->%s)\n", fieldName.c_str());
-
-                vars.push_back(Variable("field", currentStruct.getMember(fieldName).type));
-            }
-
-            for (i = 0; i < body.size(); i++) {
-                handle(Token);
-            }
+            emitFunction(function, fp, result, isMainFunction, errors, warns);
 
             varScopePop();
-
-            if (UNLIKELY(function->has_setter || function->has_getter)) {
-                append("#undef Var_field\n");
-            } else if (UNLIKELY(function->has_lambda)) {
-                for (Variable cap : function->ref_captures) {
-                    append("#undef Var_%s\n", cap.name.c_str());
-                }
-            }
-            
-            if (function->has_unsafe) {
-                isInUnsafe--;
-            }
-
-            if (isMainFunction) {
-                append("return 0;\n");
-            }
-
             scopeDepth = 0;
             append("}\n\n");
         }
