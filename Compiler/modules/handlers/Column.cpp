@@ -222,17 +222,17 @@ namespace sclc {
             }
             functionCall(f, fp, result, warns, errors, body, i);
         } else {
-            std::string typeRemoved = removeTypeModifiers(type);
-            if (typeRemoved == "str") {
-                if (body[i].value == "toString") {
-                    return;
-                } else if (body[i].value == "view") {
-                    append("_scl_top(scl_any) = _scl_top(scl_str)->data;\n");
-                    typePop;
-                    typeStack.push_back("[int8]");
-                    return;
-                }
-            }
+            // std::string typeRemoved = removeTypeModifiers(type);
+            // if (typeRemoved == "str") {
+            //     if (body[i].value == "toString") {
+            //         return;
+            //     } else if (body[i].value == "view") {
+            //         append("_scl_top(scl_any) = _scl_top(scl_str)->data;\n");
+            //         typePop;
+            //         typeStack.push_back("[int8]");
+            //         return;
+            //     }
+            // }
             if (typeCanBeNil(type)) {
                 {
                     transpilerError("Calling method on maybe-nil type '" + type + "'", i);

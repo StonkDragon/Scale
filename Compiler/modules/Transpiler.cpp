@@ -600,7 +600,7 @@ namespace sclc {
             const Variable& arg = function->args[a];
             if (UNLIKELY(typeCanBeNil(arg.type) || hasEnum(result, arg.type) || arg.type == "varargs" || (hasTypealias(result, arg.type) && typealiasCanBeNil(result, arg.type)))) continue;
 
-            if (!arg.name.empty()) {
+            if (!arg.name.empty() && arg.type.front() != '@') {
                 append("SCL_ASSUME(*(scl_int*) &Var_%s, \"Argument '%%s' is nil\", \"%s\");\n", arg.name.c_str(), arg.name.c_str());
             }
         }
