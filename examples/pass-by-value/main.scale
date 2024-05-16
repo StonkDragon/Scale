@@ -11,7 +11,7 @@ function foo(x: @Foo): @Foo
 end
 
 function main(): none
-    Foo {
+    Foo static {
         "Hello!" => x
         42 => y
     } => decl x: @Foo

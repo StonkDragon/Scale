@@ -199,7 +199,7 @@ int main(int argc, char const *argv[]) {
     auto scale_runtime = create_command<std::string>({
         "clang",
         "-O2",
-        "-std=gnu17",
+        ("-std=" C_VERSION),
         "-I" + path + "/Internal",
         "-I" + path + "/Internal/include",
         path + "/Internal/scale_runtime.c",
@@ -213,7 +213,7 @@ int main(int argc, char const *argv[]) {
     auto cxx_glue = create_command<std::string>({
         "clang++",
         "-O2",
-        "-std=gnu++17",
+        ("-std=" CXX_VERSION),
         "-I" + path + "/Internal",
         "-I" + path + "/Internal/include",
         path + "/Internal/scale_cxx.cpp",
@@ -256,9 +256,9 @@ int main(int argc, char const *argv[]) {
     std::string compile_command = create_command<std::string>({
         "clang++",
         ("-DVERSION=\\\"" STR(VERSION) "\\\""),
-        "-DC_VERSION=\\\"gnu17\\\"",
+        ("-DC_VERSION=" STR(STR(C_VERSION))),
         "-DSCL_ROOT_DIR=\\\"" + scl_root_dir.string() + "\\\"",
-        "-std=gnu++17",
+        ("-std=" CXX_VERSION),
         "-Wall",
         "-Wextra",
         "-Werror",

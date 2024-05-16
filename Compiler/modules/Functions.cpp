@@ -92,7 +92,6 @@ namespace sclc {
 
             amountOfVarargs = std::stoi(body[i].value);
         } else {
-            // varargs
             bool hitVarargs = false;
             for (ssize_t i = typeStack.size() - 1; i >= 0; i--) {
                 if (typeStack[i] == "<varargs>") {
@@ -136,7 +135,9 @@ namespace sclc {
 
         bool closeThePush = false;
         if (f->return_type.size() && f->return_type.front() == '@' && !f->has_async) {
-            append("%s tmp = ", sclTypeToCType(result, f->return_type).c_str());
+            const Struct& s = getStructByName(result, f->return_type);
+            append("_scl_push_value(%s, %d, ", sclTypeToCType(result, f->return_type).c_str(), s != Struct::Null);
+            closeThePush = true;
         } else {
             if (f->return_type != "none" && f->return_type != "nothing" && !f->has_async) {
                 append("_scl_push(%s, ", sclTypeToCType(result, f->return_type).c_str());
@@ -160,18 +161,6 @@ namespace sclc {
         }
         append2(";\n");
 
-        if (f->return_type.size() && f->return_type.front() == '@' && !f->has_async) {
-            std::string cType = sclTypeToCType(result, f->return_type);
-            const Struct& s = getStructByName(result, f->return_type);
-            append("_scl_push(scl_any, alloca(sizeof(memory_layout_t) + sizeof(%s)));\n", cType.c_str());
-            append("_scl_top(memory_layout_t*)->size = sizeof(%s);\n", cType.c_str());
-            if (s != Struct::Null) {
-                append("extern TypeInfo ti_%s __asm(\"__T%s\");\n", s.name.c_str(), s.name.c_str());
-                append("_scl_init_struct(_scl_top(scl_any) + sizeof(memory_layout_t), &ti_%s, _scl_top(scl_any));\n", s.name.c_str());
-            }
-            append("memcpy(_scl_top(scl_any) + sizeof(memory_layout_t), &tmp, sizeof(%s));\n", cType.c_str());
-            append("_scl_top(scl_any) += sizeof(memory_layout_t);\n");
-        }
         if (f->has_async) {
             typeStack.push_back("async<" + f->return_type + ">");
         } else if (removeTypeModifiers(f->return_type) != "none" && removeTypeModifiers(f->return_type) != "nothing") {
@@ -554,9 +543,9 @@ namespace sclc {
         std::string args = generateArgumentsForFunction(result, self);
         bool closeThePush = false;
         if (self->return_type.size() && self->return_type.front() == '@' && !self->has_async) {
-            append("{\n");
-            scopeDepth++;
-            append("%s tmp = ", sclTypeToCType(result, self->return_type).c_str());
+            const Struct& s = getStructByName(result, self->return_type);
+            append("_scl_push_value(%s, %d, ", sclTypeToCType(result, self->return_type).c_str(), s != Struct::Null);
+            closeThePush = true;
         } else {
             if (self->return_type != "none" && self->return_type != "nothing" && !self->has_async) {
                 append("_scl_push(%s, ", sclTypeToCType(result, self->return_type).c_str());
@@ -619,20 +608,6 @@ namespace sclc {
             append2(")");
         }
         append2(";\n");
-        if (self->return_type.size() && self->return_type.front() == '@' && !self->has_async) {
-            std::string cType = sclTypeToCType(result, self->return_type);
-            const Struct& s = getStructByName(result, self->return_type);
-            append("_scl_push(scl_any, alloca(sizeof(memory_layout_t) + sizeof(%s)));\n", cType.c_str());
-            append("_scl_top(memory_layout_t*)->size = sizeof(%s);\n", cType.c_str());
-            if (s != Struct::Null) {
-                append("extern TypeInfo ti_%s __asm(\"__T%s\");\n", s.name.c_str(), s.name.c_str());
-                append("_scl_init_struct(_scl_top(scl_any) + sizeof(memory_layout_t), &ti_%s, _scl_top(scl_any));\n", s.name.c_str());
-            }
-            append("memcpy(_scl_top(scl_any) + sizeof(memory_layout_t), &tmp, sizeof(%s));\n", cType.c_str());
-            append("_scl_top(scl_any) += sizeof(memory_layout_t);\n");
-            scopeDepth--;
-            append("}\n");
-        }
         if (self->has_async) {
             typeStack.push_back("async<" + self->return_type + ">");
         } else if (removeTypeModifiers(self->return_type) != "none" && removeTypeModifiers(self->return_type) != "nothing") {
@@ -853,7 +828,6 @@ namespace sclc {
         }
         if (!contains) {
             result.functions.push_back(f);
-            // self->overloads.push_back(f);
         }
         f->has_reified = 0;
         f->reified_parameters = self->reified_parameters;
@@ -899,7 +873,6 @@ namespace sclc {
             append("%s fn_%s(%s) __asm(%s);\n", sclTypeToCType(result, f->return_type).c_str(), f->name.c_str(), arguments.c_str(), generateSymbolForFunction(f).c_str());
         }
         return f;
-        // TODO: SIGABRT on linux right here
     }
 
     Function* reifiedPreamble(Function* self, std::ostream& fp, TPResult& result, std::vector<FPResult>& errors, std::vector<Token>& body, size_t& i) {
@@ -1238,9 +1211,9 @@ namespace sclc {
         }
         bool closeThePush = false;
         if (self->return_type.size() && self->return_type.front() == '@' && !self->has_async) {
-            append("{\n");
-            scopeDepth++;
-            append("%s tmp = ", sclTypeToCType(result, self->return_type).c_str());
+            const Struct& s = getStructByName(result, self->return_type);
+            append("_scl_push_value(%s, %d, ", sclTypeToCType(result, self->return_type).c_str(), s != Struct::Null);
+            closeThePush = true;
         } else {
             if (removeTypeModifiers(self->return_type) != "none" && removeTypeModifiers(self->return_type) != "nothing" && !self->has_async) {
                 append("_scl_push(%s, ", sclTypeToCType(result, self->return_type).c_str());
@@ -1259,20 +1232,6 @@ namespace sclc {
             append2(")");
         }
         append2(";\n");
-        if (self->return_type.size() && self->return_type.front() == '@' && !self->has_async) {
-            std::string cType = sclTypeToCType(result, self->return_type);
-            const Struct& s = getStructByName(result, self->return_type);
-            append("_scl_push(scl_any, alloca(sizeof(memory_layout_t) + sizeof(%s)));\n", cType.c_str());
-            append("_scl_top(memory_layout_t*)->size = sizeof(%s);\n", cType.c_str());
-            if (s != Struct::Null) {
-                append("extern TypeInfo ti_%s __asm(\"__T%s\");\n", s.name.c_str(), s.name.c_str());
-                append("_scl_init_struct(_scl_top(scl_any) + sizeof(memory_layout_t), &ti_%s, _scl_top(scl_any));\n", s.name.c_str());
-            }
-            append("memcpy(_scl_top(scl_any) + sizeof(memory_layout_t), &tmp, sizeof(%s));\n", cType.c_str());
-            append("_scl_top(scl_any) += sizeof(memory_layout_t);\n");
-            scopeDepth--;
-            append("}\n");
-        }
         if (self->has_async) {
             typeStack.push_back("async<" + self->return_type + ">");
         } else if (removeTypeModifiers(self->return_type) != "none" && removeTypeModifiers(self->return_type) != "nothing") {

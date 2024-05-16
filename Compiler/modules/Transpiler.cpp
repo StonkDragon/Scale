@@ -544,8 +544,9 @@ namespace sclc {
                 n_captures++;
             }
         }
-        append("  scl_uint64* _local_stack = alloca(%zu * sizeof(scl_uint64));\n", Main::options::stackSize);
+        append("  scl_uint64 _local_stack[%zu * sizeof(scl_uint64)];\n", Main::options::stackSize);
         append("  scl_uint64* _local_stack_ptr = _local_stack;\n");
+        append("  _scl_scope(128*sizeof(scl_int));\n");
         
         scopeDepth++;
         std::vector<Token> body = function->getBody();

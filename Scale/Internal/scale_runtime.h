@@ -361,8 +361,8 @@ struct scale_string {
 #define _scl_offsetof(type, member) ((scl_int)&((type*)0)->member)
 
 #define REINTERPRET_CAST(_type, _value) ({ \
-	typeof(_value) _tmp = (_value); \
-	*(_type*) &_tmp; \
+	typeof(_value) _tmp ## __LINE__ = (_value); \
+	*(_type*) &_tmp ## __LINE__; \
 })
 
 #define _scl_async(x, at, ...) ({ \
@@ -425,8 +425,8 @@ void				_scl_delete_ptr(void* ptr);
 						_Pragma("clang diagnostic ignored \"-Wincompatible-pointer-types-discards-qualifiers\"") \
 						_Pragma("clang diagnostic ignored \"-Wint-conversion\"") \
 						({ \
-							scl_any _tmp = (instance); \
-							(((scl_any(*)(scl_any __VA_OPT__(, _SCL_PREPROC_REPEAT_N(_SCL_PREPROC_NARG(__VA_ARGS__), scl_any)))) func_ptr_on(_tmp, (methodIdentifier))))(_tmp, ##__VA_ARGS__); \
+							scl_any _tmp ## __LINE__ = (instance); \
+							(((scl_any(*)(scl_any __VA_OPT__(, _SCL_PREPROC_REPEAT_N(_SCL_PREPROC_NARG(__VA_ARGS__), scl_any)))) func_ptr_on(_tmp ## __LINE__, (methodIdentifier))))(_tmp ## __LINE__, ##__VA_ARGS__); \
 						}) \
 						_Pragma("clang diagnostic pop")
 // call a method on an instance
@@ -435,8 +435,8 @@ void				_scl_delete_ptr(void* ptr);
 						_Pragma("clang diagnostic ignored \"-Wincompatible-pointer-types-discards-qualifiers\"") \
 						_Pragma("clang diagnostic ignored \"-Wint-conversion\"") \
 						({ \
-							scl_any _tmp = (instance); \
-							(((scl_float(*)(scl_any __VA_OPT__(, _SCL_PREPROC_REPEAT_N(_SCL_PREPROC_NARG(__VA_ARGS__), scl_any)))) func_ptr_on(_tmp, (methodIdentifier))))(_tmp, ##__VA_ARGS__); \
+							scl_any _tmp ## __LINE__ = (instance); \
+							(((scl_float(*)(scl_any __VA_OPT__(, _SCL_PREPROC_REPEAT_N(_SCL_PREPROC_NARG(__VA_ARGS__), scl_any)))) func_ptr_on(_tmp ## __LINE__, (methodIdentifier))))(_tmp ## __LINE__, ##__VA_ARGS__); \
 						}) \
 						_Pragma("clang diagnostic pop")
 // call a method on the super class of an instance
@@ -446,8 +446,8 @@ void				_scl_delete_ptr(void* ptr);
 						_Pragma("clang diagnostic ignored \"-Wincompatible-pointer-types-discards-qualifiers\"") \
 						_Pragma("clang diagnostic ignored \"-Wint-conversion\"") \
 						({ \
-							scl_any _tmp = (instance); \
-							(((scl_any(*)(scl_any __VA_OPT__(, _SCL_PREPROC_REPEAT_N(_SCL_PREPROC_NARG(__VA_ARGS__), scl_any)))) func_ptr_on_super(_tmp, (methodIdentifier))))(_tmp, ##__VA_ARGS__); \
+							scl_any _tmp ## __LINE__ = (instance); \
+							(((scl_any(*)(scl_any __VA_OPT__(, _SCL_PREPROC_REPEAT_N(_SCL_PREPROC_NARG(__VA_ARGS__), scl_any)))) func_ptr_on_super(_tmp ## __LINE__, (methodIdentifier))))(_tmp ## __LINE__, ##__VA_ARGS__); \
 						}) \
 						_Pragma("clang diagnostic pop")
 // call a method on the super class of an instance
@@ -456,8 +456,8 @@ void				_scl_delete_ptr(void* ptr);
 						_Pragma("clang diagnostic ignored \"-Wincompatible-pointer-types-discards-qualifiers\"") \
 						_Pragma("clang diagnostic ignored \"-Wint-conversion\"") \
 						({ \
-							scl_any _tmp = (instance); \
-							(((scl_float(*)(scl_any __VA_OPT__(, _SCL_PREPROC_REPEAT_N(_SCL_PREPROC_NARG(__VA_ARGS__), scl_any)))) func_ptr_on_super(_tmp, (methodIdentifier))))(_tmp, ##__VA_ARGS__); \
+							scl_any _tmp ## __LINE__ = (instance); \
+							(((scl_float(*)(scl_any __VA_OPT__(, _SCL_PREPROC_REPEAT_N(_SCL_PREPROC_NARG(__VA_ARGS__), scl_any)))) func_ptr_on_super(_tmp ## __LINE__, (methodIdentifier))))(_tmp ## __LINE__, ##__VA_ARGS__); \
 						}) \
 						_Pragma("clang diagnostic pop")
 
@@ -477,22 +477,77 @@ void				_scl_setup(void);
 						self; \
 					})
 
-#define _scl_uninitialized_constant(_type) ({ \
-						extern const TypeInfo _scl_ti_ ## _type __asm__("__T" #_type); \
+#define _scl_uninitialized_constant_ctype(_type) ({ \
 						static _scl_symbol_hidden struct { \
 							memory_layout_t layout; \
-							struct Struct_ ## _type data; \
+							_type data; \
 						} _constant __asm__("l_scl_inline_constant" _scl_macro_to_string(__COUNTER__)) = { \
 							.layout = { \
 								.array_elem_size = 0, \
 								.flags = MEM_FLAG_INSTANCE, \
-								.size = sizeof(struct Struct_ ## _type), \
+								.size = sizeof(_type), \
+							}, \
+							.data = {}, \
+						}; \
+						&((typeof(_constant)*) _scl_mark_static(&(_constant.layout)))->data; \
+					})
+
+#define _scl_uninitialized_constant(_type) ({ \
+						extern const TypeInfo _scl_ti_ ## _type __asm__("__T" #_type); \
+						scl_ ## _type _t; \
+						static _scl_symbol_hidden struct { \
+							memory_layout_t layout; \
+							typeof(*_t) data; \
+						} _constant __asm__("l_scl_inline_constant" _scl_macro_to_string(__COUNTER__)) = { \
+							.layout = { \
+								.array_elem_size = 0, \
+								.flags = MEM_FLAG_INSTANCE, \
+								.size = sizeof(*_t), \
 							}, \
 							.data = { \
 								.$type = &_scl_ti_ ## _type, \
 							}, \
 						}; \
 						&((typeof(_constant)*) _scl_mark_static(&(_constant.layout)))->data; \
+					})
+
+#define _scl_stack_alloc(_type) ({ \
+						extern const TypeInfo _scl_ti_ ## _type __asm__("__T" #_type); \
+						scl_ ## _type _t; \
+						struct { \
+							memory_layout_t layout; \
+							typeof(*_t) data; \
+						}* tmp ## __LINE__ = _scl_scope_alloc(sizeof(*tmp ## __LINE__)); \
+						tmp ## __LINE__->layout.size = sizeof(tmp ## __LINE__->data); \
+						tmp ## __LINE__->layout.flags = MEM_FLAG_INSTANCE; \
+						tmp ## __LINE__->data.$type = &_scl_ti_ ## _type; \
+						&(tmp ## __LINE__->data); \
+					})
+
+#define _scl_stack_alloc_ctype(_type) ({ \
+						struct { \
+							memory_layout_t layout; \
+							_type data; \
+						}* tmp ## __LINE__ = _scl_scope_alloc(sizeof(*tmp ## __LINE__)); \
+						tmp ## __LINE__->layout.size = sizeof(tmp ## __LINE__->data); \
+						tmp ## __LINE__->layout.flags = MEM_FLAG_INSTANCE; \
+						&(tmp ## __LINE__->data); \
+					})
+
+#define _scl_static_cstring(_data, _len) ({ \
+						static _scl_symbol_hidden struct { \
+							memory_layout_t layout; \
+							scl_int8 data[(_len) + 1]; \
+						} CONCAT(_str_data, __LINE__) __asm__("l_scl_string_data" _scl_macro_to_string(__COUNTER__)) = { \
+							.layout = { \
+								.array_elem_size = sizeof(scl_int8), \
+								.flags = MEM_FLAG_ARRAY, \
+								.size = _len, \
+							}, \
+							.data = (_data), \
+						}; \
+						_scl_mark_static(&((CONCAT(_str_data, __LINE__)).layout)); \
+						(scl_int8*) ((CONCAT(_str_data, __LINE__)).data); \
 					})
 
 #define _scl_static_string(_data, _hash, _len) ({ \
@@ -579,7 +634,28 @@ void				cxx_std_recursive_mutex_lock(scl_any* mutex);
 void				cxx_std_recursive_mutex_unlock(scl_any* mutex);
 // END C++ Concurrency API wrappers
 
+#define _scl_scope_alloc(_size)				({ \
+												scl_any tmp = &_local_scope_buffer[_local_scope_buffer_ptr]; \
+												_local_scope_buffer_ptr += _size; \
+												tmp; \
+											})
+#define _scl_scope(_size)					char _local_scope_buffer[(_size)]; scl_int _local_scope_buffer_ptr __attribute__((cleanup(_scl_reset_local_buffer))) = 0
+
+static inline void _scl_reset_local_buffer(scl_int* ptr) {
+	*ptr = 0;
+}
+
 #define _scl_push(_type, _value)			(*(_type*) _local_stack_ptr = (_value), _local_stack_ptr++)
+#define _scl_push_value(_type, _is_instance, _value) ({ \
+												struct { \
+													memory_layout_t layout; \
+													_type data; \
+												}* tmp ## __LINE__ = _scl_scope_alloc(sizeof(*tmp ## __LINE__)); \
+												tmp ## __LINE__->data = (_value); \
+												tmp ## __LINE__->layout.size = sizeof(_type); \
+												if (_is_instance) tmp ## __LINE__->layout.flags = MEM_FLAG_INSTANCE; \
+												_scl_push(_type*, &tmp ## __LINE__->data); \
+											})
 #define _scl_pop(_type)						(_local_stack_ptr--, *(_type*) _local_stack_ptr)
 #define _scl_positive_offset(offset, _type)	(*(_type*) (_local_stack_ptr + offset))
 #define _scl_top(_type)						(*(_type*) (_local_stack_ptr - 1))
@@ -591,15 +667,15 @@ void				cxx_std_recursive_mutex_unlock(scl_any* mutex);
 											((_other) (*(_type*) (_local_stack_ptr + offset)))
 
 #define _scl_swap() ({ \
-		scl_int tmp = _local_stack_ptr[-1]; \
+		scl_int tmp ## __LINE__ = _local_stack_ptr[-1]; \
 		_local_stack_ptr[-1] = _local_stack_ptr[-2]; \
-		_local_stack_ptr[-2] = tmp; \
+		_local_stack_ptr[-2] = tmp ## __LINE__; \
 	})
 
 #define _scl_over() ({ \
-		scl_int tmp = _local_stack_ptr[-1]; \
+		scl_int tmp ## __LINE__ = _local_stack_ptr[-1]; \
 		_local_stack_ptr[-1] = _local_stack_ptr[-3]; \
-		_local_stack_ptr[-3] = tmp; \
+		_local_stack_ptr[-3] = tmp ## __LINE__; \
 	})
 
 #define _scl_sdup2() ({ \
@@ -607,23 +683,23 @@ void				cxx_std_recursive_mutex_unlock(scl_any* mutex);
 	})
 
 #define _scl_swap2() ({ \
-		scl_int tmp = _local_stack_ptr[-2]; \
+		scl_int tmp ## __LINE__ = _local_stack_ptr[-2]; \
 		_local_stack_ptr[-2] = _local_stack_ptr[-3]; \
-		_local_stack_ptr[-3] = tmp; \
+		_local_stack_ptr[-3] = tmp ## __LINE__; \
 	})
 
 #define _scl_rot() ({ \
-		scl_int tmp = _local_stack_ptr[-3]; \
+		scl_int tmp ## __LINE__ = _local_stack_ptr[-3]; \
 		_local_stack_ptr[-3] = _local_stack_ptr[-2]; \
 		_local_stack_ptr[-2] = _local_stack_ptr[-1]; \
-		_local_stack_ptr[-1] = tmp; \
+		_local_stack_ptr[-1] = tmp ## __LINE__; \
 	})
 
 #define _scl_unrot() ({ \
-		scl_int tmp = _local_stack_ptr[-1]; \
+		scl_int tmp ## __LINE__ = _local_stack_ptr[-1]; \
 		_local_stack_ptr[-1] = _local_stack_ptr[-2]; \
 		_local_stack_ptr[-2] = _local_stack_ptr[-3]; \
-		_local_stack_ptr[-3] = tmp; \
+		_local_stack_ptr[-3] = tmp ## __LINE__; \
 	})
 
 #define _scl_add(a, b)			(a) + (b)

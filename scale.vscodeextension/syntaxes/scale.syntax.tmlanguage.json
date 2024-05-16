@@ -93,7 +93,7 @@
 		"keyword": {
 			"patterns": [{
 				"name": "keyword.control",
-				"match": "\\b(function|import|end|while|do|done|construct|final|unless|if|elif|elunless|then|else|fi|assert|switch|case|esac|default|return|using|break|continue|for|foreach|in|to|step|decl|ref|nil|true|false|typeof|nameof|sizeof|typealias|as|repeat|struct|union|layout|enum|interface|new|is|cdecl|asm|overrides|goto|label|nothing|none|int|float|float32|int32|int16|int8|uint32|uint16|uint8|uint|int64|uint64|any|str|varargs|self|super|bool|sealed|static|private|export|expect|reified|foreign|nonvirtual|operator|inline|unsafe|restrict|const|readonly|try|catch|throw|open|intrinsic|lambda|await|async)\\b"
+				"match": "\\b(function|import|end|while|do|done|construct|final|unless|if|elif|elunless|then|else|fi|assert|switch|case|esac|default|return|using|break|continue|for|foreach|in|to|step|decl|ref|nil|true|false|typeof|nameof|sizeof|typealias|as|repeat|struct|union|layout|enum|interface|new|is|cdecl|asm|overrides|goto|label|nothing|none|int|float|float32|int32|int16|int8|uint32|uint16|uint8|uint|int64|uint64|any|str|varargs|self|super|bool|sealed|static|private|export|expect|reified|foreign|nonvirtual|local|operator|inline|unsafe|restrict|const|readonly|try|catch|throw|open|intrinsic|lambda|await|async)\\b"
 			},{
 				"name": "keyword.control",
 				"match": "(((del)?macro|pragma)!)"

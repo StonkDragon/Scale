@@ -517,6 +517,7 @@ namespace sclc {
         if (type == "uint16") return "u16;";
         if (type == "uint32") return "u32;";
         if (type == "uint64") return "u64;";
+        if (type == "?") return "?;";
         if (currentStruct.templates.find(type) != currentStruct.templates.end()) {
             return typeToRTSig(currentStruct.templates[type].value);
         }
@@ -557,15 +558,21 @@ namespace sclc {
     }
 
     std::string argsToRTSignature(Function* f) {
-        std::string args = "(";
-        for (const Variable& v : f->args) {
-            if (v.name == "self" && f->isMethod) {
-                continue;
+        static std::unordered_map<Function*, std::string> cache;
+
+        if (cache.find(f) == cache.end()) {
+            std::string args = "(";
+            for (const Variable& v : f->args) {
+                if (f->isMethod && v.name == "self") {
+                    continue;
+                }
+                args += typeToRTSig(v.type);
             }
-            args += typeToRTSig(v.type);
+            args += ")" + typeToRTSig(f->return_type);
+            cache[f] = args;
         }
-        args += ")" + typeToRTSig(f->return_type);
-        return args;
+
+        return cache[f];
     }
 
     std::string typeToRTSigIdent(std::string type) {
@@ -592,6 +599,7 @@ namespace sclc {
         if (type == "uint16") return "u16$";
         if (type == "uint32") return "u32$";
         if (type == "uint64") return "u64$";
+        if (type == "?") return "Q$";
         if (currentStruct.templates.find(type) != currentStruct.templates.end()) {
             return typeToRTSigIdent(currentStruct.templates[type].value);
         }

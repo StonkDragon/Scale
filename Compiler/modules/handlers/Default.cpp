@@ -19,12 +19,14 @@ namespace sclc {
             scopeDepth++;
             varScopePush();
             append("%s Var_it = union_switch;\n", sclTypeToCType(result, s.name).c_str());
+            append("_scl_scope(128*sizeof(scl_int));\n");
             vars.push_back(Variable("it", s.name));
             return;
         }
         append("default: {\n");
         scopeDepth++;
         varScopePush();
+        append("_scl_scope(128*sizeof(scl_int));\n");
     }
 } // namespace sclc
 

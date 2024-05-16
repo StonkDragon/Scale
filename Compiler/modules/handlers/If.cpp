@@ -12,6 +12,7 @@ namespace sclc {
         append("if (({\n");
         scopeDepth++;
         safeInc();
+        append("_scl_scope(128*sizeof(scl_int));\n");
         size_t typeStackSize = typeStack.size();
         varScopePush();
         while (body[i].type != tok_then) {
@@ -36,6 +37,7 @@ namespace sclc {
         append("})) {\n");
         scopeDepth++;
         typePop;
+        append("_scl_scope(128*sizeof(scl_int));\n");
         auto tokenEndsIfBlock = [body](TokenType type) {
             return type == tok_elif ||
                    type == tok_elunless ||

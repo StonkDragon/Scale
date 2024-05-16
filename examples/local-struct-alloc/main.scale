@@ -1,0 +1,17 @@
+struct Foo
+  decl x: int
+end
+
+function foo(i: int): @Foo
+  Foo local {
+    i => x
+  } => decl f: Foo
+  f return
+end
+
+function main(): none
+  for i in 0 to 100 do
+    123 i * foo puts
+    246 i * foo puts
+  done
+end

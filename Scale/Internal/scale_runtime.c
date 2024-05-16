@@ -95,9 +95,25 @@ scl_any _scl_mark_static(memory_layout_t* layout) {
 	return layout;
 }
 
+_scl_symbol_hidden static scl_int _scl_on_stack(scl_any ptr, scl_any bottom, scl_any top) {
+	if (bottom > top) {
+		return ptr <= bottom && ptr >= top;
+	} else {
+		return ptr >= bottom && ptr <= top;
+	}
+}
+
 _scl_symbol_hidden static memory_layout_t* _scl_get_memory_layout(scl_any ptr) {
 	if (likely(GC_is_heap_ptr(ptr))) {
 		return (memory_layout_t*) GC_base(ptr);
+	}
+	struct GC_stack_base base;
+	if (GC_get_stack_base(&base) != GC_SUCCESS) {
+		return nil;
+	}
+	if (_scl_on_stack(ptr, base.mem_base, &base)) {
+		ptr -= sizeof(memory_layout_t);
+		return (memory_layout_t*) ptr;
 	}
 	cxx_std_recursive_mutex_lock(&lock);
 	ptr -= sizeof(memory_layout_t);

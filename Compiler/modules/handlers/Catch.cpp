@@ -55,6 +55,7 @@ namespace sclc {
         scopeDepth++;
         vars.push_back(Variable(exName, ex));
         append("scl_%s Var_%s = (scl_%s) _scl_exception_handler.exception;\n", ex.c_str(), exName.c_str(), ex.c_str());
+        append("_scl_scope(128*sizeof(scl_int));\n");
     }
 } // namespace sclc
 

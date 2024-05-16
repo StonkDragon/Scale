@@ -21,16 +21,10 @@
     }                                                                                                                                  \
     else if (type.front() == '@')                                                                                                      \
     {                                                                                                                                  \
-        append("{\n");                                                                                                                 \
-        scopeDepth++;                                                                                                                  \
         std::string ctype = sclTypeToCType(result, type);                                                                              \
-        append("struct { memory_layout_t layout; %s data; } tmp = {0};\n", ctype.c_str());                                             \
-        append("tmp.layout.size = sizeof(%s);\n", ctype.c_str());                                                                      \
-        append("tmp.layout.flags = MEM_FLAG_INSTANCE;\n", ctype.c_str());                                                              \
-        append("tmp.data = %s;\n", path.c_str());                                                                                      \
-        append("_scl_push(%s*, &(tmp.data));\n", ctype.c_str());                                                                       \
-        scopeDepth--;                                                                                                                  \
-        append("}\n");                                                                                                                 \
+        const Struct& s = getStructByName(result, type);                                                                               \
+        append("_scl_push_value(%s, %d, %s);\n", ctype.c_str(), s != Struct::Null, path.c_str());                                      \
+        typeStack.push_back(type.substr(1));                                                                                           \
     }                                                                                                                                  \
     else                                                                                                                               \
     {                                                                                                                                  \
@@ -43,8 +37,8 @@
         {                                                                                                                              \
             append("_scl_push(%s, %s);\n", ctype.c_str(), path.c_str());                                                               \
         }                                                                                                                              \
-    }                                                                                                                                  \
-    typeStack.push_back(type);
+        typeStack.push_back(type);                                                                                                     \
+    }
 
 #define wasRepeat() (whatWasIt.size() > 0 && whatWasIt.back() == 1)
 #define popRepeat() (whatWasIt.pop_back())

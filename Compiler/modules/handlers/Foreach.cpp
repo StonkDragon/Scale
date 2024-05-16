@@ -109,6 +109,7 @@ namespace sclc {
                 append("_scl_checked_cast(Var_%s, 0x%lxUL, \"%s\");\n", iter_var_tok.value.c_str(), id(iterType.c_str()), iterType.c_str());
             }
             pushOther();
+            append("_scl_scope(128*sizeof(scl_int));\n");
             return;
         }
         
@@ -169,6 +170,7 @@ namespace sclc {
         if (index_var_tok.value.size()) {
             append("scl_int Var_%s = %s_ind++;\n", index_var_tok.value.c_str(), iterator_name.c_str());
         }
+        append("_scl_scope(128*sizeof(scl_int));\n");
     }
 } // namespace sclc
 

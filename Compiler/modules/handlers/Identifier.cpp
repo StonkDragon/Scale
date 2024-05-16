@@ -278,15 +278,18 @@ namespace sclc {
                         errors.push_back(err);
                     }
                 }
-            } else if (body[i + 1].type == tok_curly_open || (body[i + 1].type == tok_identifier && body[i + 1].value == "static")) {
+            } else if (body[i + 1].type == tok_curly_open || (body[i + 1].type == tok_identifier && (body[i + 1].value == "static" || body[i + 1].value == "local"))) {
                 safeInc();
                 append("_scl_push(%s, ({\n", sclTypeToCType(result, s.name).c_str());
                 scopeDepth++;
                 if (body[i].type == tok_curly_open) {
                     append("%s tmp = ALLOC(%s);\n", sclTypeToCType(result, s.name).c_str(), s.name.c_str());
-                } else {
+                } else if (body[i].value == "static") {
                     safeInc();
                     append("%s tmp = _scl_uninitialized_constant(%s);\n", sclTypeToCType(result, s.name).c_str(), s.name.c_str());
+                } else if (body[i].value == "local") {
+                    safeInc();
+                    append("%s tmp = _scl_stack_alloc(%s);\n", sclTypeToCType(result, s.name).c_str(), s.name.c_str());
                 }
                 size_t begin = i;
                 append("scl_uint64* stack_start = _local_stack_ptr;\n");
@@ -383,11 +386,19 @@ namespace sclc {
                 }
                 append("_scl_push(scl_any, _scl_alloc(sizeof(struct Layout_%s)));\n", l.name.c_str());
                 typeStack.push_back(l.name);
-            } else if (body[i].type == tok_curly_open) {
+            } else if (body[i].type == tok_curly_open || (body[i].type == tok_identifier && (body[i].value == "static" || body[i].value == "local"))) {
                 append("_scl_push(%s, ({\n", sclTypeToCType(result, l.name).c_str());
                 scopeDepth++;
                 size_t begin = i - 1;
-                append("%s tmp = _scl_alloc(sizeof(struct Layout_%s));\n", sclTypeToCType(result, l.name).c_str(), l.name.c_str());
+                if (body[i].type == tok_curly_open) {
+                    append("%s tmp = _scl_alloc(sizeof(struct Layout_%s));\n", sclTypeToCType(result, l.name).c_str(), l.name.c_str());
+                } else if (body[i].value == "static") {
+                    safeInc();
+                    append("%s tmp = _scl_uninitialized_constant_ctype(struct Layout_%s);\n", sclTypeToCType(result, l.name).c_str(), l.name.c_str());
+                } else if (body[i].value == "local") {
+                    safeInc();
+                    append("%s tmp = _scl_stack_alloc_ctype(struct Layout_%s);\n", sclTypeToCType(result, l.name).c_str(), l.name.c_str());
+                }
                 append("scl_uint64* stack_start = _local_stack_ptr;\n");
                 safeInc();
                 size_t count = 0;

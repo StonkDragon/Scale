@@ -42,7 +42,10 @@ cdecl "gettimeofday"
 private expect foreign unsafe function __c_gettimeofday(:timeval, :any): int
 
 function time(): float
-  sizeof timeval any::new as timeval => decl tv: timeval
+  timeval local {
+    0 => seconds
+    0 => microseconds
+  } => decl tv: timeval
   
   unsafe
     tv nil __c_gettimeofday drop
@@ -51,7 +54,5 @@ function time(): float
   tv.seconds => decl seconds: int
   tv.microseconds => decl microseconds: int
 
-  tv any::delete
-  microseconds as float 1000000.0 / seconds +
-  return
+  microseconds as float 1000000.0 / seconds + return
 end

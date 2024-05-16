@@ -34,6 +34,7 @@ namespace sclc {
                 append("case %zu: {\n", index - 1);
                 scopeDepth++;
                 varScopePush();
+                append("_scl_scope(128*sizeof(scl_int));\n");
                 if (i + 1 < body.size() && body[i + 1].type == tok_paren_open) {
                     safeInc();
                     safeInc();
@@ -91,10 +92,12 @@ namespace sclc {
                 append("case %zu: {\n", index);
                 scopeDepth++;
                 varScopePush();
+                append("_scl_scope(128*sizeof(scl_int));\n");
             } else {
                 append("case %s: {\n", body[i].value.c_str());
                 scopeDepth++;
                 varScopePush();
+                append("_scl_scope(128*sizeof(scl_int));\n");
             }
         }
     }

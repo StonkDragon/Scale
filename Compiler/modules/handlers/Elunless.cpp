@@ -14,6 +14,7 @@ namespace sclc {
         append("} else if (!({\n");
         scopeDepth++;
         size_t typeStackSize = typeStack.size();
+        append("_scl_scope(128*sizeof(scl_int));\n");
         safeInc();
         varScopePush();
         while (body[i].type != tok_then) {
@@ -36,6 +37,7 @@ namespace sclc {
         append("})) {\n");
         scopeDepth++;
         varScopePush();
+        append("_scl_scope(128*sizeof(scl_int));\n");
     }
 } // namespace sclc
 
