@@ -248,6 +248,21 @@ namespace sclc {
                     append("tmp;\n");
                     scopeDepth--;
                     append("}));\n");
+                } else if (body[i].value == "local" && !s.isStatic()) {
+                    std::string ctype = sclTypeToCType(result, s.name);
+                    append("_scl_push(%s, ({\n", ctype.c_str());
+                    scopeDepth++;
+                    append("%s tmp = _scl_stack_alloc(%s);\n", ctype.c_str(), s.name.c_str());
+                    
+                    typeStack.push_back(s.name);
+                    if (hasInitMethod) {
+                        append("_scl_push(%s, tmp);\n", ctype.c_str());
+                        methodCall(initMethod, fp, result, warns, errors, body, i);
+                        typeStack.push_back(s.name);
+                    }
+                    append("tmp;\n");
+                    scopeDepth--;
+                    append("}));\n");
                 } else if (body[i].value == "default" && !s.isStatic()) {
                     append("_scl_push(%s, ALLOC(%s));\n", sclTypeToCType(result, s.name).c_str(), s.name.c_str());
                     typeStack.push_back(s.name);
@@ -379,13 +394,16 @@ namespace sclc {
             safeInc();
             if (body[i].type == tok_double_column) {
                 safeInc();
-                if (body[i].value != "new") {
+                if (body[i].value == "new") {
+                    append("_scl_push(scl_any, _scl_alloc(sizeof(struct Layout_%s)));\n", l.name.c_str());
+                    typeStack.push_back(l.name);
+                } else if (body[i].value == "local") {
+                    append("_scl_push(scl_any, _scl_stack_alloc_ctype(sizeof(struct Layout_%s)));\n", l.name.c_str());
+                    typeStack.push_back(l.name);
+                } else {
                     transpilerError("Expected 'new' to create new layout, but got '" + body[i].value + "'", i);
                     errors.push_back(err);
-                    return;
                 }
-                append("_scl_push(scl_any, _scl_alloc(sizeof(struct Layout_%s)));\n", l.name.c_str());
-                typeStack.push_back(l.name);
             } else if (body[i].type == tok_curly_open || (body[i].type == tok_identifier && (body[i].value == "static" || body[i].value == "local"))) {
                 append("_scl_push(%s, ({\n", sclTypeToCType(result, l.name).c_str());
                 scopeDepth++;

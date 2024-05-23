@@ -556,6 +556,16 @@ void				_scl_setup(void);
 						tmp ## __LINE__->layout.flags = MEM_FLAG_INSTANCE; \
 						&(tmp ## __LINE__->data); \
 					})
+#define _scl_stack_alloc_array(_type, _size) ({ \
+						struct { \
+							memory_layout_t layout; \
+							_type data[(_size)]; \
+						}* tmp ## __LINE__ = _scl_scope_alloc(sizeof(*tmp ## __LINE__)); \
+						tmp ## __LINE__->layout.size = (_size); \
+						tmp ## __LINE__->layout.array_elem_size = sizeof(_type); \
+						tmp ## __LINE__->layout.flags = MEM_FLAG_ARRAY; \
+						(_type*) (tmp ## __LINE__->data); \
+					})
 
 #define _scl_static_cstring(_data, _len) ({ \
 						static _scl_symbol_hidden struct { \
@@ -669,14 +679,14 @@ static inline void _scl_reset_local_buffer(scl_int* ptr) {
 }
 
 #define _scl_push(_type, _value)			(*(_type*) _local_stack_ptr = (_value), _local_stack_ptr++)
-#define _scl_push_value(_type, _is_instance, _value) ({ \
+#define _scl_push_value(_type, _flags, _value) ({ \
 												struct { \
 													memory_layout_t layout; \
 													_type data; \
 												}* tmp ## __LINE__ = _scl_scope_alloc(sizeof(*tmp ## __LINE__)); \
 												tmp ## __LINE__->data = (_value); \
 												tmp ## __LINE__->layout.size = sizeof(_type); \
-												if (_is_instance) tmp ## __LINE__->layout.flags = MEM_FLAG_INSTANCE; \
+												tmp ## __LINE__->layout.flags = (_flags); \
 												_scl_push(_type*, &tmp ## __LINE__->data); \
 											})
 #define _scl_pop(_type)						(_local_stack_ptr--, *(_type*) _local_stack_ptr)

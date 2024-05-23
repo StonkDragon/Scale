@@ -95,37 +95,38 @@ scl_any _scl_mark_static(memory_layout_t* layout) {
 	return layout;
 }
 
-_scl_symbol_hidden static scl_int _scl_on_stack(scl_any ptr, scl_any bottom, scl_any top) {
-	if (bottom > top) {
-		return ptr <= bottom && ptr >= top;
+_scl_symbol_hidden static scl_int _scl_on_stack(scl_any ptr) {
+	struct GC_stack_base base;
+	if (GC_get_stack_base(&base) != GC_SUCCESS) {
+		return 0;
+	}
+	if (base.mem_base > (void*) &base) {
+		return ptr <= base.mem_base && ptr >= (void*) &base;
 	} else {
-		return ptr >= bottom && ptr <= top;
+		return ptr >= base.mem_base && ptr <= (void*) &base;
 	}
 }
 
 _scl_symbol_hidden static memory_layout_t* _scl_get_memory_layout(scl_any ptr) {
+	if (unlikely(ptr == nil)) return nil;
 	if (likely(GC_is_heap_ptr(ptr))) {
 		return (memory_layout_t*) GC_base(ptr);
 	}
-	struct GC_stack_base base;
-	if (GC_get_stack_base(&base) != GC_SUCCESS) {
-		return nil;
-	}
-	if (_scl_on_stack(ptr, base.mem_base, &base)) {
-		ptr -= sizeof(memory_layout_t);
+	ptr -= sizeof(memory_layout_t);
+	if (_scl_on_stack(ptr)) {
 		return (memory_layout_t*) ptr;
 	}
+	if (unlikely(ptr == nil)) return nil;
 	cxx_std_recursive_mutex_lock(&lock);
-	ptr -= sizeof(memory_layout_t);
+	memory_layout_t* l = nil;
 	for (scl_int i = 0; i < static_ptrs_count; i++) {
 		if (static_ptrs[i] == ptr) {
-			memory_layout_t* l = static_ptrs[i];
-			cxx_std_recursive_mutex_unlock(&lock);
-			return l;
+			l = ptr;
+			break;
 		}
 	}
 	cxx_std_recursive_mutex_unlock(&lock);
-	return nil;
+	return l;
 }
 
 scl_int _scl_sizeof(scl_any ptr) {
@@ -654,8 +655,19 @@ scl_any* _scl_array_resize(scl_int new_size, scl_any* arr) {
 	if (unlikely(new_size < 0)) {
 		_scl_runtime_error(EX_INVALID_ARGUMENT, "Array size must not be negative");
 	}
-	scl_int elem_size = _scl_get_memory_layout(arr)->array_elem_size;
-	scl_any* new_arr = (scl_any*) _scl_realloc(arr, new_size * elem_size);
+	memory_layout_t* l = _scl_get_memory_layout(arr);
+	scl_int elem_size = l->array_elem_size;
+	scl_any* new_arr;
+	if (_scl_on_stack(arr)) {
+		if (new_size > (l->size / l->array_elem_size)) {
+			new_arr = (scl_any*) _scl_alloc(new_size * elem_size);
+			memcpy(new_arr, arr, l->size);
+		} else {
+			new_arr = arr; // if the stack array is smaller, don't actually do anything
+		}
+	} else {
+	 	new_arr = (scl_any*) _scl_realloc(arr, new_size * elem_size);
+	}
 	memory_layout_t* layout = _scl_get_memory_layout(new_arr);
 	layout->flags |= MEM_FLAG_ARRAY;
 	layout->array_elem_size = elem_size;

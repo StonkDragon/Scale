@@ -147,7 +147,6 @@ namespace sclc
         "catch",
         "throw",
         "open",
-        "intrinsic",
         "lambda",
     });
 

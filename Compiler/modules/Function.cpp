@@ -73,7 +73,6 @@ void Function::addModifier(std::string modifier) {
     else if (has_binary_inherited == 0 && modifier == "<binary-inherited>") has_binary_inherited = modifiers.size();
     else if (has_nonvirtual == 0 && modifier == "nonvirtual") has_nonvirtual = modifiers.size();
     else if (has_async == 0 && modifier == "async") has_async = modifiers.size();
-    else if (has_inline == 0 && modifier == "inline") has_inline = modifiers.size();
     else if (has_reified == 0 && modifier == "reified") {
         has_reified = modifiers.size();
         has_nonvirtual = modifiers.size();

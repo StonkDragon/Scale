@@ -691,7 +691,7 @@ namespace sclc {
         for (size_t f = 0; f < result.functions.size(); f++) {
             Function* function = currentFunction = result.functions[f];
             if (function->isMethod) {
-                if (function->has_reified && !contains<std::string>(function->modifiers, "nonvirtual")) {
+                if (function->has_reified && !function->has_nonvirtual) {
                     transpilerErrorTok("'reified' modifier implies 'nonvirtual' modifier on methods", function->name_token);
                     warns.push_back(err);
                 }

@@ -1,0 +1,14 @@
+struct Foo
+  decl x: int
+
+  function init(x: int): none
+    x => self.x
+  end
+end
+
+function main(): none
+  Foo static { 1 => x } is Foo puts
+  Foo local { 1 => x } is Foo puts
+  Foo { 1 => x } is Foo puts
+  123456 is Foo puts
+end

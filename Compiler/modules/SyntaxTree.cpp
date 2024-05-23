@@ -9,35 +9,6 @@
 
 #include "../headers/Common.hpp"
 
-const std::vector<std::string> intrinsics({
-    "F:int$toInt8",
-    "F:int$toInt16",
-    "F:int$toInt32",
-    "F:int$toInt",
-    "F:int$toUInt8",
-    "F:int$toUInt16",
-    "F:int$toUInt32",
-    "F:int$toUInt",
-    "F:int$isValidInt8",
-    "F:int$isValidInt16",
-    "F:int$isValidInt32",
-    "F:int$isValidUInt8",
-    "F:int$isValidUInt16",
-    "F:int$isValidUInt32",
-    "F:int$toString",
-    "F:int$toHexString",
-    "F:int8$toString",
-    "F:float$toString",
-    "F:float$toPrecisionString",
-    "F:float$toHexString",
-    "F:float$fromBits",
-    "F:system",
-    "F:getenv",
-    "F:time",
-    "F:read",
-    "F:write",
-});
-
 namespace sclc {
     std::map<std::string, Token> templateArgs;
 
@@ -331,7 +302,7 @@ namespace sclc {
 
         Method* method = new Method(memberName, name, name_token);
         method->force_add = true;
-        if (method->name == "init" || strstarts(method->name, "init")) {
+        if (method->name_without_overload == "init") {
             method->addModifier("<constructor>");
         }
         i += 2;
@@ -1712,13 +1683,6 @@ namespace sclc {
                             functions.push_back(currentFunction);
                             currentFunction = nullptr;
                         }
-                        if (currentFunction && currentFunction->has_intrinsic) {
-                            if (contains<std::string>(intrinsics, "F:" + currentFunction->name)) {
-                                currentFunction->addModifier("foreign");
-                                currentFunction->addModifier("expect");
-                                functions.push_back(currentFunction);
-                            }
-                        }
                         nextAttributes.clear();
                         continue;
                     }
@@ -1737,13 +1701,6 @@ namespace sclc {
                     if (currentFunction->has_expect || currentFunction->has_operator) {
                         functions.push_back(currentFunction);
                         currentFunction = nullptr;
-                    }
-                    if (currentFunction && currentFunction->has_intrinsic) {
-                        if (contains<std::string>(intrinsics, "M:" + ((Method*) currentFunction)->member_type + "::" + currentFunction->name)) {
-                            currentFunction->addModifier("foreign");
-                            currentFunction->addModifier("expect");
-                            functions.push_back(currentFunction);
-                        }
                     }
                     nextAttributes.clear();
                     continue;
@@ -1849,13 +1806,6 @@ namespace sclc {
                     functions.push_back(currentFunction);
                     currentFunction = nullptr;
                 }
-                if (currentFunction && currentFunction->has_intrinsic) {
-                    if (contains<std::string>(intrinsics, "F:" + currentFunction->name)) {
-                        currentFunction->addModifier("foreign");
-                        currentFunction->addModifier("expect");
-                        functions.push_back(currentFunction);
-                    }
-                }
                 nextAttributes.clear();
             } else if (token.type == tok_end) {
                 if (currentFunction != nullptr) {
@@ -1892,7 +1842,7 @@ namespace sclc {
                                 nextAttributes.clear();
                                 currentFunction = nullptr;
                                 continue;
-                            } else if (!currentFunction->has_intrinsic) {
+                            } else {
                                 if (currentFunction->args == f->args) {
                                     FPResult result;
                                     result.message = "Function " + currentFunction->name + " is already defined!";
@@ -1908,29 +1858,6 @@ namespace sclc {
                                 }
                                 currentFunction->name = currentFunction->name + "$$ol" + argsToRTSignatureIdent(currentFunction);
                                 functionWasOverloaded = true;
-                            } else if (currentFunction != f) {
-                                if (currentFunction && currentFunction->has_intrinsic) {
-                                    FPResult result;
-                                    result.message = "Cannot overload intrinsic function " + currentFunction->name + "!";
-                                    result.value = currentFunction->name;
-                                    result.location.line = currentFunction->name_token.location.line;
-                                    result.location = currentFunction->name_token.location;
-                                    result.type = currentFunction->name_token.type;
-                                    result.success = false;
-                                    errors.push_back(result);
-                                } else if (f->has_intrinsic) {
-                                    FPResult result;
-                                    result.message = "Cannot overload function " + currentFunction->name + " with intrinsic function!";
-                                    result.value = currentFunction->name;
-                                    result.location.line = currentFunction->name_token.location.line;
-                                    result.location = currentFunction->name_token.location;
-                                    result.type = currentFunction->name_token.type;
-                                    result.success = false;
-                                    errors.push_back(result);
-                                }
-                                nextAttributes.clear();
-                                currentFunction = nullptr;
-                                continue;
                             }
                         }
                     }
@@ -2532,27 +2459,6 @@ namespace sclc {
                 }
                 currentInterface = new Interface(namePrefix + tokens[i].value);
                 currentInterface->name_token = new Token(tokens[i]);
-            } else if (token.type == tok_addr_of) {
-                if (currentFunction == nullptr) {
-                    if (tokens[i + 1].type == tok_identifier) {
-                        nextAttributes.push_back(tokens[i + 1].value);
-                        if (tokens[i + 1].value == "relocatable") {
-                            nextAttributes.push_back("export");
-                        }
-                    } else {
-                        FPResult result;
-                        result.message = "'" + tokens[i + 1].value + "' is not a valid modifier.";
-                        result.value = tokens[i + 1].value;
-                        result.location = tokens[i + 1].location;
-                        result.type = tokens[i + 1].type;
-                        result.success = false;
-                        errors.push_back(result);
-                        continue;
-                    }
-                    i++;
-                } else {
-                    currentFunction->addToken(token);
-                }
             } else if (currentFunction != nullptr) {
                 if (
                     token.type == tok_lambda &&
@@ -2565,8 +2471,8 @@ namespace sclc {
                 if (token.type == tok_identifier && token.value == "unsafe") {
                     isInUnsafe++;
                 }
-                if (!contains<Function*>(functions, currentFunction))
-                    currentFunction->addToken(token);
+                // if (!contains<Function*>(functions, currentFunction))
+                currentFunction->addToken(token);
             } else if (token.type == tok_paren_open) {
                 currentFunction = new Function("$init" + std::to_string(nInits), Token(tok_identifier, "$init" + std::to_string(nInits)));
                 nInits++;
@@ -2764,10 +2670,7 @@ namespace sclc {
                            t.value == "nonvirtual" ||
                            t.value == "overload!" ||
                            t.value == "construct" ||
-                           t.value == "intrinsic" ||
                            t.value == "overrides" ||
-                           t.value == "stacksize" ||
-                           t.value == "autoimpl" ||
                            t.value == "restrict" ||
                            t.value == "operator" ||
                            t.value == "foreign" ||
@@ -2775,7 +2678,6 @@ namespace sclc {
                            t.value == "default" ||
                            t.value == "private" ||
                            t.value == "reified" ||
-                           t.value == "inline" ||
                            t.value == "static" ||
                            t.value == "export" ||
                            t.value == "expect" ||
@@ -2788,7 +2690,7 @@ namespace sclc {
                            t.value == "asm";
                 };
 
-                if ((tokens[i].value == "get" || tokens[i].value == "set") && currentStructs.size() && currentFunction == nullptr) {
+                if (currentStructs.size() && currentFunction == nullptr && (tokens[i].value == "get" || tokens[i].value == "set")) {
                     std::string varName = lastDeclaredVariable.name;
                     if (tokens[i].value == "get") {
                         Token& getToken = tokens[i];
@@ -2926,23 +2828,6 @@ namespace sclc {
                         nextAttributes.push_back("static");
                     }
                     nextAttributes.push_back(tokens[i].value);
-                    if (tokens[i].value == "stackalloc") {
-                        i++;
-                        if (i < tokens.size() && tokens[i].type == tok_number) {
-                            nextAttributes.push_back(tokens[i].value);
-                        } else {
-                            FPResult result;
-                            result.message = "Expected number, but got '" + tokens[i].value + "'";
-                            result.value = tokens[i].value;
-                            result.location = tokens[i].location;
-                            result.type = tokens[i].type;
-                            result.success = false;
-                            errors.push_back(result);
-                            continue;
-                        }
-                    } else if (tokens[i].value == "relocatable") {
-                        nextAttributes.push_back("export");
-                    }
                 }
             }
         }
@@ -2951,29 +2836,23 @@ namespace sclc {
             if (self->isMethod) {
                 Function* f2 = self;
                 Method* self = (Method*) f2;
-                std::string name = self->name;
+                std::string name = self->name_without_overload;
                 self->overloads.push_back(self);
-                if (name.find("$$ol") != std::string::npos) {
-                    name = name.substr(0, name.find("$$ol"));
-                }
                 for (Function* f : functions) {
                     if (f == self) continue;
                     if (!f->isMethod) continue;
-                    if ((strstarts(f->name, name + "$$ol") || f->name == name) && ((Method*)f)->member_type == self->member_type) {
+                    if (f->name_without_overload == name && ((Method*)f)->member_type == self->member_type) {
                         self->overloads.push_back(f);
                     }
                 }
                 continue;
             }
-            std::string name = self->name;
+            std::string name = self->name_without_overload;
             self->overloads.push_back(self);
-            if (name.find("$$ol") != std::string::npos) {
-                name = name.substr(0, name.find("$$ol"));
-            }
             for (Function* f : functions) {
                 if (f == self) continue;
                 if (f->isMethod) continue;
-                if (strstarts(f->name, name + "$$ol") || f->name == name) {
+                if (f->name_without_overload == name || f->name == name) {
                     self->overloads.push_back(f);
                 }
             }

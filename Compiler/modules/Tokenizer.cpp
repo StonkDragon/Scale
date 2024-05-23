@@ -381,30 +381,35 @@ namespace sclc
             current += 3;
             return Token(tok_extern_c, value, startLine, filename, startColumn);
         }
+        
+        if (value == "+>" || value == "->" || value == "*>" || value == "/>" || value == "&>" || value == "|>" || value == "^>" || value == "%>") {
+            additional = true;
+            additionalToken = Token(tok_store, "=>", line, filename, begin);
+            return Token(tok_identifier, std::string(1, value.front()), line, filename, begin);
+        }
 
-        TOKEN("function",   tok_function, line, filename);
-        TOKEN("end",        tok_end, line, filename);
-        TOKEN("expect",     tok_extern, line, filename);
-        TOKEN("while",      tok_while, line, filename);
-        TOKEN("until",      tok_until, line, filename);
+        TOKEN("as",         tok_as, line, filename);
+        TOKEN("break",      tok_break, line, filename);
+        TOKEN("continue",   tok_continue, line, filename);
         TOKEN("do",         tok_do, line, filename);
         TOKEN("done",       tok_done, line, filename);
-        TOKEN("if",         tok_if, line, filename);
-        TOKEN("unless",     tok_unless, line, filename);
-        TOKEN("then",       tok_then, line, filename);
+        TOKEN("end",        tok_end, line, filename);
         TOKEN("else",       tok_else, line, filename);
         TOKEN("elif",       tok_elif, line, filename);
         TOKEN("elunless",   tok_elunless, line, filename);
+        TOKEN("expect",     tok_extern, line, filename);
         TOKEN("fi",         tok_fi, line, filename);
+        TOKEN("function",   tok_function, line, filename);
+        TOKEN("while",      tok_while, line, filename);
+        TOKEN("until",      tok_until, line, filename);
+        TOKEN("if",         tok_if, line, filename);
+        TOKEN("unless",     tok_unless, line, filename);
+        TOKEN("then",       tok_then, line, filename);
         TOKEN("return",     tok_return, line, filename);
-        TOKEN("break",      tok_break, line, filename);
-        TOKEN("continue",   tok_continue, line, filename);
         TOKEN("for",        tok_for, line, filename);
         TOKEN("foreach",    tok_foreach, line, filename);
         TOKEN("in",         tok_in, line, filename);
         TOKEN("to",         tok_to, line, filename);
-        TOKEN("load",       tok_load, line, filename);
-        TOKEN("=>",         tok_store, line, filename);
         TOKEN("decl",       tok_declare, line, filename);
         TOKEN("ref",        tok_addr_ref, line, filename);
         TOKEN("nil",        tok_nil, line, filename);
@@ -425,8 +430,10 @@ namespace sclc
         TOKEN("default",    tok_default, line, filename);
         TOKEN("step",       tok_step, line, filename);
         TOKEN("interface",  tok_interface_def, line, filename);
-        TOKEN("as",         tok_as, line, filename);
         TOKEN("enum",       tok_enum, line, filename);
+        TOKEN("using",      tok_using, line, filename);
+        TOKEN("pragma!",    tok_pragma, line, filename);
+        TOKEN("lambda",     tok_lambda, line, filename);
 
         TOKEN("swap",       tok_stack_op, line, filename);
         TOKEN("dup",        tok_stack_op, line, filename);
@@ -437,32 +444,7 @@ namespace sclc
         TOKEN("rot",        tok_stack_op, line, filename);
         TOKEN("unrot",      tok_stack_op, line, filename);
 
-        TOKEN("using",      tok_using, line, filename);
-        TOKEN("pragma!",    tok_pragma, line, filename);
-        TOKEN("lambda",     tok_lambda, line, filename);
-        
-        if (value == "+>" || value == "->" || value == "*>" || value == "/>" || value == "&>" || value == "|>" || value == "^>" || value == "%>") {
-            additional = true;
-            additionalToken = Token(tok_store, "=>", line, filename, begin);
-            if (value == "+>") {
-                return Token(tok_identifier, "+", line, filename, begin);
-            } else if (value == "->") {
-                return Token(tok_identifier, "-", line, filename, begin);
-            } else if (value == "*>") {
-                return Token(tok_identifier, "*", line, filename, begin);
-            } else if (value == "/>") {
-                return Token(tok_identifier, "/", line, filename, begin);
-            } else if (value == "&>") {
-                return Token(tok_identifier, "&", line, filename, begin);
-            } else if (value == "|>") {
-                return Token(tok_identifier, "|", line, filename, begin);
-            } else if (value == "^>") {
-                return Token(tok_identifier, "^", line, filename, begin);
-            } else if (value == "%>") {
-                return Token(tok_identifier, "%", line, filename, begin);
-            }
-            __builtin_unreachable();
-        }
+        TOKEN("=>",         tok_store, line, filename);
 
         TOKEN("@",          tok_addr_of, line, filename);
         TOKEN("?",          tok_question_mark, line, filename);
