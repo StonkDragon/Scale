@@ -490,14 +490,21 @@ namespace sclc
 
         filename = source;
         line = 1;
-        
-        fp = fopen(source.c_str(), "r");
         int size;
         char* buffer;
         Token token;
         bool inBlockComment = false;
+        
+        errno_t err = fopen_s(&fp, source.c_str(), "r");
+        if (err) {
+            FPResult r;
+            r.message = "IO Error: Could not open file " + source + ": " + strerror(err);
+            r.location = SourceLocation(source, 0, 0);
+            r.success = false;
+            errors.push_back(r);
+            goto fatal_error;
+        }
         if (fp == NULL) {
-            std::cerr << "IO Error: Could not open file " << source << std::endl;
             FPResult r;
             r.message = "IO Error: Could not open file " + source;
             r.location = SourceLocation(source, 0, 0);

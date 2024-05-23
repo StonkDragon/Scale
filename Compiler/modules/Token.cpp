@@ -1,4 +1,8 @@
 #include <gc/gc_allocator.h>
+#include <cstring>
+#ifdef _WIN32
+#define strdup _strdup
+#endif
 
 #include "../headers/Common.hpp"
 

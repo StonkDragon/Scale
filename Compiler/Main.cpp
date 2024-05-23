@@ -20,6 +20,7 @@
 #define LINK_MATH
 #endif
 #else
+#define strdup _strdup
 #include <process.h>
 #endif
 
@@ -159,7 +160,7 @@ namespace sclc
 
     bool checkFramework(std::string& framework, std::vector<std::string>& tmpFlags, std::vector<std::string>& frameworks, bool& hasCppFiles, Version& FrameworkMinimumVersion) {
         for (auto path : Main::options::includePaths) {
-            if (fileExists(path + "/" + framework + ".framework/index.drg")) {
+            if (std::filesystem::exists(path + "/" + framework + ".framework/index.drg")) {
                 DragonConfig::ConfigParser parser;
                 DragonConfig::CompoundEntry* root = parser.parse(path + "/" + framework + ".framework/index.drg");
                 if (root == nullptr) {
@@ -290,7 +291,12 @@ namespace sclc
     }
 
     Documentation parseSclDoc(std::string file) {
-        FILE* docFile = fopen(file.c_str(), "rb");
+        FILE* docFile;
+        errno_t err = fopen_s(&docFile, file.c_str(), "rb");
+        if (!docFile || err) {
+            std::cerr << "Failed to open documentation file: " << strerror(err) << std::endl;
+            std::exit(1);
+        }
         
         if (docFile) fseek(docFile, 0, SEEK_END);
         long sz = ftell(docFile);
@@ -310,9 +316,10 @@ namespace sclc
             if (strstarts(line, "%include")) {
                 std::string includeFile = trimLeft(line.substr(8));
                 std::string includePath = std::filesystem::path(file).parent_path().string() + "/" + includeFile;
-                FILE* include = fopen(includePath.c_str(), "rb");
-                if (!include) {
-                    std::cerr << Color::RED << "Failed to open include file " << includePath << Color::RESET << std::endl;
+                FILE* include;
+                errno_t err = fopen_s(&include, includePath.c_str(), "rb");
+                if (!include || err) {
+                    std::cerr << Color::RED << "Failed to open include file " << includePath << ": " << strerror(err) << Color::RESET << std::endl;
                     exit(1);
                 }
                 fseek(include, 0, SEEK_END);
@@ -446,7 +453,7 @@ namespace sclc
         std::string file = Main::options::mapFrameworkDocfiles[Main::options::printDocFor];
         std::string docFileFormat = Main::options::indexDrgFiles[Main::options::printDocFor]->getStringOrDefault("docfile-format", "markdown")->getValue();
 
-        if (file.empty() || !fileExists(file)) {
+        if (file.empty() || !std::filesystem::exists(file)) {
             std::cerr << Color::RED << "Framework '" + Main::options::printDocFor + "' has no docfile!" << Color::RESET << std::endl;
             return 1;
         }
@@ -588,12 +595,13 @@ namespace sclc
                 std::cout << Color::BOLDRED << "Fatal Error: " << error.location.file << ": " << error.message << Color::RESET << std::endl;
                 continue;
             }
-            FILE* f = fopen(std::string(error.location.file).c_str(), "r");
-            if (!f) {
-                std::cout << Color::BOLDRED << "Fatal Error: Could not open file " << error.location.file << ": " << std::strerror(errno) << Color::RESET << std::endl;
+            FILE* f;
+            errno_t err = fopen_s(&f, error.location.file.c_str(), "r");
+            if (!f || err) {
+                std::cout << Color::BOLDRED << "Fatal Error: Could not open file " << error.location.file << ": " << strerror(errno) << Color::RESET << std::endl;
                 continue;
             }
-            char* line = (char*) GC_malloc(sizeof(char) * 500);
+            char* line = new char[sizeof(char) * 500];
             int i = 1;
             if (f) fseek(f, 0, SEEK_SET);
             std::string colString;
@@ -624,7 +632,7 @@ namespace sclc
                 i++;
             }
             fclose(f);
-            GC_free(line);
+            delete[] line;
             logWarns(error.warns);
             logErrors(error.errors);
         }
@@ -655,9 +663,10 @@ namespace sclc
                 std::cout << Color::BOLDRED << "Fatal Error: " << error.location.file << ": " << error.message << Color::RESET << std::endl;
                 continue;
             }
-            FILE* f = fopen(std::string(error.location.file).c_str(), "r");
-            if (!f) {
-                std::cout << Color::BOLDRED << "Fatal Error: Could not open file " << error.location.file << ": " << std::strerror(errno) << Color::RESET << std::endl;
+            FILE* f;
+            errno_t err = fopen_s(&f, error.location.file.c_str(), "r");
+            if (!f || err) {
+                std::cout << Color::BOLDRED << "Fatal Error: Could not open file " << error.location.file << ": " << strerror(errno) << Color::RESET << std::endl;
                 continue;
             }
             char* line = (char*) malloc(sizeof(char) * 500);
@@ -742,34 +751,36 @@ namespace sclc
         Main::version = new Version(std::string(VERSION));
         Main::options::errorLimit = 20;
 
-        DragonConfig::CompoundEntry* scaleConfig = DragonConfig::ConfigParser().parse("scale.drg");
-        if (scaleConfig) {
-            if (scaleConfig->hasMember("outfile"))
-                Main::options::outfile = outfile = scaleConfig->getString("outfile")->getValue();
+        if (std::filesystem::exists("scale.drg")) {
+            DragonConfig::CompoundEntry* scaleConfig = DragonConfig::ConfigParser().parse("scale.drg");
+            if (scaleConfig) {
+                if (scaleConfig->hasMember("outfile"))
+                    Main::options::outfile = outfile = scaleConfig->getString("outfile")->getValue();
 
-            if (scaleConfig->hasMember("compiler"))
-                compiler = scaleConfig->getString("compiler")->getValue();
+                if (scaleConfig->hasMember("compiler"))
+                    compiler = scaleConfig->getString("compiler")->getValue();
 
-            if (scaleConfig->hasMember("optimizer"))
-                optimizer = scaleConfig->getString("optimizer")->getValue();
+                if (scaleConfig->hasMember("optimizer"))
+                    optimizer = scaleConfig->getString("optimizer")->getValue();
 
-            if (scaleConfig->hasMember("frameworks"))
-                for (size_t i = 0; i < scaleConfig->getList("frameworks")->size(); i++)
-                    frameworks.push_back(scaleConfig->getList("frameworks")->getString(i)->getValue());
+                if (scaleConfig->hasMember("frameworks"))
+                    for (size_t i = 0; i < scaleConfig->getList("frameworks")->size(); i++)
+                        frameworks.push_back(scaleConfig->getList("frameworks")->getString(i)->getValue());
 
-            if (scaleConfig->hasMember("compilerFlags"))
-                for (size_t i = 0; i < scaleConfig->getList("compilerFlags")->size(); i++)
-                    tmpFlags.push_back(scaleConfig->getList("compilerFlags")->getString(i)->getValue());
+                if (scaleConfig->hasMember("compilerFlags"))
+                    for (size_t i = 0; i < scaleConfig->getList("compilerFlags")->size(); i++)
+                        tmpFlags.push_back(scaleConfig->getList("compilerFlags")->getString(i)->getValue());
 
-            if (scaleConfig->hasMember("includeFiles"))
-                for (size_t i = 0; i < scaleConfig->getList("includeFiles")->size(); i++)
-                    Main::frameworkNativeHeaders.push_back(scaleConfig->getList("includeFiles")->getString(i)->getValue());
-            
-            if (scaleConfig->hasMember("featureFlags"))
-                for (size_t i = 0; i < scaleConfig->getList("featureFlags")->size(); i++)
-                    Main::options::features.push_back(scaleConfig->getList("featureFlags")->getString(i)->getValue());
-            
-            Main::options::indexDrgFiles["/local"] = scaleConfig;
+                if (scaleConfig->hasMember("includeFiles"))
+                    for (size_t i = 0; i < scaleConfig->getList("includeFiles")->size(); i++)
+                        Main::frameworkNativeHeaders.push_back(scaleConfig->getList("includeFiles")->getString(i)->getValue());
+                
+                if (scaleConfig->hasMember("featureFlags"))
+                    for (size_t i = 0; i < scaleConfig->getList("featureFlags")->size(); i++)
+                        Main::options::features.push_back(scaleConfig->getList("featureFlags")->getString(i)->getValue());
+                
+                Main::options::indexDrgFiles["/local"] = scaleConfig;
+            }
         }
 
         Main::options::stackSize = 128;
@@ -781,7 +792,7 @@ namespace sclc
             if (strends(args[i], ".c") || strends(args[i], ".cpp") || strends(args[i], ".c++")) {
                 nonScaleFiles.push_back(args[i]);
             } else if (strends(std::string(args[i]), ".scale")) {
-                if (!fileExists(args[i])) {
+                if (!std::filesystem::exists(args[i])) {
                     continue;
                 }
                 std::string file = std::filesystem::absolute(args[i]).string();
@@ -1218,8 +1229,6 @@ namespace sclc
 }
 
 int main(int argc, char const *argv[]) {
-    GC_INIT();
-
     signal(SIGSEGV, sclc::signalHandler);
     signal(SIGABRT, sclc::signalHandler);
 

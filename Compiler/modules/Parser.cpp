@@ -8,6 +8,7 @@
 #include <algorithm>
 #include <type_traits>
 #include <sstream>
+#include <random>
 
 #include <stdio.h>
 
@@ -172,8 +173,17 @@ namespace sclc
             }
         }
 
+        #ifdef _WIN32
+        std::random_device rdev;
+        std::mt19937_64 rng(rdev());
+        std::uniform_int_distribution<std::mt19937_64::result_type> dist;
+        unsigned long long rand = dist(rng);
+        #else
+        unsigned long long rand = random();
+        #endif
+
         append("\n");
-        append("_scl_constructor void init_this%llx() {\n", random());
+        append("_scl_constructor void init_this%llx() {\n", rand);
         scopeDepth++;
         append("_scl_setup();\n");
         std::vector<Function*> creates;
@@ -191,7 +201,7 @@ namespace sclc
         append("}\n");
 
         append("\n");
-        append("_scl_destructor void destroy_this%llx() {\n", random());
+        append("_scl_destructor void destroy_this%llx() {\n", rand);
         if (destroyFuncs.size()) {
             scopeDepth++;
             for (auto&& f : destroyFuncs) {

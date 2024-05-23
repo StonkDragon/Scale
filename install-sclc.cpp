@@ -1,3 +1,7 @@
+#ifdef _WIN32
+#define _CRT_SECURE_NO_WARNINGS
+#endif
+
 #include <iostream>
 #include <filesystem>
 #include <cstdlib>
@@ -31,8 +35,7 @@ void depends_on(std::string command, const char* error) {
 #define STR_(x) #x
 #define STR(x) STR_(x)
 
-template<typename Args>
-std::string create_command(std::vector<Args> args) {
+std::string create_command(std::vector<std::string> args) {
     std::string out = "";
     for (auto a : args) {
         out += a + " ";
@@ -61,16 +64,15 @@ void exec_command(std::string cmd) {
 }
 
 bool is_root() {
-    bool root = false;
+    int root = false;
 #ifdef _WIN32
     void* adminSid = NULL;
+    DWORD unused;
 
-    if (CreateWellKnownSid(WinBuiltinAdministratorsSid, NULL, &adminSid)) {
+    if (CreateWellKnownSid(WinBuiltinAdministratorsSid, NULL, &adminSid, &unused)) {
         if (!CheckTokenMembership(NULL, adminSid, &root)) {
             root = false;
         }
-
-        FreeSid(adminSid);
     }
 #else
     root = (getuid() == 0);
@@ -90,15 +92,13 @@ bool strcontains(const std::string& str, const std::string& substr) {
 }
 
 int main(int argc, char const *argv[]) {
-    // require_root();
-
     depends_on("clang --version", "clang is required!");
     depends_on("clang++ --version", "clang++ is required!");
-#if !defined(_WIN32)
-    depends_on("make --version", "make is required!");
-#else
-    depends_on("nmake /?", "nmake is required!");
-#endif
+// #if !defined(_WIN32)
+//     depends_on("make --version", "make is required!");
+// #else
+//     depends_on("nmake /?", "nmake is required!");
+// #endif
 
 #define CONCAT(a, b) CONCAT_(a, b)
 #define CONCAT_(a, b) a ## b
@@ -108,12 +108,15 @@ int main(int argc, char const *argv[]) {
 #if defined(__APPLE__)
 #define LIB_PREF "lib"
 #define LIB_SUFF ".dylib"
+#define EXE_SUFF ""
 #elif defined(__linux__)
 #define LIB_PREF "lib"
 #define LIB_SUFF ".so"
+#define EXE_SUFF ""
 #elif defined(_WIN32)
 #define LIB_PREF ""
 #define LIB_SUFF ".dll"
+#define EXE_SUFF ".exe"
 #endif
 
 #define LIB_SCALE_FILENAME    LIB_PREF LIB_SCALE_NAME LIB_SUFF
@@ -133,28 +136,27 @@ int main(int argc, char const *argv[]) {
     }
 
 #ifdef _WIN32
-    std::filesystem::path home = std::filesystem::path(std::getenv("UserProfile"));
+    char* user_home_dir = std::getenv("UserProfile");
 #else
-    std::filesystem::path home = std::filesystem::path(std::getenv("HOME"));
+    char* user_home_dir = std::getenv("HOME");
 #endif
-
-    std::filesystem::path scl_root_dir;
-#ifdef _WIN32
-    if (is_root()) {
-        scl_root_dir = std::filesystem::absolute("C:/");
-    } else {
-        scl_root_dir = std::filesystem::absolute(home);
+    if (user_home_dir == nullptr) {
+        std::cerr << "could not get home directory!" << std::endl;
     }
-#else
-    if (is_root()) {
-        scl_root_dir = std::filesystem::absolute("/opt");
-    } else {
-        scl_root_dir = std::filesystem::absolute(home);
-    }
-#endif
+    std::string home = user_home_dir;
 
-    std::string path = scl_root_dir / "Scale" / STR(VERSION);
-    std::string binary = "sclc";
+    #ifdef _WIN32
+    #define ABS_ROOT_DIR "C:/"
+    #else
+    #define ABS_ROOT_DIR "/opt"
+    #endif
+
+    std::string scl_root_dir = is_root() ? ABS_ROOT_DIR : home;
+
+    std::string path = scl_root_dir + "/Scale/" + STR(VERSION);
+    std::string binary = "sclc" EXE_SUFF;
+
+    std::cout << "Installing Scale to " << path << std::endl;
 
     if (!isDevBuild) {
         std::filesystem::remove_all(path);
@@ -168,10 +170,10 @@ int main(int argc, char const *argv[]) {
             path,
             std::filesystem::perms::all
         );
-        std::filesystem::remove_all(scl_root_dir / "Scale/latest");
-        std::filesystem::create_directory_symlink(std::filesystem::path(path), scl_root_dir / "Scale/latest");
+        std::filesystem::remove_all(scl_root_dir + "/Scale/latest");
+        std::filesystem::create_directory_symlink(std::filesystem::path(path), scl_root_dir + "/Scale/latest");
         std::filesystem::permissions(
-            scl_root_dir / "Scale/latest",
+            scl_root_dir + "/Scale/latest",
             std::filesystem::perms::all
         );
     }
@@ -179,24 +181,42 @@ int main(int argc, char const *argv[]) {
     std::filesystem::copy("Scale", path, std::filesystem::copy_options::recursive | std::filesystem::copy_options::overwrite_existing);
 
     if (!isDevBuild) {
-        exec_command(create_command<std::string>({"git", "clone", "--depth=1", "https://github.com/ivmai/bdwgc.git", "bdwgc", "-b", "release-8_2"}));
+        if (std::filesystem::exists("bdwgc")) {
+            std::filesystem::remove_all("bdwgc");
+        }
+        exec_command(create_command({"git", "clone", "--depth=1", "https://github.com/ivmai/bdwgc.git", "bdwgc"}));
         
         auto oldsighandler = signal(SIGINT, [](int sig){
             std::filesystem::current_path(std::filesystem::current_path().parent_path());
             std::filesystem::remove_all("bdwgc");
         });
         std::filesystem::current_path("bdwgc");
+        exec_command(create_command({
+            "clang++",
+            "-Iinclude",
+            #ifdef _WIN32
+            "-D_CRT_SECURE_NO_WARNINGS",
+            "-DGC_WIN32_THREADS",
+            #else
+            "-fPIC",
+            #endif
+            "-DGC_THREADS",
+            "-DGC_BUILTIN_ATOMIC",
+            "-DGC_NOT_DLL",
+            "-c",
+            "-o",
+            path + "/Internal/gc.o",
+            "extra/gc.c"
+        }));
 
-        exec_command(create_command<std::string>({"sh", "./autogen.sh"}));
-        exec_command(create_command<std::string>({"./configure", "--enable-cplusplus", "--prefix=" + path + "/Internal"}));
-        exec_command(create_command<std::string>({"make"}));
-        exec_command(create_command<std::string>({"make", "install"}));
+        std::filesystem::create_directories(path + "/Internal/include");
+        std::filesystem::copy("include", path + "/Internal/include", std::filesystem::copy_options::overwrite_existing | std::filesystem::copy_options::recursive);
 
         std::filesystem::current_path(std::filesystem::current_path().parent_path());
         std::filesystem::remove_all("bdwgc");
     }
 
-    auto scale_runtime = create_command<std::string>({
+    auto scale_runtime = create_command({
         "clang",
         "-O2",
         ("-std=" C_VERSION),
@@ -206,11 +226,13 @@ int main(int argc, char const *argv[]) {
         "-c",
     #if !defined(_WIN32)
         "-fPIC",
+    #else
+        "-D_CRT_SECURE_NO_WARNINGS",
     #endif
         "-o",
         path + "/Internal/scale_runtime.o"
     });
-    auto cxx_glue = create_command<std::string>({
+    auto cxx_glue = create_command({
         "clang++",
         "-O2",
         ("-std=" CXX_VERSION),
@@ -220,12 +242,14 @@ int main(int argc, char const *argv[]) {
         "-c",
     #if !defined(_WIN32)
         "-fPIC",
+    #else
+        "-D_CRT_SECURE_NO_WARNINGS",
     #endif
         "-o",
         path + "/Internal/scale_cxx.o"
     });
 
-    auto library = create_command<std::string>({
+    auto library = create_command({
         "clang++",
         "-O2",
     #if defined(__APPLE__)
@@ -243,26 +267,50 @@ int main(int argc, char const *argv[]) {
         "-shared",
     #endif
     #if defined(_WIN32)
-        "-static-libstdc++",
+        "-lUser32",
     #endif
         path + "/Internal/scale_runtime.o",
         path + "/Internal/scale_cxx.o",
-        "-L" + path + "/Internal/lib",
-        "-lgc",
+        path + "/Internal/gc.o",
         "-o",
         path + "/Internal/" LIB_SCALE_FILENAME
     });
 
-    std::string compile_command = create_command<std::string>({
+    #ifdef _WIN32
+    auto escape_backslashes = [](std::string s) -> std::string {
+        size_t size = 0;
+        for (size_t i = 0; i < s.size(); i++) {
+            size += 1 + (s[i] == '\\');
+        }
+        std::string out;
+        out.reserve(size + 1);
+        for (size_t i = 0; i < s.size(); i++) {
+            if (s[i] == '\\') {
+                out.push_back('\\');
+            }
+            out.push_back(s[i]);
+        }
+        return out;
+    };
+
+    scl_root_dir = escape_backslashes(scl_root_dir);
+    #endif
+
+    std::string compile_command = create_command({
         "clang++",
         ("-DVERSION=\\\"" STR(VERSION) "\\\""),
         ("-DC_VERSION=" STR(STR(C_VERSION))),
-        "-DSCL_ROOT_DIR=\\\"" + scl_root_dir.string() + "\\\"",
+        "-DSCL_ROOT_DIR=\\\"" + scl_root_dir + "\\\"",
         ("-std=" CXX_VERSION),
         "-Wall",
         "-Wextra",
         "-Werror",
         "-I" + path + "/Internal/include",
+    #ifdef _WIN32
+        "-D_CRT_SECURE_NO_WARNINGS",
+    #endif
+        "-DGC_NOT_DLL",
+        "-Wno-inline-new-delete",
     });
 
     if (debug) {
@@ -278,16 +326,16 @@ int main(int argc, char const *argv[]) {
         compile_command,
 #ifdef __linux__
         "-Wl,--export-dynamic",
-        "-Wl,-R",
-        "-Wl," + path + "/Internal/lib",
 #endif
-        "-L" + path + "/Internal/lib",
-        "-lgc",
-        "-lgccpp",
+#ifdef _WIN32
+        "-lUser32",
+        "-lDbgHelp",
+#endif
+        path + "/Internal/gc.o",
     };
 
     for (auto f : source_files) {
-        std::string cmd = create_command<std::string>({
+        std::string cmd = create_command({
             compile_command,
             "-o",
             f.string() + ".o",
@@ -295,6 +343,10 @@ int main(int argc, char const *argv[]) {
             f.string()
         });
         link_command.push_back(f.string() + ".o");
+        
+        #ifdef min
+        #undef min
+        #endif
 
         std::filesystem::file_time_type last_write = std::filesystem::file_time_type::min();
         std::filesystem::file_time_type last_write_obj = std::filesystem::file_time_type::min();
@@ -326,13 +378,17 @@ int main(int argc, char const *argv[]) {
     exec_command(cxx_glue);
     exec_command(library);
 
-    exec_command(create_command<std::string>(link_command));
+    exec_command(create_command(link_command));
 
     std::filesystem::path symlinked_path;
     if (is_root()) {
+        #ifdef _WIN32
+        symlinked_path = home + "/bin/" + binary;
+        #else
         symlinked_path = std::filesystem::path("/usr/local/bin") / binary;
+        #endif
     } else {
-        symlinked_path = home / "bin" / binary;
+        symlinked_path = home + "/bin/" + binary;
     }
     if (!std::filesystem::exists(symlinked_path.parent_path())) {
         std::filesystem::create_directories(symlinked_path.parent_path());
@@ -340,16 +396,16 @@ int main(int argc, char const *argv[]) {
     std::filesystem::remove(symlinked_path);
     std::filesystem::create_symlink(path + "/" + binary, symlinked_path);
     
-    std::string macro_library = create_command<std::string>({
-        std::filesystem::path(path) / binary,
+    std::string macro_library = create_command({
+        (std::filesystem::path(path) / binary).string(),
         "-makelib",
         "-o",
         path + "/Frameworks/Scale.framework/impl/__scale_macros.scl",
         path + "/Frameworks/Scale.framework/include/std/__internal/macro_entry.scale"
     });
 
-    auto scale_stdlib = create_command<std::string>({
-        std::filesystem::path(path) / binary,
+    auto scale_stdlib = create_command({
+        (std::filesystem::path(path) / binary).string(),
         "-no-link-std",
         "-makelib",
         "-o",

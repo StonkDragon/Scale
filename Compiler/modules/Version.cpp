@@ -13,12 +13,12 @@ namespace sclc {
     Version::Version(std::string str) {
         std::string::difference_type n = std::count(str.begin(), str.end(), '.');
         if (n == 1) {
-            sscanf(str.c_str(), "%d.%d", &major, &minor);
+            sscanf_s(str.c_str(), "%d.%d", &major, &minor);
             patch = 0;
         } else if (n == 2) {
-            sscanf(str.c_str(), "%d.%d.%d", &major, &minor, &patch);
+            sscanf_s(str.c_str(), "%d.%d.%d", &major, &minor, &patch);
         } else if (n == 0) {
-            sscanf(str.c_str(), "%d", &major);
+            sscanf_s(str.c_str(), "%d", &major);
             minor = 0;
             patch = 0;
         } else {

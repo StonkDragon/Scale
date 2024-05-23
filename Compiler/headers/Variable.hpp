@@ -6,6 +6,7 @@
 #include <cstring>
 #include <regex>
 #include <unordered_map>
+#include <functional>
 
 #include "Function.hpp"
 #include "Token.hpp"

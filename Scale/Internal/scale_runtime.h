@@ -290,10 +290,18 @@ typedef scl_uint ID_t;
 #endif
 
 // Create a new instance of a struct
+#ifdef _WIN32
+// windows does not support runtime linking of dlls
+#define ALLOC(_type)	({ \
+	const TypeInfo* _scl_ti_ ## _type = (const TypeInfo*) GetProcAddress(GetModuleHandleA(NULL), "__T" #_type); \
+	(scl_ ## _type) _scl_alloc_struct(_scl_ti_ ## _type); \
+})
+#else
 #define ALLOC(_type)	({ \
 	extern const TypeInfo _scl_ti_ ## _type __asm("__T" #_type); \
 	(scl_ ## _type) _scl_alloc_struct(&_scl_ti_ ## _type); \
 })
+#endif
 
 // Try to cast the given instance to the given type
 #define CAST0(_obj, _type, _type_hash) ((scl_ ## _type) _scl_checked_cast(_obj, _type_hash, #_type))
@@ -511,6 +519,20 @@ void				_scl_setup(void);
 						&((typeof(_constant)*) _scl_mark_static(&(_constant.layout)))->data; \
 					})
 
+#ifdef _WIN32
+#define _scl_stack_alloc(_type) ({ \
+						const TypeInfo* _scl_ti_ ## _type = (const TypeInfo*) GetProcAddress(GetModuleHandleA(NULL), "__T" #_type); \
+						scl_ ## _type _t; \
+						struct { \
+							memory_layout_t layout; \
+							typeof(*_t) data; \
+						}* tmp ## __LINE__ = _scl_scope_alloc(sizeof(*tmp ## __LINE__)); \
+						tmp ## __LINE__->layout.size = sizeof(tmp ## __LINE__->data); \
+						tmp ## __LINE__->layout.flags = MEM_FLAG_INSTANCE; \
+						tmp ## __LINE__->data.$type = _scl_ti_ ## _type; \
+						&(tmp ## __LINE__->data); \
+					})
+#else
 #define _scl_stack_alloc(_type) ({ \
 						extern const TypeInfo _scl_ti_ ## _type __asm__("__T" #_type); \
 						scl_ ## _type _t; \
@@ -523,6 +545,7 @@ void				_scl_setup(void);
 						tmp ## __LINE__->data.$type = &_scl_ti_ ## _type; \
 						&(tmp ## __LINE__->data); \
 					})
+#endif
 
 #define _scl_stack_alloc_ctype(_type) ({ \
 						struct { \

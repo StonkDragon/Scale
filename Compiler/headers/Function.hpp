@@ -39,7 +39,6 @@ namespace sclc
         long has_final;
         long has_constructor;
         long has_cdecl;
-        long has_intrinsic;
         long has_lambda;
         long has_asm;
         long has_sealed;

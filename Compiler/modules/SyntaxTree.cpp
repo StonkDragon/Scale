@@ -624,8 +624,6 @@ namespace sclc {
         static void instantiate(TPResult& result);
     };
 
-    const std::array<std::string, 3> removableTypeModifiers = {"mut ", "const ", "readonly "};
-
     std::string reparseArgType(std::string type, const std::unordered_map<std::string, std::string>& templateArgs) {
         std::string mods = "";
         bool isVal = type.front() == '@';
@@ -1047,7 +1045,13 @@ namespace sclc {
 
     struct NativeMacro: public Macro {
         CToken** (*func)(CSourceLocation*, SclParser*);
-        void* lib;
+        #ifdef _WIN32
+        using library_type = HMODULE;
+        #else
+        using library_type = void*;
+        #endif
+
+        library_type lib;
         void* (*Result$getErr)(void* res) = nullptr;
         void* (*Result$getOk)(void* res) = nullptr;
         long (*Result$isErr)(void* res) = nullptr;
@@ -1059,7 +1063,7 @@ namespace sclc {
         char* (*str$view)(void* str) = nullptr;
 
         template<typename Func>
-        Func getFunction(void* lib, const char* name) {
+        Func getFunction(library_type lib, const char* name) {
         #ifdef _WIN32
             Func f = (Func) GetProcAddress(lib, name);
             if (!f) {
@@ -1077,16 +1081,16 @@ namespace sclc {
         #endif
         }
 
-        void* openLibrary(const char* name) {
+        library_type openLibrary(const char* name) {
         #ifdef _WIN32
-            void* lib = LoadLibraryA(name);
+            library_type lib = LoadLibraryEx(name, nullptr, 0);
             if (!lib) {
                 std::cout << "Failed to load library '" << name << "': " << GetLastError() << std::endl;
                 exit(1);
             }
             return lib;
         #else
-            void* lib = dlopen(name, RTLD_LAZY);
+            library_type lib = dlopen(name, RTLD_LAZY);
             if (!lib) {
                 std::cout << "Failed to load library '" << name << "': " << dlerror() << std::endl;
                 exit(1);
@@ -1118,7 +1122,11 @@ namespace sclc {
         }
 
         ~NativeMacro() {
+            #ifdef _WIN32
+            FreeLibrary(this->lib);
+            #else
             dlclose(this->lib);
+            #endif
         }
 
         void expand(const Token& macroTok, std::vector<Token>& otherTokens, size_t& i, std::vector<Token>& args, std::vector<FPResult>& errors) override {

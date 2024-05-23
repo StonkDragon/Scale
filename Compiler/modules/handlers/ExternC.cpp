@@ -21,7 +21,7 @@ namespace sclc {
         if (strstarts(file, scaleFolder)) {
             file = file.substr(scaleFolder.size() + std::string("/Frameworks/").size());
         } else {
-            file = std::filesystem::path(file).relative_path();
+            file = std::filesystem::path(file).relative_path().string();
         }
         std::string ext = body[i].value;
         for (const Variable& v : vars) {

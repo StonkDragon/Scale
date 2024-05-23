@@ -40,7 +40,6 @@ namespace sclc
         tok_step,                   // step
         tok_to,                     // to
         tok_addr_ref,               // ref
-        tok_load,                   // load
         tok_store,                  // store
         tok_declare,                // decl
         tok_container_def,          // container

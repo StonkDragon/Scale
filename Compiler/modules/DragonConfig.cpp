@@ -3,10 +3,10 @@
 #include <gc/gc.h>
 
 #include <regex>
+#include <cstring>
+#include <cerrno>
 
 #include "../headers/DragonConfig.hpp"
-
-extern "C" long unsigned int strlen(const char*);
 
 using namespace std;
 using namespace DragonConfig;
@@ -347,7 +347,12 @@ void CompoundEntry::print(std::ostream& stream, int indent) {
     }
 }
 CompoundEntry* ConfigParser::parse(const std::string& configFile) {
-    FILE* fp = fopen(configFile.c_str(), "r");
+    FILE* fp;
+    errno_t err = fopen_s(&fp, configFile.c_str(), "r");
+    if (err) {
+        std::cerr << "Error opening config file " << configFile << ": " << strerror(err) << std::endl;
+        std::exit(1);
+    }
     if (!fp) {
         return nullptr;
     }

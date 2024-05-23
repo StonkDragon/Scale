@@ -239,6 +239,25 @@ scl_any _scl_cvarargs_to_array(va_list args, scl_int count) {
 	return arr;
 }
 
+#ifdef _WIN32
+const char* strsignal(int sig) {
+	static const char* sigs[] = {
+		[SIGINT] = "interrupt",
+		[SIGILL] = "illegal instruction - invalid function image",
+		[SIGFPE] = "floating point exception",
+		[SIGSEGV] = "segment violation",
+		[SIGTERM] = "Software termination signal from kill",
+		[SIGBREAK] = "Ctrl-Break sequence",
+		[SIGABRT] = "abnormal termination triggered by abort call",
+	};
+	const char* s = sigs[sig];
+	if (s == nil) {
+		return "Unknown signal";
+	}
+	return s;
+}
+#endif
+
 _scl_symbol_hidden static void _scl_signal_handler(scl_int sig_num) {
 	static int handling_signal = 0;
 	static int with_errno = 0;
@@ -702,8 +721,6 @@ _scl_symbol_hidden static void native_trace(void) {
 _scl_symbol_hidden static inline void print_stacktrace_of(scl_Exception e) {
 	#ifndef _WIN32
 	int write(int, char*, size_t);
-	#else
-	#define write _write
 	#endif
 	const char* do_print = getenv("SCL_BACKTRACE");
 	if (do_print) {
@@ -740,7 +757,7 @@ _scl_no_return void _scl_runtime_catch(scl_any _ex) {
 }
 
 _scl_no_return _scl_symbol_hidden static void* _scl_oom(scl_uint size) {
-	fprintf(stderr, "Out of memory! Tried to allocate %lu bytes\n", size);
+	fprintf(stderr, "Out of memory! Tried to allocate " SCL_UINT_FMT " bytes\n", size);
 	native_trace();
 	exit(-1);
 }

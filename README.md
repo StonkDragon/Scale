@@ -12,10 +12,16 @@ Examples can be found in the [examples](./examples) directory.
 
 ## Installation
 
-Run the following commands:
+Run the following commands (linux/macOS):
 ```shell
 $ clang++ install-sclc.cpp -o install-sclc -std=gnu++17
 $ ./install-sclc
+```
+
+On windows use:
+```shell
+$ clang++ install-sclc.cpp -o install-sclc.exe -std=gnu++17 -lAdvapi32
+$ ./install-sclc.exe
 ```
 
 ### Runtime-Time Dependencies
@@ -29,21 +35,23 @@ $ ./install-sclc
 - `libtool`
 
 # Documentation
-
-A list of all features can be found [here](https://stonkdragon.github.io/features.html).
-
 The Scale Framework documentation can be viewed by running the following command:
 ```shell
 $ sclc -doc-for Scale
 ```
 
 # Build
-The install script can also function as the development build script, this requires a full install first:
+The install script can also function as the development build script, this requires a full install first (linux/macOS):
 ```shell
 $ clang++ install-sclc.cpp -o install-sclc -std=gnu++17
 $ ./install-sclc -dev
 ```
 
-# License
+On windows use:
+```shell
+$ clang++ install-sclc.cpp -o install-sclc.exe -std=gnu++17 -lAdvapi32
+$ ./install-sclc.exe -dev
+```
 
-  Scale is licensed under the [MIT license](./LICENSE).
+# License
+Scale is licensed under the [MIT license](./LICENSE).

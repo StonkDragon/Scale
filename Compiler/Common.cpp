@@ -1,7 +1,14 @@
+#include <gc/gc_cpp.h>
 #include <gc/gc_allocator.h>
 
 #if !defined(_WIN32) && !defined(__wasm__)
 #include <execinfo.h>
+#endif
+#ifdef _WIN32
+#include <Windows.h>
+#include <dbghelp.h>
+#undef __STRUCT__
+#undef interface
 #endif
 
 #include <unordered_set>
@@ -18,53 +25,43 @@
 #include "headers/Types.hpp"
 #include "headers/TranspilerDefs.hpp"
 
+GC_API void GC_CALL GC_throw_bad_alloc(void) {
+    throw std::bad_alloc();
+}
+
 namespace sclc
 {
     #ifdef _WIN32
-    std::string Color::RESET = "";
-    std::string Color::BLACK = "";
-    std::string Color::RED = "";
-    std::string Color::GREEN = "";
-    std::string Color::YELLOW = "";
-    std::string Color::BLUE = "";
-    std::string Color::MAGENTA = "";
-    std::string Color::CYAN = "";
-    std::string Color::WHITE = "";
-    std::string Color::BOLDBLACK = "";
-    std::string Color::BOLDRED = "";
-    std::string Color::BOLDGREEN = "";
-    std::string Color::BOLDYELLOW = "";
-    std::string Color::BOLDBLUE = "";
-    std::string Color::BOLDMAGENTA = "";
-    std::string Color::BOLDCYAN = "";
-    std::string Color::BOLDWHITE = "";
+    #define COLOR(NAME, WHAT) std::string Color::NAME = ""
     #else
-    std::string Color::RESET = "\033[0m";
-    std::string Color::BLACK = "\033[30m";
-    std::string Color::RED = "\033[31m";
-    std::string Color::GREEN = "\033[32m";
-    std::string Color::YELLOW = "\033[33m";
-    std::string Color::BLUE = "\033[34m";
-    std::string Color::MAGENTA = "\033[35m";
-    std::string Color::CYAN = "\033[36m";
-    std::string Color::WHITE = "\033[37m";
-    std::string Color::GRAY = "\033[30m";
-    std::string Color::BOLDBLACK = "\033[1m\033[30m";
-    std::string Color::BOLDRED = "\033[1m\033[31m";
-    std::string Color::BOLDGREEN = "\033[1m\033[32m";
-    std::string Color::BOLDYELLOW = "\033[1m\033[33m";
-    std::string Color::BOLDBLUE = "\033[1m\033[34m";
-    std::string Color::BOLDMAGENTA = "\033[1m\033[35m";
-    std::string Color::BOLDCYAN = "\033[1m\033[36m";
-    std::string Color::BOLDWHITE = "\033[1m\033[37m";
-    std::string Color::BOLDGRAY = "\033[1m\033[30m";
-    std::string Color::UNDERLINE = "\033[4m";
-    std::string Color::BOLD = "\033[1m";
-    std::string Color::REVERSE = "\033[7m";
-    std::string Color::HIDDEN = "\033[8m";
-    std::string Color::ITALIC = "\033[3m";
-    std::string Color::STRIKETHROUGH = "\033[9m";
+    #define COLOR(NAME, WHAT) std::string Color::NAME = WHAT
     #endif
+
+    COLOR(RESET, "\033[0m");
+    COLOR(BLACK, "\033[30m");
+    COLOR(RED, "\033[31m");
+    COLOR(GREEN, "\033[32m");
+    COLOR(YELLOW, "\033[33m");
+    COLOR(BLUE, "\033[34m");
+    COLOR(MAGENTA, "\033[35m");
+    COLOR(CYAN, "\033[36m");
+    COLOR(WHITE, "\033[37m");
+    COLOR(GRAY, "\033[30m");
+    COLOR(BOLDBLACK, "\033[1m\033[30m");
+    COLOR(BOLDRED, "\033[1m\033[31m");
+    COLOR(BOLDGREEN, "\033[1m\033[32m");
+    COLOR(BOLDYELLOW, "\033[1m\033[33m");
+    COLOR(BOLDBLUE, "\033[1m\033[34m");
+    COLOR(BOLDMAGENTA, "\033[1m\033[35m");
+    COLOR(BOLDCYAN, "\033[1m\033[36m");
+    COLOR(BOLDWHITE, "\033[1m\033[37m");
+    COLOR(BOLDGRAY, "\033[1m\033[30m");
+    COLOR(UNDERLINE, "\033[4m");
+    COLOR(BOLD, "\033[1m");
+    COLOR(REVERSE, "\033[7m");
+    COLOR(HIDDEN, "\033[8m");
+    COLOR(ITALIC, "\033[3m");
+    COLOR(STRIKETHROUGH, "\033[9m");
 
     Tokenizer* Main::tokenizer = nullptr;
     SyntaxTree* Main::lexer = nullptr;
@@ -160,6 +157,29 @@ namespace sclc
     std::vector<size_t> var_indices;
 
     void print_trace(void) {
+#ifdef _WIN32
+        void* stack[64];
+        unsigned short frames;
+        SYMBOL_INFO* symbol;
+        HANDLE process;
+
+        process = GetCurrentProcess();
+
+        SymInitialize(process, NULL, TRUE);
+
+        frames = CaptureStackBackTrace(0, 64, stack, NULL);
+        symbol = (SYMBOL_INFO*) malloc(sizeof(SYMBOL_INFO) + 256 * sizeof(char));
+        symbol->MaxNameLen = 255;
+        symbol->SizeOfStruct = sizeof(SYMBOL_INFO);
+
+        for (unsigned int i = 0; i < frames; i++) {
+            SymFromAddr(process, (DWORD64) (stack[i]), 0, symbol);
+
+            printf("%i: %s - 0x%0llX\n", frames - i - 1, symbol->Name, symbol->Address);
+        }
+
+        free(symbol);
+#endif
 #if !defined(_WIN32) && !defined(__wasm__)
         void* array[64];
         int size = backtrace(array, 64);
@@ -299,16 +319,6 @@ namespace sclc
             c == ':' ||
             c == '=' ||
             c == '!';
-    }
-
-    bool fileExists(const std::string& name) {
-        FILE *file;
-        if ((file = fopen(name.c_str(), "r")) != NULL) {
-            fclose(file);
-            return true;
-        } else {
-            return false;
-        }
     }
 
     void addIfAbsent(std::vector<Function*>& vec, Function* str) {

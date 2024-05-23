@@ -27,7 +27,7 @@
 #define TOKEN(x, y, line, file) if (value == x) return Token(y, value, line, file, begin)
 
 // optimize this :
-#define append(...) do { for (int j = 0; j < scopeDepth; j++) { fp << "  "; } fp << sclc::format(__VA_ARGS__); fp.flush(); } while (0)
+#define append(...) do { for (int j = 0; j < scopeDepth; j++) { fp << "  "; } fp << sclc::format(__VA_ARGS__); } while (0)
 #define append2(...) fp << sclc::format(__VA_ARGS__)
 
 #if __has_builtin(__builtin_expect)
@@ -214,7 +214,6 @@ namespace sclc {
     int isOctDigit(char c);
     int isBinDigit(char c);
     int isOperator(char c);
-    bool fileExists(const std::string& name);
     void addIfAbsent(std::vector<Function*>& vec, Function* str);
     std::string replaceAll(const std::string& src, const std::string& from, const std::string& to);
     std::string replaceFirstAfter(const std::string& src, const std::string& from, const std::string& to, int index);

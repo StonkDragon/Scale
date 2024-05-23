@@ -101,3 +101,4 @@ e.log
 install-sclc
 ._*
 scale.vscodeextension/.DS_Store
+.idea
