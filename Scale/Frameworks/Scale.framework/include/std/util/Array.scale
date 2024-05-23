@@ -242,10 +242,6 @@ sealed struct Array is Iterable
     obj return
   end
 
-  function finalize(): none
-    self.values any::delete
-  end
-
   static function of(args: varargs): Array
     args:size Array::new => decl arr: Array
     foreach arg in args do

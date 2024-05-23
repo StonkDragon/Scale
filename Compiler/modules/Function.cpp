@@ -26,7 +26,6 @@ Function::Function(std::string name, bool isMethod, Token name_token) : namedRet
     this->has_final = 0;
     this->has_constructor = 0;
     this->has_cdecl = 0;
-    this->has_intrinsic = 0;
     this->has_lambda = 0;
     this->has_asm = 0;
     this->has_sealed = 0;
@@ -61,7 +60,6 @@ void Function::addModifier(std::string modifier) {
     else if (has_final == 0 && modifier == "final") has_final = modifiers.size();
     else if (has_final == 0 && modifier == "<destructor>") has_final = modifiers.size();
     else if (has_cdecl == 0 && modifier == "cdecl") has_cdecl = modifiers.size();
-    else if (has_intrinsic == 0 && modifier == "intrinsic") has_intrinsic = modifiers.size();
     else if (has_asm == 0 && modifier == "asm") has_asm = modifiers.size();
     else if (has_lambda == 0 && modifier == "<lambda>") has_lambda = modifiers.size();
     else if (has_sealed == 0 && modifier == "sealed") has_sealed = modifiers.size();
@@ -75,7 +73,6 @@ void Function::addModifier(std::string modifier) {
     else if (has_binary_inherited == 0 && modifier == "<binary-inherited>") has_binary_inherited = modifiers.size();
     else if (has_nonvirtual == 0 && modifier == "nonvirtual") has_nonvirtual = modifiers.size();
     else if (has_async == 0 && modifier == "async") has_async = modifiers.size();
-    else if (has_inline == 0 && modifier == "inline") has_inline = modifiers.size();
     else if (has_reified == 0 && modifier == "reified") {
         has_reified = modifiers.size();
         has_nonvirtual = modifiers.size();

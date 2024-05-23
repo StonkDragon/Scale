@@ -11,11 +11,7 @@ namespace sclc {
     handler(Pragma) {
         noUnused;
         safeInc();
-        if (body[i].value == "stackalloc") {
-            safeInc();
-            transpilerError("Stackalloc arrays have been removed from Scale", i);
-            errors.push_back(err);
-        } else if (body[i].value == "note" || body[i].value == "warn" || body[i].value == "error") {
+        if (body[i].value == "note" || body[i].value == "warn" || body[i].value == "error") {
             safeInc();
             if (body[i].type != tok_string_literal) {
                 transpilerError("Expected string literal after '" + body[i - 1].value + "'", i);

@@ -136,7 +136,7 @@ namespace sclc {
         bool closeThePush = false;
         if (f->return_type.size() && f->return_type.front() == '@' && !f->has_async) {
             const Struct& s = getStructByName(result, f->return_type);
-            append("_scl_push_value(%s, %d, ", sclTypeToCType(result, f->return_type).c_str(), s != Struct::Null);
+            append("_scl_push_value(%s, %s, ", sclTypeToCType(result, f->return_type).c_str(), (s != Struct::Null) ? "MEM_FLAG_INSTANCE" : "");
             closeThePush = true;
         } else {
             if (f->return_type != "none" && f->return_type != "nothing" && !f->has_async) {
@@ -544,7 +544,7 @@ namespace sclc {
         bool closeThePush = false;
         if (self->return_type.size() && self->return_type.front() == '@' && !self->has_async) {
             const Struct& s = getStructByName(result, self->return_type);
-            append("_scl_push_value(%s, %d, ", sclTypeToCType(result, self->return_type).c_str(), s != Struct::Null);
+            append("_scl_push_value(%s, %s, ", sclTypeToCType(result, self->return_type).c_str(), (s != Struct::Null) ? "MEM_FLAG_INSTANCE" : "");
             closeThePush = true;
         } else {
             if (self->return_type != "none" && self->return_type != "nothing" && !self->has_async) {
@@ -1212,7 +1212,7 @@ namespace sclc {
         bool closeThePush = false;
         if (self->return_type.size() && self->return_type.front() == '@' && !self->has_async) {
             const Struct& s = getStructByName(result, self->return_type);
-            append("_scl_push_value(%s, %d, ", sclTypeToCType(result, self->return_type).c_str(), s != Struct::Null);
+            append("_scl_push_value(%s, %s, ", sclTypeToCType(result, self->return_type).c_str(), (s != Struct::Null) ? "MEM_FLAG_INSTANCE" : "");
             closeThePush = true;
         } else {
             if (removeTypeModifiers(self->return_type) != "none" && removeTypeModifiers(self->return_type) != "nothing" && !self->has_async) {
@@ -1224,7 +1224,7 @@ namespace sclc {
         }
         std::string args = generateArgumentsForFunction(result, self);
         if (self->has_async) {
-            append("_scl_async(fn_%s%s%s, fn_%s)", self->name.c_str(), args.size() ? ", " : "", args.c_str(), self->name.c_str());
+            append("_scl_async(fn_%s, fn_%s%s%s)", self->name.c_str(), self->name.c_str(), args.size() ? ", " : "", args.c_str());
         } else {
             append2("fn_%s(%s)", self->name.c_str(), args.c_str());
         }

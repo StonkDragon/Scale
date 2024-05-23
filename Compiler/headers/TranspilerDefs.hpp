@@ -23,7 +23,7 @@
     {                                                                                                                                  \
         std::string ctype = sclTypeToCType(result, type);                                                                              \
         const Struct& s = getStructByName(result, type);                                                                               \
-        append("_scl_push_value(%s, %d, %s);\n", ctype.c_str(), s != Struct::Null, path.c_str());                                      \
+        append("_scl_push_value(%s, %s, %s);\n", ctype.c_str(), (s != Struct::Null) ? "MEM_FLAG_INSTANCE" : "", path.c_str());         \
         typeStack.push_back(type.substr(1));                                                                                           \
     }                                                                                                                                  \
     else                                                                                                                               \

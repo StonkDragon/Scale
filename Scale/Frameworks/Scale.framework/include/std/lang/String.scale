@@ -47,7 +47,7 @@ final sealed struct str is Equatable, Cloneable, Stringifyable, Iterable
 
   function append(cStr: [int8]): str
     unsafe
-      self.data cStr str::concat str::new return
+      self.data cStr str::concat str::of return
     end
   end
 
@@ -57,7 +57,7 @@ final sealed struct str is Equatable, Cloneable, Stringifyable, Iterable
 
   function prepend(cStr: [int8]): str
     unsafe
-      cStr self.data str::concat str::new return
+      cStr self.data str::concat str::of return
     end
   end
 
@@ -243,7 +243,7 @@ final sealed struct str is Equatable, Cloneable, Stringifyable, Iterable
       IndexOutOfBoundsException::new throw
     fi
 
-    (start to self:size) self:view:slice str::new return
+    (start to self:size) self:view:slice str::of return
   end
 
   function subString(range: Range): str
@@ -264,7 +264,7 @@ final sealed struct str is Equatable, Cloneable, Stringifyable, Iterable
       IndexOutOfBoundsException::new throw
     fi
 
-    range self:view:slice str::new return
+    range self:view:slice str::of return
   end
 
   function view(): [int8]
@@ -303,10 +303,6 @@ final sealed struct str is Equatable, Cloneable, Stringifyable, Iterable
 
   function hashCode(): int
     self.hash return
-  end
-
-  function finalize(): none
-    self.data any::delete
   end
 
   function utfLength(): int

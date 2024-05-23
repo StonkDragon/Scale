@@ -961,8 +961,7 @@ namespace sclc
         cflags.push_back("-" + optimizer);
         cflags.push_back("-DVERSION=\"" + std::string(VERSION) + "\"");
         cflags.push_back("-std=" + std::string(C_VERSION));
-        cflags.push_back("-ftrapv");
-        cflags.push_back("-fno-inline");
+        cflags.push_back("-fno-stack-protector");
 #if !defined(_WIN32)
         cflags.push_back("-fPIC");
 #endif
