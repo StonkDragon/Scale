@@ -304,9 +304,9 @@ namespace sclc {
         structTree = StructTreeNode::fromArrayOfStructs(result);
 
         remove("scale_interop.h");
-        errno_t err = fopen_s(&scale_header, "scale_interop.h", "a+");
-        if (!scale_header || err) {
-            std::cerr << "Could not open scale_interop.h: " << strerror(err) << std::endl;
+        scale_header = fopen("scale_interop.h", "a+");
+        if (!scale_header) {
+            std::cerr << "Could not open scale_interop.h: " << strerror(errno) << std::endl;
             std::raise(SIGSEGV);
         }
         fprintf(scale_header, "#if !defined(SCALE_INTEROP_H)\n");

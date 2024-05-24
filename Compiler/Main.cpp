@@ -292,10 +292,9 @@ namespace sclc
     }
 
     Documentation parseSclDoc(std::string file) {
-        FILE* docFile;
-        errno_t err = fopen_s(&docFile, file.c_str(), "rb");
-        if (!docFile || err) {
-            std::cerr << "Failed to open documentation file: " << strerror(err) << std::endl;
+        FILE* docFile = fopen(file.c_str(), "rb");
+        if (!docFile) {
+            std::cerr << "Failed to open documentation file: " << strerror(errno) << std::endl;
             std::exit(1);
         }
         
@@ -317,10 +316,9 @@ namespace sclc
             if (strstarts(line, "%include")) {
                 std::string includeFile = trimLeft(line.substr(8));
                 std::string includePath = std::filesystem::path(file).parent_path().string() + "/" + includeFile;
-                FILE* include;
-                errno_t err = fopen_s(&include, includePath.c_str(), "rb");
-                if (!include || err) {
-                    std::cerr << Color::RED << "Failed to open include file " << includePath << ": " << strerror(err) << Color::RESET << std::endl;
+                FILE* include = fopen(includePath.c_str(), "rb");
+                if (!include) {
+                    std::cerr << Color::RED << "Failed to open include file " << includePath << ": " << strerror(errno) << Color::RESET << std::endl;
                     exit(1);
                 }
                 fseek(include, 0, SEEK_END);
@@ -596,9 +594,8 @@ namespace sclc
                 std::cout << Color::BOLDRED << "Fatal Error: " << error.location.file << ": " << error.message << Color::RESET << std::endl;
                 continue;
             }
-            FILE* f;
-            errno_t err = fopen_s(&f, error.location.file.c_str(), "r");
-            if (!f || err) {
+            FILE* f = fopen(error.location.file.c_str(), "r");
+            if (!f) {
                 std::cout << Color::BOLDRED << "Fatal Error: Could not open file " << error.location.file << ": " << strerror(errno) << Color::RESET << std::endl;
                 continue;
             }
@@ -664,9 +661,8 @@ namespace sclc
                 std::cout << Color::BOLDRED << "Fatal Error: " << error.location.file << ": " << error.message << Color::RESET << std::endl;
                 continue;
             }
-            FILE* f;
-            errno_t err = fopen_s(&f, error.location.file.c_str(), "r");
-            if (!f || err) {
+            FILE* f = fopen(error.location.file.c_str(), "r");
+            if (!f) {
                 std::cout << Color::BOLDRED << "Fatal Error: Could not open file " << error.location.file << ": " << strerror(errno) << Color::RESET << std::endl;
                 continue;
             }
@@ -980,7 +976,6 @@ namespace sclc
         cflags.push_back("-I.");
         cflags.push_back("-L" + scaleFolder);
         cflags.push_back("-L" + scaleFolder + "/Internal");
-        cflags.push_back("-L" + scaleFolder + "/Internal/lib");
         cflags.push_back("-" + optimizer);
         cflags.push_back("-DVERSION=\"" + std::string(VERSION) + "\"");
         cflags.push_back("-std=" + std::string(C_VERSION));
@@ -1212,8 +1207,6 @@ namespace sclc
 #if !defined(__APPLE__) && !defined(_WIN32)
         cflags.push_back("-Wl,-R");
         cflags.push_back("-Wl," + scaleFolder + "/Internal");
-        cflags.push_back("-Wl,-R");
-        cflags.push_back("-Wl," + scaleFolder + "/Internal/lib");
 #endif
         cflags.push_back("-lScaleRuntime");
         // cflags.push_back("-lgc");

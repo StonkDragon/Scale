@@ -477,18 +477,10 @@ namespace sclc
         Token token;
         bool inBlockComment = false;
         
-        errno_t err = fopen_s(&fp, source.c_str(), "r");
-        if (err) {
-            FPResult r;
-            r.message = "IO Error: Could not open file " + source + ": " + strerror(err);
-            r.location = SourceLocation(source, 0, 0);
-            r.success = false;
-            errors.push_back(r);
-            goto fatal_error;
-        }
+        fp = fopen(source.c_str(), "r");
         if (fp == NULL) {
             FPResult r;
-            r.message = "IO Error: Could not open file " + source;
+            r.message = "IO Error: Could not open file " + source + ": " + strerror(errno);
             r.location = SourceLocation(source, 0, 0);
             r.success = false;
             errors.push_back(r);

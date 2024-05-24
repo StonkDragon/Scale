@@ -208,6 +208,7 @@ int main(int argc, char const *argv[]) {
             "-fPIC",
             #endif
             "-DGC_THREADS",
+            "-DNO_EXECUTE_PERMISSION",
             "-DGC_BUILTIN_ATOMIC",
             "-DGC_DLL",
             #ifdef _WIN32
@@ -235,6 +236,7 @@ int main(int argc, char const *argv[]) {
             "-fPIC",
             #endif
             "-DGC_THREADS",
+            "-DNO_EXECUTE_PERMISSION",
             "-DGC_BUILTIN_ATOMIC",
             "-DGC_DLL",
             #ifdef _WIN32
@@ -262,6 +264,7 @@ int main(int argc, char const *argv[]) {
             "-fPIC",
             #endif
             "-DGC_THREADS",
+            "-DNO_EXECUTE_PERMISSION",
             "-DGC_BUILTIN_ATOMIC",
             "-DGC_DLL",
             #ifdef _WIN32

@@ -347,13 +347,9 @@ void CompoundEntry::print(std::ostream& stream, int indent) {
     }
 }
 CompoundEntry* ConfigParser::parse(const std::string& configFile) {
-    FILE* fp;
-    errno_t err = fopen_s(&fp, configFile.c_str(), "r");
-    if (err) {
-        std::cerr << "Error opening config file " << configFile << ": " << strerror(err) << std::endl;
-        std::exit(1);
-    }
+    FILE* fp = fopen(configFile.c_str(), "r");
     if (!fp) {
+        std::cerr << "Error opening config file " << configFile << ": " << strerror(errno   ) << std::endl;
         return nullptr;
     }
     fseek(fp, 0, SEEK_END);
