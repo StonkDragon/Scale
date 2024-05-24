@@ -192,7 +192,14 @@ int main(int argc, char const *argv[]) {
         });
         std::filesystem::current_path("bdwgc");
         exec_command(create_command({
-            "clang++",
+            "clang",
+            "-fvisibility=default",
+        #ifdef _WIN32
+            "-Wl,-export-all-symbols",
+            "-fuse-ld=lld",
+            "-Wl,-lldmingw",
+            "-Wno-unused-command-line-argument",
+        #endif
             "-Iinclude",
             #ifdef _WIN32
             "-D_CRT_SECURE_NO_WARNINGS",
@@ -202,11 +209,68 @@ int main(int argc, char const *argv[]) {
             #endif
             "-DGC_THREADS",
             "-DGC_BUILTIN_ATOMIC",
-            "-DGC_NOT_DLL",
+            "-DGC_DLL",
+            #ifdef _WIN32
+            "-DDONT_USE_USER32_DLL",
+            #endif
             "-c",
             "-o",
             path + "/Internal/gc.o",
             "extra/gc.c"
+        }));
+        exec_command(create_command({
+            "clang++",
+            "-fvisibility=default",
+        #ifdef _WIN32
+            "-Wl,-export-all-symbols",
+            "-fuse-ld=lld",
+            "-Wl,-lldmingw",
+            "-Wno-unused-command-line-argument",
+        #endif
+            "-Iinclude",
+            #ifdef _WIN32
+            "-D_CRT_SECURE_NO_WARNINGS",
+            "-DGC_WIN32_THREADS",
+            #else
+            "-fPIC",
+            #endif
+            "-DGC_THREADS",
+            "-DGC_BUILTIN_ATOMIC",
+            "-DGC_DLL",
+            #ifdef _WIN32
+            "-DDONT_USE_USER32_DLL",
+            #endif
+            "-c",
+            "-o",
+            path + "/Internal/gc_cpp.o",
+            "gc_cpp.cpp"
+        }));
+        exec_command(create_command({
+            "clang++",
+            "-fvisibility=default",
+        #ifdef _WIN32
+            "-Wl,-export-all-symbols",
+            "-fuse-ld=lld",
+            "-Wl,-lldmingw",
+            "-Wno-unused-command-line-argument",
+        #endif
+            "-Iinclude",
+            #ifdef _WIN32
+            "-D_CRT_SECURE_NO_WARNINGS",
+            "-DGC_WIN32_THREADS",
+            #else
+            "-fPIC",
+            #endif
+            "-DGC_THREADS",
+            "-DGC_BUILTIN_ATOMIC",
+            "-DGC_DLL",
+            #ifdef _WIN32
+            "-DDONT_USE_USER32_DLL",
+            #endif
+            "-c",
+            "-o",
+            path + "/Internal/gc_badalc.o",
+            "gc_badalc.cpp"
         }));
 
         std::filesystem::create_directories(path + "/Internal/include");
@@ -218,6 +282,11 @@ int main(int argc, char const *argv[]) {
 
     auto scale_runtime = create_command({
         "clang",
+        "-fvisibility=default",
+    #ifdef _WIN32
+        "-Wl,-export-all-symbols",
+        "-fuse-ld=lld",
+    #endif
         "-O2",
         ("-std=" C_VERSION),
         "-I" + path + "/Internal",
@@ -234,6 +303,11 @@ int main(int argc, char const *argv[]) {
     });
     auto cxx_glue = create_command({
         "clang++",
+        "-fvisibility=default",
+    #ifdef _WIN32
+        "-Wl,-export-all-symbols",
+        "-fuse-ld=lld",
+    #endif
         "-O2",
         ("-std=" CXX_VERSION),
         "-I" + path + "/Internal",
@@ -251,6 +325,11 @@ int main(int argc, char const *argv[]) {
 
     auto library = create_command({
         "clang++",
+        "-fvisibility=default",
+    #ifdef _WIN32
+        "-Wl,-export-all-symbols",
+        "-fuse-ld=lld",
+    #endif
         "-O2",
     #if defined(__APPLE__)
         "-dynamiclib",
@@ -266,12 +345,11 @@ int main(int argc, char const *argv[]) {
     #endif
         "-shared",
     #endif
-    #if defined(_WIN32)
-        "-lUser32",
-    #endif
         path + "/Internal/scale_runtime.o",
         path + "/Internal/scale_cxx.o",
         path + "/Internal/gc.o",
+        path + "/Internal/gc_cpp.o",
+        path + "/Internal/gc_badalc.o",
         "-o",
         path + "/Internal/" LIB_SCALE_FILENAME
     });
@@ -298,6 +376,11 @@ int main(int argc, char const *argv[]) {
 
     std::string compile_command = create_command({
         "clang++",
+        "-fvisibility=default",
+    #ifdef _WIN32
+        "-Wl,-export-all-symbols",
+        "-fuse-ld=lld",
+    #endif
         ("-DVERSION=\\\"" STR(VERSION) "\\\""),
         ("-DC_VERSION=" STR(STR(C_VERSION))),
         "-DSCL_ROOT_DIR=\\\"" + scl_root_dir + "\\\"",
@@ -325,13 +408,15 @@ int main(int argc, char const *argv[]) {
     std::vector<std::string> link_command = {
         compile_command,
 #ifdef __linux__
-        "-Wl,--export-dynamic",
+        "-Wl,-export-all-symbols",
 #endif
 #ifdef _WIN32
         "-lUser32",
         "-lDbgHelp",
 #endif
         path + "/Internal/gc.o",
+        path + "/Internal/gc_cpp.o",
+        path + "/Internal/gc_badalc.o",
     };
 
     for (auto f : source_files) {
@@ -390,12 +475,33 @@ int main(int argc, char const *argv[]) {
     } else {
         symlinked_path = home + "/bin/" + binary;
     }
+    symlinked_path = symlinked_path.make_preferred();
+
     if (!std::filesystem::exists(symlinked_path.parent_path())) {
         std::filesystem::create_directories(symlinked_path.parent_path());
+    } else {
+        std::filesystem::remove(symlinked_path);
     }
-    std::filesystem::remove(symlinked_path);
-    std::filesystem::create_symlink(path + "/" + binary, symlinked_path);
-    
+
+#ifdef _WIN32
+    if (CreateSymbolicLinkA(symlinked_path.string().c_str(), (path + "/" + binary).c_str(), SYMBOLIC_LINK_FLAG_ALLOW_UNPRIVILEGED_CREATE) == 0) {
+        unsigned int err = GetLastError();
+        if (err == ERROR_PRIVILEGE_NOT_HELD) {
+            std::cout << "[INFO]: Unprivileged users cannot create symlinks in windows. Failed to create link from " << std::filesystem::path(path + "/" + binary).make_preferred() << " to " << symlinked_path << std::endl;
+        } else {
+            std::cerr << "Error creating symlink: " << GetLastError() << std::endl;
+            std::exit(1);
+        }
+    };
+#else
+    try {
+        std::filesystem::create_symlink(path + "/" + binary, symlinked_path);
+    } catch (std::filesystem::filesystem_error& err) {
+        std::cerr << "Error creating symlink: " << err.what() << std::endl;
+        std::exit(1);
+    }
+#endif
+
     std::string macro_library = create_command({
         (std::filesystem::path(path) / binary).string(),
         "-makelib",
@@ -412,9 +518,15 @@ int main(int argc, char const *argv[]) {
         path + "/Internal/" + SCALE_STDLIB_FILENAME
     });
 
+    #ifdef _WIN32
+    #define DIR_SEP "\\"
+    #else
+    #define DIR_SEP "/"
+    #endif
+
     auto files = listFiles(path + "/Frameworks/Scale.framework/include", ".scale");
     for (auto&& f : files) {
-        if (strcontains(f.string(), "/macros/") || strcontains(f.string(), "/__") || strcontains(f.string(), "/compiler/")) {
+        if (strcontains(f.string(), DIR_SEP "macros" DIR_SEP) || strcontains(f.string(), DIR_SEP "__") || strcontains(f.string(), DIR_SEP "compiler" DIR_SEP)) {
             continue;
         }
         scale_stdlib += f.string() + " ";

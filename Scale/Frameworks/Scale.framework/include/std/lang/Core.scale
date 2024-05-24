@@ -15,8 +15,6 @@ cdecl "atoll"
 private expect foreign unsafe function __c_atoll(:[int8]): int64
 cdecl "atof"
 private expect foreign unsafe function __c_atof(:[int8]): float
-cdecl "sprintf"
-private expect foreign unsafe function __c_sprintf(:[int8], :[int8], :varargs): int
 
 typealias varargs "..."
 

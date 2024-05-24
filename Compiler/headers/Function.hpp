@@ -16,7 +16,7 @@ namespace sclc
 {
     typedef std::unordered_map<std::string, std::string> Deprecation;
 
-    struct Function : public gc_cleanup {
+    struct Function /* : public gc */ {
         size_t lambdaIndex;
         std::string name;
         std::string name_without_overload;

@@ -32,9 +32,9 @@ macro! IntStruct(type) {
       new<int8>[2] => decl out: [int8]
       unsafe
         if sizeof $type 1 == then
-          out c"%c" x __c_sprintf! 1 drop
+          out c"%c" varargs x __c_sprintf drop
         else
-          out c"%ld" x __c_sprintf! 1 drop
+          out c"%ld" varargs x __c_sprintf drop
         fi
       end
       out str::new return
@@ -43,7 +43,7 @@ macro! IntStruct(type) {
     function toHexString(x: $type): str
       new<int8>[5] => decl out: [int8]
       unsafe
-        out "0x%0" sizeof $type 2 * + "lx" +:view x __c_sprintf! 1 drop
+        out "0x%0" sizeof $type 2 * + "lx" +:view varargs x __c_sprintf drop
       end
       out str::new return
     end
@@ -73,9 +73,9 @@ macro! UIntStruct(type) {
       new<int8>[2] => decl out: [int8]
       unsafe
         if sizeof $type 1 == then
-          out c"%c" x __c_sprintf! 1 drop
+          out c"%c" varargs x __c_sprintf drop
         else
-          out c"%lu" x __c_sprintf! 1 drop
+          out c"%lu" varargs x __c_sprintf drop
         fi
       end
       out str::new return
@@ -84,7 +84,7 @@ macro! UIntStruct(type) {
     function toHexString(x: $type): str
       new<int8>[5] => decl out: [int8]
       unsafe
-        out "0x%0" sizeof $type 2 * + "lx" +:view x __c_sprintf! 1 drop
+        out "0x%0" sizeof $type 2 * + "lx" +:view varargs x __c_sprintf drop
       end
       out str::new return
     end

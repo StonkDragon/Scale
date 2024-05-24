@@ -1054,7 +1054,7 @@ namespace sclc {
 
         library_type openLibrary(const char* name) {
         #ifdef _WIN32
-            library_type lib = LoadLibraryEx(name, nullptr, 0);
+            library_type lib = LoadLibraryExA(name, nullptr, 0);
             if (!lib) {
                 std::cout << "Failed to load library '" << name << "': " << GetLastError() << std::endl;
                 exit(1);

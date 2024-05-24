@@ -136,11 +136,7 @@ namespace sclc {
         bool closeThePush = false;
         if (f->return_type.size() && f->return_type.front() == '@' && !f->has_async) {
             const Struct& s = getStructByName(result, f->return_type);
-<<<<<<< HEAD
             append("_scl_push_value(%s, %S, ", sclTypeToCType(result, f->return_type).c_str(), (s != Struct::Null ? "MEM_FLAG_INSTANCE" : ""));
-=======
-            append("_scl_push_value(%s, %s, ", sclTypeToCType(result, f->return_type).c_str(), (s != Struct::Null) ? "MEM_FLAG_INSTANCE" : "");
->>>>>>> 84faf20a32e95e2c4dc4fa26a4eff15d1c99c9a7
             closeThePush = true;
         } else {
             if (f->return_type != "none" && f->return_type != "nothing" && !f->has_async) {
@@ -548,11 +544,7 @@ namespace sclc {
         bool closeThePush = false;
         if (self->return_type.size() && self->return_type.front() == '@' && !self->has_async) {
             const Struct& s = getStructByName(result, self->return_type);
-<<<<<<< HEAD
             append("_scl_push_value(%s, %s, ", sclTypeToCType(result, self->return_type).c_str(), (s != Struct::Null ? "MEM_FLAG_INSTANCE" : ""));
-=======
-            append("_scl_push_value(%s, %s, ", sclTypeToCType(result, self->return_type).c_str(), (s != Struct::Null) ? "MEM_FLAG_INSTANCE" : "");
->>>>>>> 84faf20a32e95e2c4dc4fa26a4eff15d1c99c9a7
             closeThePush = true;
         } else {
             if (self->return_type != "none" && self->return_type != "nothing" && !self->has_async) {
@@ -876,9 +868,9 @@ namespace sclc {
             }
         }
         if (f->isMethod) {
-            append("%s mt_%s$%s(%s) __asm(%s);\n", sclTypeToCType(result, f->return_type).c_str(), f->member_type.c_str(), f->name.c_str(), arguments.c_str(), generateSymbolForFunction(f).c_str());
+            append("export %s mt_%s$%s(%s) __asm(%s);\n", sclTypeToCType(result, f->return_type).c_str(), f->member_type.c_str(), f->name.c_str(), arguments.c_str(), generateSymbolForFunction(f).c_str());
         } else if (!f->has_reified) {
-            append("%s fn_%s(%s) __asm(%s);\n", sclTypeToCType(result, f->return_type).c_str(), f->name.c_str(), arguments.c_str(), generateSymbolForFunction(f).c_str());
+            append("export %s fn_%s(%s) __asm(%s);\n", sclTypeToCType(result, f->return_type).c_str(), f->name.c_str(), arguments.c_str(), generateSymbolForFunction(f).c_str());
         }
         return f;
     }
@@ -1220,11 +1212,7 @@ namespace sclc {
         bool closeThePush = false;
         if (self->return_type.size() && self->return_type.front() == '@' && !self->has_async) {
             const Struct& s = getStructByName(result, self->return_type);
-<<<<<<< HEAD
             append("_scl_push_value(%s, %s, ", sclTypeToCType(result, self->return_type).c_str(), (s != Struct::Null ? "MEM_FLAG_INSTANCE" : ""));
-=======
-            append("_scl_push_value(%s, %s, ", sclTypeToCType(result, self->return_type).c_str(), (s != Struct::Null) ? "MEM_FLAG_INSTANCE" : "");
->>>>>>> 84faf20a32e95e2c4dc4fa26a4eff15d1c99c9a7
             closeThePush = true;
         } else {
             if (removeTypeModifiers(self->return_type) != "none" && removeTypeModifiers(self->return_type) != "nothing" && !self->has_async) {

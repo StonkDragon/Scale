@@ -152,7 +152,7 @@ namespace sclc {
         append("_scl_push(scl_any, ({\n");
         scopeDepth++;
         const std::string sym = generateSymbolForFunction(f);
-        append("%s fn_$lambda%d$%s(%s) __asm(%s);\n", sclTypeToCType(result, f->return_type).c_str(), lambdaCount - 1, function->name.c_str(), arguments.c_str(), sym.c_str());
+        append("export %s fn_$lambda%d$%s(%s) __asm(%s);\n", sclTypeToCType(result, f->return_type).c_str(), lambdaCount - 1, function->name.c_str(), arguments.c_str(), sym.c_str());
         if (f->captures.size()) {
             append("static tls struct {\n");
             for (size_t i = 0; i < f->captures.size(); i++) {

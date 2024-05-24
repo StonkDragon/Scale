@@ -85,6 +85,8 @@ extern "C" {
 #undef nil
 #define nil NULL
 
+#pragma clang 
+
 // Creates a new string from a C string
 // The given C string is not copied
 #define str_of_exact(_cstr)	_scl_create_string((_cstr))
@@ -641,6 +643,8 @@ char*				strformat(const char* fmt, ...);
 void				_scl_assert(scl_int b, const scl_int8* msg, ...);
 void				builtinUnreachable(void);
 scl_int				builtinIsInstanceOf(scl_any obj, scl_str type);
+scl_int8*			_scl_get_thread_name();
+void				_scl_set_thread_name(scl_int8* name);
 
 scl_any				_scl_new_array_by_size(scl_int num_elems, scl_int elem_size);
 scl_any				_scl_migrate_foreign_array(const void* const arr, scl_int num_elems, scl_int elem_size);

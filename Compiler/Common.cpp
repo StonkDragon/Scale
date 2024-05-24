@@ -25,10 +25,6 @@
 #include "headers/Types.hpp"
 #include "headers/TranspilerDefs.hpp"
 
-GC_API void GC_CALL GC_throw_bad_alloc(void) {
-    throw std::bad_alloc();
-}
-
 namespace sclc
 {
     #ifdef _WIN32
@@ -613,7 +609,7 @@ namespace sclc
     }
 
     Enum getEnumByName(TPResult& result, const std::string& name) {
-        for (Enum& e : result.enums) {
+        for (const Enum& e : result.enums) {
             if (e.name == name) {
                 return e;
             }

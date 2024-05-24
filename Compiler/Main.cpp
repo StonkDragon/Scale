@@ -98,6 +98,7 @@ namespace sclc
         std::cout << "  -create-module       Create a Scale module" << std::endl;
         std::cout << "  -cflags              Print c compiler flags and exit" << std::endl;
         std::cout << "  -no-error-location   Do not print an overview of the file on error" << std::endl;
+        std::cout << "  -verbose-linker      Tells the linker to run in verbose mode for debugging purposes" << std::endl;
         std::cout << "  -nowarn <regex>      Do not print any diagnostics where the message matches the given regular expression" << std::endl;
         std::cout << "  -doc                 Print documentation" << std::endl;
         std::cout << "  -doc-for <framework> Print documentation for Framework" << std::endl;
@@ -748,6 +749,11 @@ namespace sclc
         srand(time(NULL));
         tmpFlags.reserve(args.size());
 
+        #ifdef _WIN32
+        tmpFlags.push_back("-D_CRT_SECURE_NO_WARNINGS");
+        #endif
+        tmpFlags.push_back("-fvisibility=default");
+
         Main::version = new Version(std::string(VERSION));
         Main::options::errorLimit = 20;
 
@@ -871,13 +877,17 @@ namespace sclc
                 tmpFlags.push_back("-Wl,--undefined,dynamic_lookup");
                 #endif
                 tmpFlags.push_back("-shared");
+                #ifndef _WIN32
                 tmpFlags.push_back("-fPIC");
+                #endif
                 #endif
                 Main::options::noMain = true;
                 tmpFlags.push_back("-DSCL_COMPILER_NO_MAIN");
                 if (!outFileSpecified)
                 #if defined(__APPLE__)
                     Main::options::outfile = outfile = "libout.dylib";
+                #elif defined(_WIN32)
+                    Main::options::outfile = outfile = "out.dll";
                 #else
                     Main::options::outfile = outfile = "libout.so";
                 #endif
@@ -885,6 +895,8 @@ namespace sclc
                 Main::options::noScaleFramework = true;
             } else if (args[i] == "-no-link-std") {
                 Main::options::noLinkScale = true;
+            } else if (args[i] == "-verbose-linker") {
+                tmpFlags.push_back("-v");
             } else if (args[i] == "-create-framework") {
                 if (i + 1 < args.size()) {
                     std::string name = args[i + 1];
@@ -975,6 +987,14 @@ namespace sclc
         cflags.push_back("-fno-stack-protector");
 #if !defined(_WIN32)
         cflags.push_back("-fPIC");
+#else
+        cflags.push_back("-Wl,-export-all-symbols");
+        cflags.push_back("-fuse-ld=lld");
+        cflags.push_back("-Wl,-lldmingw");
+        cflags.push_back("-Wno-unused-command-line-argument");
+        cflags.push_back("-lKernel32");
+        cflags.push_back("-lUser32");
+        cflags.push_back("-lucrt");
 #endif
         
         if (Main::options::noScaleFramework) goto skipScaleFramework;
@@ -1189,14 +1209,14 @@ namespace sclc
 #ifdef LINK_MATH
         cflags.push_back("-lm");
 #endif
-#ifndef __APPLE__
+#if !defined(__APPLE__) && !defined(_WIN32)
         cflags.push_back("-Wl,-R");
         cflags.push_back("-Wl," + scaleFolder + "/Internal");
         cflags.push_back("-Wl,-R");
         cflags.push_back("-Wl," + scaleFolder + "/Internal/lib");
 #endif
         cflags.push_back("-lScaleRuntime");
-        cflags.push_back("-lgc");
+        // cflags.push_back("-lgc");
         if (!Main::options::noLinkScale) {
             cflags.push_back("-lScale");
         }

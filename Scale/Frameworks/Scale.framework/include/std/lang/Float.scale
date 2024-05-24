@@ -26,7 +26,7 @@ final static sealed struct float
         fi
         new<int8>[100] => decl out: [int8]
         unsafe
-            out c"%f" x __c_sprintf! 1 drop
+            out c"%f" varargs x __c_sprintf drop
         end
         out str::new return
     end
@@ -43,7 +43,7 @@ final static sealed struct float
         fi
         new<int8>[100] => decl out: [int8]
         unsafe
-            out c"%.17f" x __c_sprintf! 1 drop
+            out c"%.17f" varargs x __c_sprintf drop
         end
         out str::new return
     end
@@ -51,7 +51,7 @@ final static sealed struct float
     function toHexString(x: float): str
         new<int8>[19] => decl out: [int8]
         unsafe
-            out "0x%016lx" x:bits __c_sprintf! 1 drop
+            out "0x%016lx" varargs x:bits __c_sprintf drop
         end
         out str::new return
     end

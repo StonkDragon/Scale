@@ -164,12 +164,12 @@ namespace sclc
         for (Variable& s : result.globals) {
             const std::string& file = s.name_token.location.file;
             if (!Main::options::noLinkScale && strstarts(file, scaleFolder + "/Frameworks/Scale.framework") && !Main::options::noMain) {
-                if (!strcontains(file, "/compiler/") && !strcontains(file, "/macros/") && !strcontains(file, "/__")) {
+                if (!strcontains(file, DIR_SEP "compiler" DIR_SEP) && !strcontains(file, DIR_SEP "macros" DIR_SEP) && !strcontains(file, DIR_SEP "__")) {
                     continue;
                 }
             }
             if (!s.isExtern) {
-                append("%s Var_%s;\n", sclTypeToCType(result, s.type).c_str(), s.name.c_str());
+                append("export %s Var_%s;\n", sclTypeToCType(result, s.type).c_str(), s.name.c_str());
             }
         }
 
@@ -183,7 +183,7 @@ namespace sclc
         #endif
 
         append("\n");
-        append("_scl_constructor void init_this%llx() {\n", rand);
+        append("export _scl_constructor void init_this%llx() {\n", rand);
         scopeDepth++;
         append("_scl_setup();\n");
         std::vector<Function*> creates;
@@ -191,7 +191,7 @@ namespace sclc
         for (auto&& f : initFuncs) {
             if (!Main::options::noLinkScale && strstarts(f->name_token.location.file, scaleFolder + "/Frameworks/Scale.framework") && !Main::options::noMain) {
                 const std::string& file = f->name_token.location.file;
-                if (!strcontains(file, "/compiler/") && !strcontains(file, "/macros/") && !strcontains(file, "/__")) {
+                if (!strcontains(file, DIR_SEP "compiler" DIR_SEP) && !strcontains(file, DIR_SEP "macros" DIR_SEP) && !strcontains(file, DIR_SEP "__")) {
                     continue;
                 }
             }
@@ -201,7 +201,7 @@ namespace sclc
         append("}\n");
 
         append("\n");
-        append("_scl_destructor void destroy_this%llx() {\n", rand);
+        append("export _scl_destructor void destroy_this%llx() {\n", rand);
         if (destroyFuncs.size()) {
             scopeDepth++;
             for (auto&& f : destroyFuncs) {
@@ -226,8 +226,8 @@ namespace sclc
                 }
                 const std::string& file = s.name_token.location.file;
                 if (!Main::options::noLinkScale && (s.templates.size() == 0 || s.usedInStdLib) && strstarts(file, scaleFolder + "/Frameworks/Scale.framework") && !Main::options::noMain) {
-                    if (!strcontains(file, "/compiler/") && !strcontains(file, "/macros/") && !strcontains(file, "/__")) {
-                        append("extern const TypeInfo _scl_ti_%s __asm(\"__T%s\");\n", s.name.c_str(), s.name.c_str());
+                    if (!strcontains(file, DIR_SEP "compiler" DIR_SEP) && !strcontains(file, DIR_SEP "macros" DIR_SEP) && !strcontains(file, DIR_SEP "__")) {
+                        append("extern expect const TypeInfo _scl_ti_%s __asm(\"__T%s\");\n", s.name.c_str(), s.name.c_str());
                         return;
                     }
                 }
@@ -263,7 +263,7 @@ namespace sclc
                 scopeDepth--;
                 append("};\n");
 
-                append("const TypeInfo _scl_ti_%s __asm(\"__T%s\") = {\n", s.name.c_str(), s.name.c_str());
+                append("export const TypeInfo _scl_ti_%s __asm(\"__T%s\") = {\n", s.name.c_str(), s.name.c_str());
                 scopeDepth++;
                 append(".type = 0x%lxUL,\n", id(s.name.c_str()));
                 append(".type_name = \"%s\",\n", s.name.c_str());

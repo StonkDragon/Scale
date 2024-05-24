@@ -72,6 +72,86 @@ typedef struct Struct_InvalidArgumentException {
 
 tls scl_int8* thread_name;
 
+void _scl_set_thread_name(scl_int8* name) {
+	thread_name = name;
+}
+
+scl_int8* _scl_get_thread_name() {
+	return thread_name;
+}
+
+#ifdef _WIN32
+int gettimeofday(struct timeval* tp, struct timezone* tzp) {
+
+#define WIN_EPOCH ((uint64_t) 116444736000000000ULL)
+
+    SYSTEMTIME system_time;
+    FILETIME file_time;
+    uint64_t time;
+
+    GetSystemTime(&system_time);
+    SystemTimeToFileTime(&system_time, &file_time);
+    time = ((uint64_t) file_time.dwLowDateTime) + (((uint64_t) file_time.dwHighDateTime) << 32);
+
+    tp->tv_sec  = (long) ((time - WIN_EPOCH) / 10000000L);
+    tp->tv_usec = (long) (system_time.wMilliseconds * 1000);
+    return 0;
+}
+
+size_t getline(char **lineptr, size_t *n, FILE *stream) {
+    char *bufptr = NULL;
+    char *p = bufptr;
+    size_t size;
+    int c;
+
+    if (lineptr == NULL) {
+        return -1;
+    }
+    if (stream == NULL) {
+        return -1;
+    }
+    if (n == NULL) {
+        return -1;
+    }
+    bufptr = *lineptr;
+    size = *n;
+
+    c = fgetc(stream);
+    if (c == EOF) {
+        return -1;
+    }
+    if (bufptr == NULL) {
+        bufptr = GC_malloc(128);
+        if (bufptr == NULL) {
+            return -1;
+        }
+        size = 128;
+    }
+    p = bufptr;
+    while(c != EOF) {
+        if ((p - bufptr) > (size - 1)) {
+            size = size + 128;
+            bufptr = GC_realloc(bufptr, size);
+            if (bufptr == NULL) {
+                return -1;
+            }
+        }
+        *p++ = c;
+        if (c == '\n') {
+            break;
+        }
+        c = fgetc(stream);
+    }
+
+    *p++ = '\0';
+    *lineptr = bufptr;
+    *n = size;
+
+    return p - bufptr - 1;
+}
+
+#endif
+
 static memory_layout_t** static_ptrs = nil;
 static scl_int static_ptrs_cap = 0;
 static scl_int static_ptrs_count = 0;

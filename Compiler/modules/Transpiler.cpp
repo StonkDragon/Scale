@@ -159,8 +159,13 @@ namespace sclc {
             std::string symbol = generateSymbolForFunction(function);
 
             if (!function->isMethod) {
-                if (UNLIKELY(function->name == "throw" || function->name == "builtinUnreachable")) {
+                if (UNLIKELY(function->return_type == "nothing")) {
                     append("_scl_no_return ");
+                }
+                if (function->has_expect) {
+                    append("expect\n");
+                } else {
+                    append("export\n");
                 }
                 if (isMain) {
                     append("int fn_%s(%s)", function->name.c_str(), arguments.c_str());
@@ -193,8 +198,8 @@ namespace sclc {
                         continue;
                     }
                     if (scale_header) {
-                        fprintf(scale_header, "extern ");
-                        if (UNLIKELY(function->name == "throw" || function->name == "builtinUnreachable")) {
+                        fprintf(scale_header, "extern expect ");
+                        if (UNLIKELY(function->return_type == "nothing")) {
                             fprintf(scale_header, "_scl_no_return ");
                         }
                         fprintf(scale_header, "%s %s(%s) __asm(%s);\n", return_type.c_str(), function->name.c_str(), arguments.c_str(), symbol.c_str());
@@ -207,17 +212,27 @@ namespace sclc {
                         append("  %s _Var_%s;\n", sclTypeToCType(result, function->args[i].type).c_str(), function->args[i].name.c_str());
                     }
                     append("};\n");
-                    if (function->return_type.front() != '@') {
-                        append("%s mt_%s$%s(struct _args_mt_%s$%s*)", return_type.c_str(), function->member_type.c_str(), function->name.c_str(), function->member_type.c_str(), function->name.c_str());
+                    if (function->has_expect) {
+                        append("expect ");
                     } else {
-                        append("%s* mt_%s$%s(struct _args_mt_%s$%s*)", return_type.c_str(), function->member_type.c_str(), function->name.c_str(), function->member_type.c_str(), function->name.c_str());
+                        append("export ");
+                    }
+                    if (function->return_type.front() != '@') {
+                        append2("%s mt_%s$%s(struct _args_mt_%s$%s*)", return_type.c_str(), function->member_type.c_str(), function->name.c_str(), function->member_type.c_str(), function->name.c_str());
+                    } else {
+                        append2("%s* mt_%s$%s(struct _args_mt_%s$%s*)", return_type.c_str(), function->member_type.c_str(), function->name.c_str(), function->member_type.c_str(), function->name.c_str());
                     }
                 } else {
-                    append("%s mt_%s$%s(%s)", return_type.c_str(), function->member_type.c_str(), function->name.c_str(), arguments.c_str());
+                    if (function->has_expect) {
+                        append("expect ");
+                    } else {
+                        append("export ");
+                    }
+                    append2("%s mt_%s$%s(%s)", return_type.c_str(), function->member_type.c_str(), function->name.c_str(), arguments.c_str());
                 }
                 append2(" __asm(%s);\n", symbol.c_str());
                 if (UNLIKELY(function->has_export && scale_header)) {
-                    fprintf(scale_header, "extern %s %s$%s(%s) __asm(%s);\n", return_type.c_str(), function->member_type.c_str(), function->name.c_str(), arguments.c_str(), symbol.c_str());
+                    fprintf(scale_header, "extern expect %s %s$%s(%s) __asm(%s);\n", return_type.c_str(), function->member_type.c_str(), function->name.c_str(), arguments.c_str(), symbol.c_str());
                 }
             }
         }
@@ -237,7 +252,7 @@ namespace sclc {
         append("/* GLOBALS */\n");
 
         for (Variable& s : result.globals) {
-            append("extern %s Var_%s", sclTypeToCType(result, s.type).c_str(), s.name.c_str());
+            append("extern export %s Var_%s", sclTypeToCType(result, s.type).c_str(), s.name.c_str());
             fprintf(scale_header, "extern %s %s __asm(_scl_macro_to_string(__USER_LABEL_PREFIX__) \"%s%s\");\n", sclTypeToCType(result, s.type).c_str(), s.name.c_str(), s.isExtern ? "" : "Var_" ,s.name.c_str());
             if (s.isExtern) {
                 append2("__asm(_scl_macro_to_string(__USER_LABEL_PREFIX__) \"%s\")", s.name.c_str());
@@ -726,7 +741,7 @@ namespace sclc {
 
             const std::string& file = function->name_token.location.file;
             if (!Main::options::noLinkScale && (currentStruct.templates.size() == 0 || currentStruct.usedInStdLib) && function->reified_parameters.size() == 0 && strstarts(file, scaleFolder + "/Frameworks/Scale.framework") && !Main::options::noMain) {
-                if (!strcontains(file, "/compiler/") && !strcontains(file, "/macros/") && !strcontains(file, "/__")) {
+                if (!strcontains(file, DIR_SEP "compiler" DIR_SEP) && !strcontains(file, DIR_SEP "macros" DIR_SEP) && !strcontains(file, DIR_SEP "__")) {
                     continue;
                 }
             }
@@ -782,6 +797,7 @@ namespace sclc {
             if (function->has_inline && !isMainFunction) {
                 append("_scl_always_inline\n");
             }
+            append("export\n");
             if (isMainFunction) {
                 append("int ");
             } else if (UNLIKELY(function->return_type.front() == '@' && function->has_async)) {
