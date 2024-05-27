@@ -44,7 +44,11 @@
 #endif
 
 #ifndef DEFAULT_OUTFILE
+#ifdef _WIN32
+#define DEFAULT_OUTFILE "out.exe"
+#else
 #define DEFAULT_OUTFILE "out.scl"
+#endif
 #endif
 
 #ifndef FRAMEWORK_VERSION_REQ
@@ -52,7 +56,7 @@
 #endif
 
 #ifndef SCL_ROOT_DIR
-#define SCL_ROOT_DIR "/opt"
+#define SCL_ROOT_DIR DIR_SEP "opt"
 #endif
 
 #define CONCAT(a, b) CONCAT_(a, b)
@@ -161,9 +165,9 @@ namespace sclc
 
     bool checkFramework(std::string& framework, std::vector<std::string>& tmpFlags, std::vector<std::string>& frameworks, bool& hasCppFiles, Version& FrameworkMinimumVersion) {
         for (auto path : Main::options::includePaths) {
-            if (std::filesystem::exists(path + "/" + framework + ".framework/index.drg")) {
+            if (std::filesystem::exists(path + DIR_SEP + framework + ".framework" DIR_SEP "index.drg")) {
                 DragonConfig::ConfigParser parser;
-                DragonConfig::CompoundEntry* root = parser.parse(path + "/" + framework + ".framework/index.drg");
+                DragonConfig::CompoundEntry* root = parser.parse(path + DIR_SEP + framework + ".framework" DIR_SEP "index.drg");
                 if (root == nullptr) {
                     std::cerr << Color::RED << "Failed to parse index.drg of Framework " << framework << std::endl;
                     return false;
@@ -193,7 +197,7 @@ namespace sclc
                 std::string implHeaderDir = implHeaderDirTag == nullptr ? "" : implHeaderDirTag->getValue();
 
                 DragonConfig::StringEntry* docfileTag = root->getString("docfile");
-                Main::options::mapFrameworkDocfiles[framework] = docfileTag == nullptr ? "" : path + "/" + framework + ".framework/" + docfileTag->getValue();
+                Main::options::mapFrameworkDocfiles[framework] = docfileTag == nullptr ? "" : path + DIR_SEP + framework + ".framework" DIR_SEP + docfileTag->getValue();
 
                 Version ver = Version(version);
                 Version compilerVersion = Version(VERSION);
@@ -226,8 +230,8 @@ namespace sclc
                 Main::frameworks.push_back(framework);
 
                 if (headerDir.size() > 0) {
-                    Main::options::includePaths.push_back(path + "/" + framework + ".framework/" + headerDir);
-                    Main::options::mapIncludePathsToFrameworks[framework] = path + "/" + framework + ".framework/" + headerDir;
+                    Main::options::includePaths.push_back(path + DIR_SEP + framework + ".framework" DIR_SEP + headerDir);
+                    Main::options::mapIncludePathsToFrameworks[framework] = path + DIR_SEP + framework + ".framework" DIR_SEP + headerDir;
                 }
                 unsigned long implementersSize = implementers == nullptr ? 0 : implementers->size();
                 for (unsigned long i = 0; i < implementersSize; i++) {
@@ -237,11 +241,11 @@ namespace sclc
                         if (!hasCppFiles && isCppFile) {
                             hasCppFiles = true;
                         }
-                        nonScaleFiles.push_back(path + "/" + framework + ".framework/" + implDir + "/" + implementer);
+                        nonScaleFiles.push_back(path + DIR_SEP + framework + ".framework" DIR_SEP + implDir + DIR_SEP + implementer);
                     }
                 }
                 for (unsigned long i = 0; implHeaders != nullptr && i < implHeaders->size() && implHeaderDir.size() > 0; i++) {
-                    std::string header = framework + ".framework/" + implHeaderDir + "/" + implHeaders->getString(i)->getValue();
+                    std::string header = framework + ".framework" DIR_SEP + implHeaderDir + DIR_SEP + implHeaders->getString(i)->getValue();
                     Main::frameworkNativeHeaders.push_back(header);
                 }
                 return true;
@@ -315,7 +319,7 @@ namespace sclc
             std::string line = lines[i];
             if (strstarts(line, "%include")) {
                 std::string includeFile = trimLeft(line.substr(8));
-                std::string includePath = std::filesystem::path(file).parent_path().string() + "/" + includeFile;
+                std::string includePath = std::filesystem::path(file).parent_path().string() + DIR_SEP + includeFile;
                 FILE* include = fopen(includePath.c_str(), "rb");
                 if (!include) {
                     std::cerr << Color::RED << "Failed to open include file " << includePath << ": " << strerror(errno) << Color::RESET << std::endl;
@@ -538,9 +542,9 @@ namespace sclc
 
     int makeFramework(std::string name) {
         std::filesystem::create_directories(name + ".framework");
-        std::filesystem::create_directories(name + ".framework/include");
-        std::filesystem::create_directories(name + ".framework/impl");
-        std::fstream indexFile((name + ".framework/index.drg").c_str(), std::fstream::out);
+        std::filesystem::create_directories(name + ".framework" DIR_SEP "include");
+        std::filesystem::create_directories(name + ".framework" DIR_SEP "impl");
+        std::fstream indexFile((name + ".framework" DIR_SEP "index.drg").c_str(), std::fstream::out);
 
         DragonConfig::CompoundEntry* framework = new DragonConfig::CompoundEntry();
         framework->setKey("framework");
@@ -718,8 +722,8 @@ namespace sclc
 
         std::string outfile     = std::string(DEFAULT_OUTFILE);
         std::string compiler    = std::string(COMPILER);
-        scaleFolder             = std::string(SCL_ROOT_DIR) + "/" + std::string(SCALE_INSTALL_DIR) + "/" + std::string(VERSION);
-        scaleLatestFolder       = std::string(SCL_ROOT_DIR) + "/" + std::string(SCALE_INSTALL_DIR) + "/latest";
+        scaleFolder             = std::string(SCL_ROOT_DIR) + DIR_SEP + std::string(SCALE_INSTALL_DIR) + DIR_SEP + std::string(VERSION);
+        scaleLatestFolder       = std::string(SCL_ROOT_DIR) + DIR_SEP + std::string(SCALE_INSTALL_DIR) + DIR_SEP "latest";
 
         std::vector<std::string> frameworks;
         std::vector<std::string> tmpFlags;
@@ -728,7 +732,7 @@ namespace sclc
         bool hasFilesFromArgs   = false;
         bool outFileSpecified   = false;
 
-        Main::options::includePaths.push_back(scaleFolder + "/Frameworks");
+        Main::options::includePaths.push_back(scaleFolder + DIR_SEP "Frameworks");
         Main::options::includePaths.push_back(".");
 
         if (args[0] == "scaledoc") {
@@ -752,6 +756,8 @@ namespace sclc
 
         Main::version = new Version(std::string(VERSION));
         Main::options::errorLimit = 20;
+
+        DBG("Looking for project config");
 
         if (std::filesystem::exists("scale.drg")) {
             DragonConfig::CompoundEntry* scaleConfig = DragonConfig::ConfigParser().parse("scale.drg");
@@ -786,6 +792,8 @@ namespace sclc
         }
 
         Main::options::stackSize = 128;
+
+        DBG("Parsing cl args");
 
         for (size_t i = 1; i < args.size(); i++) {
             if (!hasCppFiles && (strends(args[i], ".cpp") || strends(args[i], ".c++"))) {
@@ -970,12 +978,14 @@ namespace sclc
         if (!Main::options::printCflags)
             cflags.push_back(compiler);
 
-        cflags.push_back("-I" + scaleFolder + "/Internal");
-        cflags.push_back("-I" + scaleFolder + "/Internal/include");
-        cflags.push_back("-I" + scaleFolder + "/Frameworks");
+        DBG("Preparing compile command");
+
+        cflags.push_back("-I" + scaleFolder + DIR_SEP "Internal");
+        cflags.push_back("-I" + scaleFolder + DIR_SEP "Internal" DIR_SEP "include");
+        cflags.push_back("-I" + scaleFolder + DIR_SEP "Frameworks");
         cflags.push_back("-I.");
         cflags.push_back("-L" + scaleFolder);
-        cflags.push_back("-L" + scaleFolder + "/Internal");
+        cflags.push_back("-L" + scaleFolder + DIR_SEP "Internal");
         cflags.push_back("-" + optimizer);
         cflags.push_back("-DVERSION=\"" + std::string(VERSION) + "\"");
         cflags.push_back("-std=" + std::string(C_VERSION));
@@ -986,7 +996,6 @@ namespace sclc
         cflags.push_back("-Wl,-export-all-symbols");
         cflags.push_back("-fuse-ld=lld");
         cflags.push_back("-Wl,-lldmingw");
-        cflags.push_back("-Wno-unused-command-line-argument");
         cflags.push_back("-lKernel32");
         cflags.push_back("-lUser32");
         cflags.push_back("-lucrt");
@@ -1000,6 +1009,8 @@ namespace sclc
         }
         frameworks.push_back("Scale");
     skipScaleFramework:
+
+        DBG("Checking frameworks");
 
         Version FrameworkMinimumVersion = Version(std::string(FRAMEWORK_VERSION_REQ));
 
@@ -1049,12 +1060,16 @@ namespace sclc
         
         std::vector<Token>  tokens;
 
+        DBG("Adding include paths for all files");
+
         for (size_t i = 0; i < Main::options::files.size() && !Main::options::printCflags; i++) {
             using path = std::filesystem::path;
             path s = Main::options::files[i];
             if (s.parent_path().string().size())
                 Main::options::includePaths.push_back(s.parent_path().string());
         }
+
+        DBG("Tokenizing %zu files", Main::options::files.size());
 
         size_t numWarns = 0;
         for (size_t i = 0; i < Main::options::files.size() && !Main::options::printCflags; i++) {
@@ -1110,6 +1125,8 @@ namespace sclc
             return 0;
         }
 
+        DBG("Lexing tokens");
+
         TPResult result;
         if (!Main::options::printCflags) {
             Main::lexer = new SyntaxTree(tokens);
@@ -1133,6 +1150,8 @@ namespace sclc
             return numErrs;
         }
 
+        DBG("Preparing parser");
+
         Main::parser = new Parser(result);
 
         if (hasCppFiles) {
@@ -1141,7 +1160,7 @@ namespace sclc
         }
 
         for (std::string& s : tmpFlags) {
-            if (!Main::options::noLinkScale && strstarts(s, scaleFolder + "/Frameworks/Scale.framework")) {
+            if (!Main::options::noLinkScale && strstarts(s, scaleFolder + DIR_SEP "Frameworks" DIR_SEP "Scale.framework")) {
                 continue;
             }
             cflags.push_back(s);
@@ -1150,6 +1169,8 @@ namespace sclc
         std::string code_file = "scl_code.c";
         std::string types_file = "scl_types.c";
         std::string headers_file = "scl_headers.h";
+
+        DBG("Parsing");
         
         FPResult parseResult = Main::parser->parse(
             code_file,
@@ -1189,8 +1210,10 @@ namespace sclc
             return 0;
         }
 
+        DBG("Finishing compile command");
+
         for (std::string& file : nonScaleFiles) {
-            if (!Main::options::noLinkScale && strstarts(file, scaleFolder + "/Frameworks/Scale.framework")) {
+            if (!Main::options::noLinkScale && strstarts(file, scaleFolder + DIR_SEP "Frameworks" DIR_SEP "Scale.framework")) {
                 continue;
             }
             cflags.push_back("\"" + file + "\"");
@@ -1206,7 +1229,7 @@ namespace sclc
 #endif
 #if !defined(__APPLE__) && !defined(_WIN32)
         cflags.push_back("-Wl,-R");
-        cflags.push_back("-Wl," + scaleFolder + "/Internal");
+        cflags.push_back("-Wl," + scaleFolder + DIR_SEP "Internal");
 #endif
         cflags.push_back("-lScaleRuntime");
         // cflags.push_back("-lgc");
@@ -1219,10 +1242,12 @@ namespace sclc
             cmd += s + " ";
         }
 
+        DBG("Compiling with %s", cmd.c_str());
+
         if (Main::options::printCflags) {
             std::cout << cmd << std::endl;
             return 0;
-        } else if (!Main::options::transpileOnly) {
+        } else {
             int compile_command = system(cmd.c_str());
 
             if (compile_command) {
@@ -1231,17 +1256,24 @@ namespace sclc
             }
         }
 
-        std::remove(headers_file.c_str());
-        std::remove(code_file.c_str());
-        std::remove(types_file.c_str());
-        std::remove("scale_interop.h");
+        DBG("Cleaning up files");
+
+        std::filesystem::remove(headers_file.c_str());
+        std::filesystem::remove(code_file.c_str());
+        std::filesystem::remove(types_file.c_str());
+        std::filesystem::remove("scale_interop.h");
 
         return 0;
     }
 }
 
 int main(int argc, char const *argv[]) {
+    signal(SIGINT, sclc::signalHandler);
+    signal(SIGILL, sclc::signalHandler);
+    signal(SIGFPE, sclc::signalHandler);
     signal(SIGSEGV, sclc::signalHandler);
+    signal(SIGTERM, sclc::signalHandler);
+    signal(SIGBREAK, sclc::signalHandler);
     signal(SIGABRT, sclc::signalHandler);
 
 #ifndef _WIN32

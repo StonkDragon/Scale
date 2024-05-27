@@ -81,7 +81,8 @@ scl_int8* _scl_get_thread_name() {
 }
 
 #ifdef _WIN32
-int gettimeofday(struct timeval* tp, struct timezone* tzp) {
+int gettimeofday(struct timeval* tp, scl_any tzp) {
+	(void) tzp;
 
 #define WIN_EPOCH ((uint64_t) 116444736000000000ULL)
 
@@ -148,6 +149,22 @@ size_t getline(char **lineptr, size_t *n, FILE *stream) {
     *n = size;
 
     return p - bufptr - 1;
+}
+
+scl_any Parser$peek(scl_any ptr) {
+	static scl_any(*peeker)(scl_any) = nil;
+	if (peeker == nil) {
+		peeker = (typeof(peeker)) GetProcAddress(GetModuleHandleA(nil), "SclParser$peek");
+	}
+	return peeker(ptr);
+}
+
+scl_any Parser$consume(scl_any ptr) {
+	static scl_any(*consumer)(scl_any) = nil;
+	if (consumer == nil) {
+		consumer = (typeof(consumer)) GetProcAddress(GetModuleHandleA(nil), "SclParser$consume");
+	}
+	return consumer(ptr);
 }
 
 #endif

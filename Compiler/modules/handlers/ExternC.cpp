@@ -17,12 +17,6 @@ namespace sclc {
         }
         append("{// Start C\n");
         scopeDepth++;
-        std::string file = body[i].location.file;
-        if (strstarts(file, scaleFolder)) {
-            file = file.substr(scaleFolder.size() + std::string("/Frameworks/").size());
-        } else {
-            file = std::filesystem::path(file).relative_path().string();
-        }
         std::string ext = body[i].value;
         for (const Variable& v : vars) {
             append("%s* %s = &Var_%s;\n", sclTypeToCType(result, v.type).c_str(), v.name.c_str(), v.name.c_str());

@@ -238,8 +238,18 @@ namespace sclc
         return true;
     }
 
+    bool pathstarts(std::filesystem::path str, std::string prefix) {
+        str = std::filesystem::absolute(str.make_preferred());
+        return strstarts(str.string(), prefix);
+    }
+
     bool strcontains(const std::string& str, const std::string& substr) {
         return str.find(substr) != std::string::npos;
+    }
+
+    bool pathcontains(std::filesystem::path str, std::string substr) {
+        str = std::filesystem::absolute(str.make_preferred());
+        return strcontains(str.string(), substr);
     }
 
     int isCharacter(char c) {
@@ -605,7 +615,12 @@ namespace sclc
     }
 
     bool hasEnum(TPResult& result, const std::string& name) {
-        return getEnumByName(result, name).name.size() != 0;
+        for (const Enum& e : result.enums) {
+            if (e.name == name) {
+                return true;
+            }
+        }
+        return false;
     }
 
     Enum getEnumByName(TPResult& result, const std::string& name) {

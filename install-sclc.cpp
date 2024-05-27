@@ -91,6 +91,11 @@ bool strcontains(const std::string& str, const std::string& substr) {
     return str.find(substr) != std::string::npos;
 }
 
+bool pathcontains(std::filesystem::path str, std::string substr) {
+    str = std::filesystem::absolute(str.make_preferred());
+    return strcontains(str.string(), substr);
+}
+
 int main(int argc, char const *argv[]) {
     depends_on("clang --version", "clang is required!");
     depends_on("clang++ --version", "clang++ is required!");
@@ -146,14 +151,16 @@ int main(int argc, char const *argv[]) {
     std::string home = user_home_dir;
 
     #ifdef _WIN32
-    #define ABS_ROOT_DIR "C:/"
+    #define ABS_ROOT_DIR "C:\\"
+    #define DIR_SEP "\\"
     #else
     #define ABS_ROOT_DIR "/opt"
+    #define DIR_SEP "/"
     #endif
 
     std::string scl_root_dir = is_root() ? ABS_ROOT_DIR : home;
 
-    std::string path = scl_root_dir + "/Scale/" + STR(VERSION);
+    std::string path = scl_root_dir + DIR_SEP "Scale" DIR_SEP + STR(VERSION);
     std::string binary = "sclc" EXE_SUFF;
 
     std::cout << "Installing Scale to " << path << std::endl;
@@ -161,8 +168,8 @@ int main(int argc, char const *argv[]) {
     if (!isDevBuild) {
         std::filesystem::remove_all(path);
     } else {
-        std::filesystem::remove_all(path + "/Frameworks");
-        std::filesystem::remove_all(path + "/Internal/" LIB_SCALE_FILENAME);
+        std::filesystem::remove_all(path + DIR_SEP "Frameworks");
+        std::filesystem::remove_all(path + DIR_SEP "Internal" DIR_SEP LIB_SCALE_FILENAME);
     }
     std::filesystem::create_directories(path);
     if (is_root()) {
@@ -170,10 +177,10 @@ int main(int argc, char const *argv[]) {
             path,
             std::filesystem::perms::all
         );
-        std::filesystem::remove_all(scl_root_dir + "/Scale/latest");
-        std::filesystem::create_directory_symlink(std::filesystem::path(path), scl_root_dir + "/Scale/latest");
+        std::filesystem::remove_all(scl_root_dir + DIR_SEP "Scale" DIR_SEP "latest");
+        std::filesystem::create_directory_symlink(std::filesystem::path(path), scl_root_dir + DIR_SEP "Scale" DIR_SEP "latest");
         std::filesystem::permissions(
-            scl_root_dir + "/Scale/latest",
+            scl_root_dir + DIR_SEP "Scale" DIR_SEP "latest",
             std::filesystem::perms::all
         );
     }
@@ -194,12 +201,6 @@ int main(int argc, char const *argv[]) {
         exec_command(create_command({
             "clang",
             "-fvisibility=default",
-        #ifdef _WIN32
-            "-Wl,-export-all-symbols",
-            "-fuse-ld=lld",
-            "-Wl,-lldmingw",
-            "-Wno-unused-command-line-argument",
-        #endif
             "-Iinclude",
             #ifdef _WIN32
             "-D_CRT_SECURE_NO_WARNINGS",
@@ -216,18 +217,12 @@ int main(int argc, char const *argv[]) {
             #endif
             "-c",
             "-o",
-            path + "/Internal/gc.o",
-            "extra/gc.c"
+            path + DIR_SEP "Internal" DIR_SEP "gc.o",
+            "extra" DIR_SEP "gc.c"
         }));
         exec_command(create_command({
             "clang++",
             "-fvisibility=default",
-        #ifdef _WIN32
-            "-Wl,-export-all-symbols",
-            "-fuse-ld=lld",
-            "-Wl,-lldmingw",
-            "-Wno-unused-command-line-argument",
-        #endif
             "-Iinclude",
             #ifdef _WIN32
             "-D_CRT_SECURE_NO_WARNINGS",
@@ -242,20 +237,15 @@ int main(int argc, char const *argv[]) {
             #ifdef _WIN32
             "-DDONT_USE_USER32_DLL",
             #endif
+            "-Wno-inline-new-delete",
             "-c",
             "-o",
-            path + "/Internal/gc_cpp.o",
+            path + DIR_SEP "Internal" DIR_SEP "gc_cpp.o",
             "gc_cpp.cpp"
         }));
         exec_command(create_command({
             "clang++",
             "-fvisibility=default",
-        #ifdef _WIN32
-            "-Wl,-export-all-symbols",
-            "-fuse-ld=lld",
-            "-Wl,-lldmingw",
-            "-Wno-unused-command-line-argument",
-        #endif
             "-Iinclude",
             #ifdef _WIN32
             "-D_CRT_SECURE_NO_WARNINGS",
@@ -270,14 +260,15 @@ int main(int argc, char const *argv[]) {
             #ifdef _WIN32
             "-DDONT_USE_USER32_DLL",
             #endif
+            "-Wno-inline-new-delete",
             "-c",
             "-o",
-            path + "/Internal/gc_badalc.o",
+            path + DIR_SEP "Internal" DIR_SEP "gc_badalc.o",
             "gc_badalc.cpp"
         }));
 
-        std::filesystem::create_directories(path + "/Internal/include");
-        std::filesystem::copy("include", path + "/Internal/include", std::filesystem::copy_options::overwrite_existing | std::filesystem::copy_options::recursive);
+        std::filesystem::create_directories(path + DIR_SEP "Internal" DIR_SEP "include");
+        std::filesystem::copy("include", path + DIR_SEP "Internal" DIR_SEP "include", std::filesystem::copy_options::overwrite_existing | std::filesystem::copy_options::recursive);
 
         std::filesystem::current_path(std::filesystem::current_path().parent_path());
         std::filesystem::remove_all("bdwgc");
@@ -286,15 +277,11 @@ int main(int argc, char const *argv[]) {
     auto scale_runtime = create_command({
         "clang",
         "-fvisibility=default",
-    #ifdef _WIN32
-        "-Wl,-export-all-symbols",
-        "-fuse-ld=lld",
-    #endif
         "-O2",
         ("-std=" C_VERSION),
-        "-I" + path + "/Internal",
-        "-I" + path + "/Internal/include",
-        path + "/Internal/scale_runtime.c",
+        "-I" + path + DIR_SEP "Internal",
+        "-I" + path + DIR_SEP "Internal" DIR_SEP "include",
+        path + DIR_SEP "Internal" DIR_SEP "scale_runtime.c",
         "-c",
     #if !defined(_WIN32)
         "-fPIC",
@@ -302,20 +289,16 @@ int main(int argc, char const *argv[]) {
         "-D_CRT_SECURE_NO_WARNINGS",
     #endif
         "-o",
-        path + "/Internal/scale_runtime.o"
+        path + DIR_SEP "Internal" DIR_SEP "scale_runtime.o"
     });
     auto cxx_glue = create_command({
         "clang++",
         "-fvisibility=default",
-    #ifdef _WIN32
-        "-Wl,-export-all-symbols",
-        "-fuse-ld=lld",
-    #endif
         "-O2",
         ("-std=" CXX_VERSION),
-        "-I" + path + "/Internal",
-        "-I" + path + "/Internal/include",
-        path + "/Internal/scale_cxx.cpp",
+        "-I" + path + DIR_SEP "Internal",
+        "-I" + path + DIR_SEP "Internal" DIR_SEP "include",
+        path + DIR_SEP "Internal" DIR_SEP "scale_cxx.cpp",
         "-c",
     #if !defined(_WIN32)
         "-fPIC",
@@ -323,7 +306,7 @@ int main(int argc, char const *argv[]) {
         "-D_CRT_SECURE_NO_WARNINGS",
     #endif
         "-o",
-        path + "/Internal/scale_cxx.o"
+        path + DIR_SEP "Internal" DIR_SEP "scale_cxx.o"
     });
 
     auto library = create_command({
@@ -332,6 +315,7 @@ int main(int argc, char const *argv[]) {
     #ifdef _WIN32
         "-Wl,-export-all-symbols",
         "-fuse-ld=lld",
+        "-Wl,-lldmingw",
     #endif
         "-O2",
     #if defined(__APPLE__)
@@ -348,13 +332,13 @@ int main(int argc, char const *argv[]) {
     #endif
         "-shared",
     #endif
-        path + "/Internal/scale_runtime.o",
-        path + "/Internal/scale_cxx.o",
-        path + "/Internal/gc.o",
-        path + "/Internal/gc_cpp.o",
-        path + "/Internal/gc_badalc.o",
+        path + DIR_SEP "Internal" DIR_SEP "scale_runtime.o",
+        path + DIR_SEP "Internal" DIR_SEP "scale_cxx.o",
+        path + DIR_SEP "Internal" DIR_SEP "gc.o",
+        path + DIR_SEP "Internal" DIR_SEP "gc_cpp.o",
+        path + DIR_SEP "Internal" DIR_SEP "gc_badalc.o",
         "-o",
-        path + "/Internal/" LIB_SCALE_FILENAME
+        path + DIR_SEP "Internal" DIR_SEP "" LIB_SCALE_FILENAME
     });
 
     #ifdef _WIN32
@@ -380,10 +364,6 @@ int main(int argc, char const *argv[]) {
     std::string compile_command = create_command({
         "clang++",
         "-fvisibility=default",
-    #ifdef _WIN32
-        "-Wl,-export-all-symbols",
-        "-fuse-ld=lld",
-    #endif
         ("-DVERSION=\\\"" STR(VERSION) "\\\""),
         ("-DC_VERSION=" STR(STR(C_VERSION))),
         "-DSCL_ROOT_DIR=\\\"" + scl_root_dir + "\\\"",
@@ -391,7 +371,7 @@ int main(int argc, char const *argv[]) {
         "-Wall",
         "-Wextra",
         "-Werror",
-        "-I" + path + "/Internal/include",
+        "-I" + path + DIR_SEP "Internal" DIR_SEP "include",
     #ifdef _WIN32
         "-D_CRT_SECURE_NO_WARNINGS",
     #endif
@@ -400,9 +380,13 @@ int main(int argc, char const *argv[]) {
     });
 
     if (debug) {
-        compile_command += "-O0 -g ";
+        compile_command += "-O0 -g -DDEBUG ";
     } else {
+        #ifdef _WIN32
+        compile_command += "-O0 "; // Windows is weird, compile fails when turning on optimizations (UB????)
+        #else
         compile_command += "-O2 ";
+        #endif
     }
 
     auto source_files = listFiles("Compiler", ".cpp");
@@ -410,16 +394,18 @@ int main(int argc, char const *argv[]) {
     
     std::vector<std::string> link_command = {
         compile_command,
-#ifdef __linux__
+    #if defined(__linux__) || defined(_WIN32)
         "-Wl,-export-all-symbols",
-#endif
-#ifdef _WIN32
+    #endif
+    #ifdef _WIN32
         "-lUser32",
         "-lDbgHelp",
-#endif
-        path + "/Internal/gc.o",
-        path + "/Internal/gc_cpp.o",
-        path + "/Internal/gc_badalc.o",
+        "-fuse-ld=lld",
+        "-Wl,-lldmingw",
+    #endif
+        path + DIR_SEP "Internal" DIR_SEP "gc.o",
+        path + DIR_SEP "Internal" DIR_SEP "gc_cpp.o",
+        path + DIR_SEP "Internal" DIR_SEP "gc_badalc.o",
     };
 
     for (auto f : source_files) {
@@ -453,14 +439,14 @@ int main(int argc, char const *argv[]) {
     }
 
     link_command.push_back("-o");
-    link_command.push_back(std::string(path) + "/" + binary);
+    link_command.push_back(std::string(path) + DIR_SEP + binary);
 
     for (auto&& x : builders) {
         if (x.joinable())
             x.join();
     }
 
-    std::filesystem::remove(path + "/Internal/" LIB_SCALE_FILENAME);
+    std::filesystem::remove(path + DIR_SEP "Internal" DIR_SEP "" LIB_SCALE_FILENAME);
     
     exec_command(scale_runtime);
     exec_command(cxx_glue);
@@ -468,15 +454,21 @@ int main(int argc, char const *argv[]) {
 
     exec_command(create_command(link_command));
 
+    std::filesystem::remove(path + DIR_SEP "Internal" DIR_SEP "scale_runtime.o");
+    std::filesystem::remove(path + DIR_SEP "Internal" DIR_SEP "scale_cxx.o");
+    std::filesystem::remove(path + DIR_SEP "Internal" DIR_SEP "gc.o");
+    std::filesystem::remove(path + DIR_SEP "Internal" DIR_SEP "gc_cpp.o");
+    std::filesystem::remove(path + DIR_SEP "Internal" DIR_SEP "gc_badalc.o");
+
     std::filesystem::path symlinked_path;
     if (is_root()) {
         #ifdef _WIN32
-        symlinked_path = home + "/bin/" + binary;
+        symlinked_path = home + DIR_SEP "bin" DIR_SEP + binary;
         #else
-        symlinked_path = std::filesystem::path("/usr/local/bin") / binary;
+        symlinked_path = std::filesystem::path(DIR_SEP "usr" DIR_SEP "local" DIR_SEP "bin") / binary;
         #endif
     } else {
-        symlinked_path = home + "/bin/" + binary;
+        symlinked_path = home + DIR_SEP "bin" DIR_SEP + binary;
     }
     symlinked_path = symlinked_path.make_preferred();
 
@@ -487,10 +479,10 @@ int main(int argc, char const *argv[]) {
     }
 
 #ifdef _WIN32
-    if (CreateSymbolicLinkA(symlinked_path.string().c_str(), (path + "/" + binary).c_str(), SYMBOLIC_LINK_FLAG_ALLOW_UNPRIVILEGED_CREATE) == 0) {
+    if (CreateSymbolicLinkA(symlinked_path.string().c_str(), (path + DIR_SEP + binary).c_str(), SYMBOLIC_LINK_FLAG_ALLOW_UNPRIVILEGED_CREATE) == 0) {
         unsigned int err = GetLastError();
         if (err == ERROR_PRIVILEGE_NOT_HELD) {
-            std::cout << "[INFO]: Unprivileged users cannot create symlinks in windows. Failed to create link from " << std::filesystem::path(path + "/" + binary).make_preferred() << " to " << symlinked_path << std::endl;
+            std::cout << "[INFO]: Unprivileged users cannot create symlinks in windows. Failed to create link from " << std::filesystem::path(path + DIR_SEP + binary).make_preferred() << " to " << symlinked_path << std::endl;
         } else {
             std::cerr << "Error creating symlink: " << GetLastError() << std::endl;
             std::exit(1);
@@ -498,7 +490,7 @@ int main(int argc, char const *argv[]) {
     };
 #else
     try {
-        std::filesystem::create_symlink(path + "/" + binary, symlinked_path);
+        std::filesystem::create_symlink(path + DIR_SEP + binary, symlinked_path);
     } catch (std::filesystem::filesystem_error& err) {
         std::cerr << "Error creating symlink: " << err.what() << std::endl;
         std::exit(1);
@@ -509,8 +501,8 @@ int main(int argc, char const *argv[]) {
         (std::filesystem::path(path) / binary).string(),
         "-makelib",
         "-o",
-        path + "/Frameworks/Scale.framework/impl/__scale_macros.scl",
-        path + "/Frameworks/Scale.framework/include/std/__internal/macro_entry.scale"
+        path + DIR_SEP "Frameworks" DIR_SEP "Scale.framework" DIR_SEP "impl" DIR_SEP "__scale_macros.scl",
+        path + DIR_SEP "Frameworks" DIR_SEP "Scale.framework" DIR_SEP "include" DIR_SEP "std" DIR_SEP "__internal" DIR_SEP "macro_entry.scale"
     });
 
     auto scale_stdlib = create_command({
@@ -518,18 +510,12 @@ int main(int argc, char const *argv[]) {
         "-no-link-std",
         "-makelib",
         "-o",
-        path + "/Internal/" + SCALE_STDLIB_FILENAME
+        path + DIR_SEP "Internal" DIR_SEP "" + SCALE_STDLIB_FILENAME
     });
 
-    #ifdef _WIN32
-    #define DIR_SEP "\\"
-    #else
-    #define DIR_SEP "/"
-    #endif
-
-    auto files = listFiles(path + "/Frameworks/Scale.framework/include", ".scale");
+    auto files = listFiles(path + DIR_SEP "Frameworks" DIR_SEP "Scale.framework" DIR_SEP "include", ".scale");
     for (auto&& f : files) {
-        if (strcontains(f.string(), DIR_SEP "macros" DIR_SEP) || strcontains(f.string(), DIR_SEP "__") || strcontains(f.string(), DIR_SEP "compiler" DIR_SEP)) {
+        if (pathcontains(f, DIR_SEP "macros" DIR_SEP) || pathcontains(f, DIR_SEP "__") || pathcontains(f, DIR_SEP "compiler" DIR_SEP)) {
             continue;
         }
         scale_stdlib += f.string() + " ";
@@ -543,6 +529,18 @@ int main(int argc, char const *argv[]) {
         std::cout << "'sclc' was symlinked to " << symlinked_path << std::endl;
         std::cout << "--------------" << std::endl;
     }
+    #ifdef _WIN32
+    std::cout << "IMPORTANT!!!!!" << std::endl;
+    std::cout << "For Scale to work properly, you need to modify the PATH environment variable like this:" << std::endl;
+    std::cout << "1. Right-click the start button" << std::endl;
+    std::cout << "2. Click 'System'" << std::endl;
+    std::cout << "3. On the right side of the window click 'Advanced system settings'" << std::endl;
+    std::cout << "4. Go to the tab 'Advanced'" << std::endl;
+    std::cout << "5. At the bottom of the window click 'Environment variables...'" << std::endl;
+    std::cout << "6. Select the row 'Path' and click 'Edit...'" << std::endl;
+    std::cout << "7. Click 'New' and enter '" << path << "'" << std::endl;
+    std::cout << "8. Click 'New' and enter '" << path << DIR_SEP "Internal'" << std::endl;
+    #endif
 
     return 0;
 }

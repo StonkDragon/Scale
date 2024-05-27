@@ -10,11 +10,7 @@
 #include "../headers/Common.hpp"
 
 #ifndef PATH_SEPARATOR
-#ifdef _WIN32
-#define PATH_SEPARATOR "\\"
-#else
-#define PATH_SEPARATOR "/"
-#endif
+#define PATH_SEPARATOR DIR_SEP
 #endif
 
 #define syntaxError(msg) \

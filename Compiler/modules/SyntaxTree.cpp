@@ -714,7 +714,7 @@ namespace sclc {
             std::string instanceName = this->nameForInstance();
             Struct instance(instanceName);
             copyTo(baseStruct, instance, result);
-            instance.usedInStdLib = strstarts(loc.file, scaleFolder + "/Frameworks/Scale.framework") && !strcontains(loc.file, "/compiler/") && !strcontains(loc.file, "/macros/") && !strcontains(loc.file, "/__");
+            instance.usedInStdLib = pathstarts(loc.file, scaleFolder + DIR_SEP "Frameworks" DIR_SEP "Scale.framework") && !pathcontains(loc.file, DIR_SEP "compiler" DIR_SEP) && !pathcontains(loc.file, DIR_SEP "macros" DIR_SEP) && !pathcontains(loc.file, DIR_SEP "__");
             result.structs.push_back(instance);
         }
 
@@ -997,6 +997,13 @@ namespace sclc {
         static CToken* peek(SclParser* parser) __asm(TO_STRING(__USER_LABEL_PREFIX__) "Parser$peek");
         static CToken* consume(SclParser* parser) __asm(TO_STRING(__USER_LABEL_PREFIX__) "Parser$consume");
     };
+
+    extern "C" CToken* SclParser$peek(SclParser* parser) {
+        return SclParser::peek(parser);
+    }
+    extern "C" CToken* SclParser$consume(SclParser* parser) {
+        return SclParser::consume(parser);
+    }
 
     CToken* SclParser::peek(SclParser* parser) {
         if (parser->i >= parser->tokens.size()) {

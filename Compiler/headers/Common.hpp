@@ -13,6 +13,7 @@
 #include <unordered_set>
 #include <stack>
 #include <chrono>
+#include <filesystem>
 
 #ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN
@@ -29,6 +30,12 @@
 // optimize this :
 #define append(...) do { for (int j = 0; j < scopeDepth; j++) { fp << "  "; } fp << sclc::format(__VA_ARGS__); } while (0)
 #define append2(...) fp << sclc::format(__VA_ARGS__)
+
+#ifdef DEBUG
+#define DBG(...) std::cout << sclc::format(__VA_ARGS__) << std::endl
+#else
+#define DBG(...)
+#endif
 
 #if __has_builtin(__builtin_expect)
 #define UNLIKELY(X) __builtin_expect(!!(X), 0)
@@ -211,6 +218,8 @@ namespace sclc {
     bool strends(const std::string& str, const std::string& suffix);
     bool strstarts(const std::string& str, const std::string& prefix);
     bool strcontains(const std::string& str, const std::string& substr);
+    bool pathstarts(std::filesystem::path str, std::string prefix);
+    bool pathcontains(std::filesystem::path str, std::string substr);
     int isCharacter(char c);
     int isDigit(char c);
     int isSpace(char c);

@@ -9,6 +9,7 @@ Function::Function(std::string name, bool isMethod, Token name_token) : namedRet
     for (auto&& p : funcNameIdents) {
         if (p.first == name) {
             name = p.second;
+            DBG("Function with name '%s' is actually '%s'", p.first.c_str(), name.c_str());
             break;
         }
     }

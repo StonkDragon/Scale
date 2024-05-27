@@ -684,7 +684,7 @@ namespace sclc {
         if (op == "add") return "+";
         if (op == "sub") return "-";
         if (op == "mul") return "*";
-        if (op == "div") return "/";
+        if (op == "div") return DIR_SEP;
         if (op == "pow") return "**";
         if (op == "eq") return "==";
         if (op == "ne") return "!=";
@@ -868,9 +868,9 @@ namespace sclc {
             }
         }
         if (f->isMethod) {
-            append("export %s mt_%s$%s(%s) __asm(%s);\n", sclTypeToCType(result, f->return_type).c_str(), f->member_type.c_str(), f->name.c_str(), arguments.c_str(), generateSymbolForFunction(f).c_str());
+            append("%s mt_%s$%s(%s) __asm(%s);\n", sclTypeToCType(result, f->return_type).c_str(), f->member_type.c_str(), f->name.c_str(), arguments.c_str(), generateSymbolForFunction(f).c_str());
         } else if (!f->has_reified) {
-            append("export %s fn_%s(%s) __asm(%s);\n", sclTypeToCType(result, f->return_type).c_str(), f->name.c_str(), arguments.c_str(), generateSymbolForFunction(f).c_str());
+            append("%s fn_%s(%s) __asm(%s);\n", sclTypeToCType(result, f->return_type).c_str(), f->name.c_str(), arguments.c_str(), generateSymbolForFunction(f).c_str());
         }
         return f;
     }

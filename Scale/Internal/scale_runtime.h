@@ -412,13 +412,7 @@ void				_scl_unlock_ptr(void* lock_ptr);
 
 void				_scl_delete_ptr(void* ptr);
 
-#define				SCL_ASSUME(val, what, ...) \
-						if (_scl_expect(!(val), 0)) { \
-							size_t msg_len = snprintf(NULL, 0, (what) __VA_OPT__(,) __VA_ARGS__); \
-							scl_int8 msg[sizeof(scl_int8) * msg_len]; \
-							snprintf(msg, msg_len, (what) __VA_OPT__(,) __VA_ARGS__); \
-							_scl_assert(0, msg); \
-						}
+#define				SCL_ASSUME _scl_assert
 
 #include "preproc.h"
 
