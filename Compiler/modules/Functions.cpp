@@ -70,6 +70,9 @@ namespace sclc {
             if (isValueStructParam) {
                 args += "*(";
             } else {
+                debugDump(typeStack.size());
+                debugDump(maxValue);
+                debugDump(typeStack.size() - maxValue + i);
                 std::string stack = typeStack[typeStack.size() - maxValue + i];
                 if (isPrimitiveIntegerType(stack) && isPrimitiveIntegerType(arg.type) && !typesCompatible(result, stack, arg.type, false)) {
                     args += "_scl_cast_positive_offset(" + std::to_string(i) + ", " + sclTypeToCType(result, stack) + ", " + sclTypeToCType(result, arg.type) + ")";
