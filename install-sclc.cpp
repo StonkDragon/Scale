@@ -362,7 +362,9 @@ int real_main(int argc, char const *argv[]) {
     
     std::vector<std::string> link_command = {
         compile_command,
-    #if defined(__linux__) || defined(_WIN32)
+    #if defined(__linux__)
+        "-Wl,--export-all-symbols",
+    #elif defined(_WIN32)
         "-Wl,-export-all-symbols",
     #endif
     #ifdef _WIN32
