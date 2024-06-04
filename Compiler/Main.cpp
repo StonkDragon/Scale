@@ -969,7 +969,11 @@ namespace sclc
         if (!hasFilesFromArgs) {
             Main::options::noMain = true;
             if (!outFileSpecified)
+            #ifdef _WIN32
+                Main::options::outfile = outfile = "a.exe";
+            #else
                 Main::options::outfile = outfile = "a.out";
+            #endif
         }
 
         cflags.reserve(tmpFlags.size() + 10);
