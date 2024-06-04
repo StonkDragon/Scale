@@ -41,7 +41,6 @@ namespace sclc {
         debugDump(func->name);
         size_t maxValue = func->args.size();
         std::string args;
-        args.reserve(64 * maxValue);
         bool isVarargs = func->isCVarArgs();
         if (func->isMethod) {
             const std::string& self_type = func->args.back().type;
@@ -56,6 +55,8 @@ namespace sclc {
         }
         if (isVarargs)
             maxValue--;
+
+        debugDump(argVectorToString(func->args));
 
         for (size_t i = 0; i < maxValue; i++) {
             const Variable& arg = func->args[i];
