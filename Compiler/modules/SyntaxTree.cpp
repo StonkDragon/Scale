@@ -2567,6 +2567,7 @@ namespace sclc {
                     }
                 }
                 Variable v(name, type);
+                v.name_token = tokens[start];
                 if (contains<std::string>(nextAttributes, "expect")) {
                     v.isExtern = true;
                 }
