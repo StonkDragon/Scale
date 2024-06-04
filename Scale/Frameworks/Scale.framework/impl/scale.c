@@ -210,7 +210,7 @@ void Thread$start0(scl_Thread self) {
 		virtual_call(e, "init(s;)V;", str_of_exact("Cannot call start on main thread!"));
 		_scl_throw(e);
 	}
-	self->nativeThread = cxx_std_thread_new_with_args(self);
+	self->nativeThread = _scl_thread_start(&Thread$run, self);
 }
 
 void Thread$stop0(scl_Thread self) {
@@ -220,7 +220,7 @@ void Thread$stop0(scl_Thread self) {
 		virtual_call(e, "init(s;)V;", str_of_exact("Cannot call join on main thread!"));
 		_scl_throw(e);
 	}
-	cxx_std_thread_join_and_delete(self->nativeThread);
+	_scl_thread_finish(self->nativeThread);
 }
 
 void Thread$detach0(scl_Thread self) {
@@ -230,7 +230,7 @@ void Thread$detach0(scl_Thread self) {
 		virtual_call(e, "init(s;)V;", str_of_exact("Cannot detach main thread!"));
 		_scl_throw(e);
 	}
-	cxx_std_thread_detach(self->nativeThread);
+	_scl_thread_detach(self->nativeThread);
 }
 
 scl_Thread Thread$currentThread(void) {

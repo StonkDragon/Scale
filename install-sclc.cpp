@@ -211,6 +211,11 @@ int real_main(int argc, char const *argv[]) {
             "cmake",
             "-Denable_cplusplus=ON",
             "-Denable_threads=ON",
+            "-Denable_throw_bad_alloc_library=OFF",
+            "-Dbuild_cord=OFF",
+            "-Denable_docs=OFF",
+            "-Denable_atomic_uncollectable=OFF",
+            "-Dinstall_headers=OFF",
             ".."
         }));
         exec_command(create_command({
@@ -363,7 +368,7 @@ int real_main(int argc, char const *argv[]) {
     std::vector<std::string> link_command = {
         compile_command,
     #ifdef _WIN32
-        "-Wl,--export-all-symbols",
+        "-Wl,-export-all-symbols",
         "-lUser32",
         "-lDbgHelp",
         "-fuse-ld=lld",

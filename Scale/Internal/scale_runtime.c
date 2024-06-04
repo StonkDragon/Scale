@@ -10,7 +10,7 @@
 extern "C" {
 #endif
 
-#define unimplemented do { fprintf(stderr, "%s:%d: %s: Not Implemented\n", __FILE__, __LINE__, __FUNCTION__); exit(1); } while (0)
+#define unimplemented(_what) do { fprintf(stderr, "%s:%d: %s: Not Implemented: %s\n", __FILE__, __LINE__, __FUNCTION__, _what); exit(1); } while (0)
 
 typedef struct Struct {
 	// Typeinfo for this object
@@ -874,6 +874,92 @@ _scl_no_return _scl_symbol_hidden static void* _scl_oom(scl_uint size) {
 	exit(-1);
 }
 
+scl_any _scl_thread_start(scl_any func, scl_any args) {
+#ifdef _WIN32
+	unsigned long thread_id;
+	scl_any handle;
+	handle = GC_CreateThread(
+		NULL,
+		0,
+		func,
+		args,
+		0,
+		&thread_id // unused
+	);
+	if (handle == NULL) {
+		_scl_runtime_error(EX_THREAD_ERROR, "Failed to create thread");
+	}
+	return handle;
+#else
+	pthread_t x;
+	if (GC_pthread_create(&x, NULL, func, args) != 0) {
+		_scl_runtime_error(EX_THREAD_ERROR, "Failed to create thread");
+	}
+	return x;
+#endif
+}
+
+void _scl_thread_finish(scl_any thread) {
+#ifdef _WIN32
+	TerminateThread(thread, 0);
+#else
+	if (pthread_join(thread, NULL) != 0) {
+		_scl_runtime_error(EX_THREAD_ERROR, "Failed to join thread");
+	}
+#endif
+}
+
+void _scl_thread_detach(scl_any thread) {
+#ifdef _WIN32
+	unimplemented("Threads can't detach on windows");
+#else
+	if (pthread_detach(thread) != 0) {
+		_scl_runtime_error(EX_THREAD_ERROR, "Failed to detach thread");
+	}
+#endif
+}
+
+struct async_func {
+    scl_any thread;
+    scl_any ret;
+    scl_any args;
+    scl_any(*func)(scl_any);
+};
+
+_scl_symbol_hidden void _scl_async_runner(struct async_func* args) {
+	TRY {
+		args->ret = args->func(args->args);
+		free(args->args);
+	} else {
+		free(args->args);
+		_scl_runtime_catch(_scl_exception_handler.exception);
+	}
+}
+
+scl_any _scl_run_async(scl_any func, scl_any func_args) {
+	struct async_func* args = malloc(sizeof(struct async_func));
+	args->args = func_args;
+	args->func = func;
+	args->thread = _scl_thread_start(&_scl_async_runner, args);
+	return args;
+}
+
+scl_any _scl_run_await(scl_any _args) {
+	struct async_func* args = (struct async_func*) _args;
+	_scl_thread_finish(args->thread);
+	scl_any ret = args->ret;
+	free(args);
+	return ret;
+}
+
+void _scl_yield() {
+#ifdef _WIN32
+	SwitchToThread();
+#else
+	sched_yield();
+#endif
+}
+
 _scl_constructor
 void _scl_setup(void) {
 	static int setupCalled;
@@ -894,7 +980,6 @@ void _scl_setup(void) {
 	GC_set_oom_fn((GC_oom_func) &_scl_oom);
 
 	_scl_set_up_signal_handler();
-	GC_allow_register_threads();
 
 	setupCalled = 1;
 }

@@ -18,6 +18,11 @@ extern "C" {
 #include <setjmp.h>
 
 #define GC_THREADS
+#ifdef _WIN32
+#define GC_WIN32_THREADS
+#else
+#define GC_PTHREADS
+#endif
 #include <gc/gc.h>
 
 #if defined(_WIN32)
@@ -379,10 +384,10 @@ struct scale_string {
 	struct _args_ ## at* args = malloc(sizeof(struct _args_ ## at)); \
 	struct _args_ ## at args_ = { __VA_ARGS__ }; \
 	memcpy(args, &args_, sizeof(struct _args_ ## at)); \
-	_scl_push(scl_any, cxx_async((x), args)); \
+	_scl_push(scl_any, _scl_run_async((x), args)); \
 })
-#define _scl_await(rtype) (_scl_top(rtype) = cxx_await(_scl_top(scl_any)))
-#define _scl_await_void() cxx_await(_scl_pop(scl_any))
+#define _scl_await(rtype) (_scl_top(rtype) = _scl_run_await(_scl_top(scl_any)))
+#define _scl_await_void() _scl_run_await(_scl_pop(scl_any))
 
 #define 			EXCEPTION_HANDLER_MARKER \
 					0xF0E1D2C3B4A59687ULL
@@ -654,15 +659,14 @@ void				_scl_array_check_bounds_or_throw(scl_any* arr, scl_int index);
 scl_any*			_scl_array_resize(scl_int new_size, scl_any* arr);
 scl_str				_scl_array_to_string(scl_any* arr);
 
-// BEGIN C++ Concurrency API wrappers
-void				cxx_std_thread_join_and_delete(scl_any thread);
-void				cxx_std_thread_detach(scl_any thread);
-scl_any				cxx_std_thread_new(void);
-scl_any				cxx_std_thread_new_with_args(scl_any args);
-scl_any				cxx_async(scl_any func, scl_any args);
-scl_any				cxx_await(scl_any t);
-void				cxx_std_this_thread_yield(void);
+scl_any				_scl_thread_start(scl_any func, scl_any args);
+void				_scl_thread_finish(scl_any thread);
+void				_scl_thread_detach(scl_any thread);
+scl_any				_scl_run_async(scl_any func, scl_any func_args);
+scl_any				_scl_run_await(scl_any _args);
+void				_scl_yield();
 
+// BEGIN C++ Concurrency API wrappers
 scl_any				cxx_std_recursive_mutex_new(void);
 void				cxx_std_recursive_mutex_delete(scl_any* mutex);
 void				cxx_std_recursive_mutex_lock(scl_any* mutex);
