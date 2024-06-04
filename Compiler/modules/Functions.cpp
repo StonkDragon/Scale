@@ -57,6 +57,7 @@ namespace sclc {
             maxValue--;
 
         debugDump(argVectorToString(func->args));
+        debugDump(stackSliceToString(maxValue));
 
         for (size_t i = 0; i < maxValue; i++) {
             const Variable& arg = func->args[i];
@@ -123,6 +124,11 @@ namespace sclc {
             append("%s vararg%ld = _scl_pop(%s);\n", ctype.c_str(), i, ctype.c_str());
         }
 
+        if (f->varArgsParam().name.size()) {
+            append("_scl_push(scl_int, %zu);\n", amountOfVarargs);
+            typeStack.push_back("int");
+        }
+
         std::string args = generateArgumentsForFunction(result, f);
 
         for (size_t i = 0; i < amountOfVarargs; i++) {
@@ -131,11 +137,6 @@ namespace sclc {
                 args += "&";
             }
             args += "vararg" + std::to_string(i);
-        }
-
-        if (f->varArgsParam().name.size()) {
-            append("_scl_push(scl_int, %zu);\n", amountOfVarargs);
-            typeStack.push_back("int");
         }
 
         append("_scl_popn(%zu);\n", f->args.size() - 1);
