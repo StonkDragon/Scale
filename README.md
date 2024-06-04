@@ -29,10 +29,8 @@ $ ./install-sclc.exe
 
 ### Build-Time Dependencies
 - `clang++`
-- `make`
-- `automake`
-- `autoconf`
-- `libtool`
+- `git`
+- `cmake` 
 
 # Documentation
 The Scale Framework documentation can be viewed by running the following command:
