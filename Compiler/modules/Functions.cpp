@@ -39,6 +39,7 @@ namespace sclc {
     std::string retemplate(std::string type);
     
     std::string generateArgumentsForFunction(TPResult& result, Function *func) {
+        debugDump(func->name);
         size_t maxValue = func->args.size();
         std::string args;
         args.reserve(64 * maxValue);
