@@ -113,7 +113,16 @@ void Function::clearArgs() {
     this->args.clear();
 }
 bool Function::isCVarArgs() {
-    return this->args.size() >= (1 + ((size_t) this->isMethod)) && this->args[this->args.size() - (1 + ((size_t) this->isMethod))].type == "varargs";
+    bool hasAdditionalParams = false;
+    if (!this->isMethod) {
+        hasAdditionalParams = !this->args.empty();
+    } else {
+        hasAdditionalParams = this->args.size() > 1;
+    }
+    if (!hasAdditionalParams) return false;
+
+    const Variable& lastArg = this->args[this->args.size() - 1 - this->isMethod];
+    return removeTypeModifiers(lastArg.type) == "varargs";
 }
 Variable& Function::varArgsParam() {
     if (this->isCVarArgs()) {

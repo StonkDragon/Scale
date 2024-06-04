@@ -43,8 +43,9 @@ namespace sclc {
         size_t maxValue = func->args.size();
         std::string args;
         args.reserve(64 * maxValue);
+        bool isVarargs = func->isCVarArgs();
         if (func->isMethod) {
-            std::string self_type = func->args[func->args.size() - 1].type;
+            const std::string& self_type = func->args.back().type;
             if (self_type.front() == '@') {
                 args += "*(";
             }
@@ -54,11 +55,15 @@ namespace sclc {
             }
             maxValue--;
         }
-        if (func->isCVarArgs())
+        if (isVarargs)
             maxValue--;
 
         for (size_t i = 0; i < maxValue; i++) {
             const Variable& arg = func->args[i];
+            if (removeTypeModifiers(arg.type) == "varargs") {
+                continue;
+            }
+            
             if (func->isMethod || i)
                 args += ", ";
 
