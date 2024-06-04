@@ -2481,7 +2481,7 @@ namespace sclc {
                 // if (!contains<Function*>(functions, currentFunction))
                 currentFunction->addToken(token);
             } else if (token.type == tok_paren_open) {
-                currentFunction = new Function("$init" + std::to_string(nInits), Token(tok_identifier, "$init" + std::to_string(nInits)));
+                currentFunction = new Function("$init" + std::to_string(nInits), Token(tok_identifier, "$init" + std::to_string(nInits), token.location));
                 nInits++;
                 currentFunction->addModifier("construct");
                 currentFunction->return_type = "none";
