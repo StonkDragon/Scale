@@ -894,9 +894,8 @@ void _scl_setup(void) {
 	GC_set_oom_fn((GC_oom_func) &_scl_oom);
 
 	_scl_set_up_signal_handler();
+	GC_allow_register_threads();
 
-	// printf("_scl_setup(): thread registration\n");
-	// GC_allow_register_threads();
 	setupCalled = 1;
 }
 
