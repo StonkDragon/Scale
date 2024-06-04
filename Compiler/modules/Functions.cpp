@@ -63,7 +63,7 @@ namespace sclc {
             if (removeTypeModifiers(arg.type) == "varargs") {
                 continue;
             }
-            
+
             if (func->isMethod || i)
                 args += ", ";
 
@@ -83,8 +83,8 @@ namespace sclc {
         return args;
     }
 
-    void createVariadicCall(Function* f, std::ostream& fp, TPResult& result, std::vector<FPResult>& errors, std::vector<Token> body, size_t& i) {
-        bool parseCount = i + 1 < body.size() && body[i + 1].value == "!";
+    void createVariadicCall(Function* f, std::ostream& fp, TPResult& result, std::vector<FPResult>& errors, std::vector<Token>& body, size_t& i) {
+        bool parseCount = (i + 1) < body.size() && body[i + 1].value == "!";
         size_t amountOfVarargs = 0;
 
         append("{\n");
@@ -96,8 +96,9 @@ namespace sclc {
                 errors.push_back(err);
                 return;
             }
-
-            amountOfVarargs = std::stoi(body[i].value);
+            transpilerError("Specifying the amount of variadic arguments is deprecated! Use 'varargs' specifier instead.", i);
+            errors.push_back(err);
+            return;
         } else {
             bool hitVarargs = false;
             for (ssize_t i = typeStack.size() - 1; i >= 0; i--) {
