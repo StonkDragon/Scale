@@ -38,7 +38,6 @@ namespace sclc {
 
     std::string retemplate(std::string type);
     std::string generateArgumentsForFunction(TPResult& result, Function *func) {
-        debugDump(func->name);
         size_t maxValue = func->args.size();
         std::string args;
         bool isVarargs = func->isCVarArgs();
@@ -56,9 +55,6 @@ namespace sclc {
         if (isVarargs)
             maxValue--;
 
-        debugDump(argVectorToString(func->args));
-        debugDump(stackSliceToString(maxValue));
-
         for (size_t i = 0; i < maxValue; i++) {
             const Variable& arg = func->args[i];
             if (removeTypeModifiers(arg.type) == "varargs") {
@@ -72,9 +68,6 @@ namespace sclc {
             if (isValueStructParam) {
                 args += "*(";
             } else {
-                debugDump(typeStack.size());
-                debugDump(maxValue);
-                debugDump(typeStack.size() - maxValue + i);
                 std::string stack = typeStack[typeStack.size() - maxValue + i];
                 if (isPrimitiveIntegerType(stack) && isPrimitiveIntegerType(arg.type) && !typesCompatible(result, stack, arg.type, false)) {
                     args += "_scl_cast_positive_offset(" + std::to_string(i) + ", " + sclTypeToCType(result, stack) + ", " + sclTypeToCType(result, arg.type) + ")";
