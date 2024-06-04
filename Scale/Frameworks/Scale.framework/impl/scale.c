@@ -78,7 +78,8 @@ struct Struct_str {
 };
 
 typedef struct Struct_Thread {
-	Struct rtFields;
+	const TypeInfo* $type;
+	scl_any $mutex;
 	_scl_lambda function;
 	scl_any nativeThread;
 	scl_str name;
@@ -235,7 +236,7 @@ void Thread$detach0(scl_Thread self) {
 scl_Thread Thread$currentThread(void) {
 	SCL_BACKTRACE("Thread::currentThread(): Thread");
 	if (!_currentThread) {
-		_currentThread = ALLOC(Thread);
+		_currentThread = _scl_uninitialized_constant(Thread);
 		_currentThread->name = str_of_exact("Main Thread");
 		_currentThread->nativeThread = nil;
 		_currentThread->function = nil;
@@ -400,7 +401,7 @@ scl_str _scl_array_to_string(scl_any* arr) {
 
 _scl_constructor
 void _scale_framework_init(void) {
-    _scl_setup();
+	_scl_setup();
 
 	Var_Thread$mainThread = _currentThread = Thread$currentThread();
 	_scl_set_thread_name(_currentThread->name->data);

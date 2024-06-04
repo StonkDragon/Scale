@@ -143,7 +143,7 @@ namespace sclc {
             }
             bool isMain = !Main::options::noMain && function->name == "main";
             if (isMain) {
-                arguments = "int __argc, char** __argv";
+                arguments = "int _scl_argc, char** _scl_argv";
             } else if (args.empty()) {
                 arguments = "void";
             } else {
@@ -517,7 +517,7 @@ namespace sclc {
         varScopePush();
         if (UNLIKELY(function->has_async)) {
             for (Variable& var : function->args) {
-                append("  %s Var_%s = __args->_Var_%s;\n", sclTypeToCType(result, var.type).c_str(), var.name.c_str(), var.name.c_str());
+                append("  %s Var_%s = _scl_args->_Var_%s;\n", sclTypeToCType(result, var.type).c_str(), var.name.c_str(), var.name.c_str());
             }
         } else if (UNLIKELY(function->has_lambda)) {
             if (function->captures.size()) {
@@ -587,13 +587,13 @@ namespace sclc {
             } else {
                 append("scl_int8** ");
             }
-            append2("Var_%s = _scl_new_array_by_size(__argc, sizeof(Var_%s));\n", function->args[0].name.c_str(), function->args[0].name.c_str());
-            append("for (scl_int i = 0; i < __argc; i++) {\n");
+            append2("Var_%s = _scl_new_array_by_size(_scl_argc, sizeof(Var_%s));\n", function->args[0].name.c_str(), function->args[0].name.c_str());
+            append("for (scl_int i = 0; i < _scl_argc; i++) {\n");
             append("  Var_%s[i] = ", function->args[0].name.c_str());
             if (!Main::options::noScaleFramework) {
-                append2("_scl_create_string(__argv[i]);\n");
+                append2("_scl_create_string(_scl_argv[i]);\n");
             } else {
-                append2("__argv[i];\n");
+                append2("_scl_argv[i];\n");
             }
             append("}\n");
         }
@@ -742,7 +742,7 @@ namespace sclc {
 
             std::string arguments;
             if (isMainFunction) {
-                arguments = "int __argc, char** __argv";
+                arguments = "int _scl_argc, char** _scl_argv";
             } else if (function->args.empty() && !function->has_async) {
                 arguments = "void";
             } else {
@@ -753,7 +753,7 @@ namespace sclc {
                     } else {
                         arguments += "fn_";
                     }
-                    arguments += function->name + "* __args";
+                    arguments += function->name + "* _scl_args";
                 } else {
                     if (function->isMethod) {
                         arguments = sclTypeToCType(result, function->args[function->args.size() - 1].type) + " Var_self";
@@ -805,7 +805,7 @@ namespace sclc {
                     if (parentInit && parentInit->args.size() == 1) {
                         append("  mt_%s$%s((%s) ", currentStruct.super.c_str(), parentInit->name.c_str(), sclTypeToCType(result, currentStruct.super).c_str());
                         if (UNLIKELY(function->has_async)) {
-                            append2("__args->_");
+                            append2("_scl_args->_");
                         }
                         append2("Var_self);\n");
                     }

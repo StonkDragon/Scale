@@ -76,7 +76,7 @@ void _scl_set_thread_name(scl_int8* name) {
 	thread_name = name;
 }
 
-scl_int8* _scl_get_thread_name() {
+scl_int8* _scl_get_thread_name(void) {
 	return thread_name;
 }
 
@@ -613,6 +613,9 @@ _scl_symbol_hidden static void _scl_set_up_signal_handler(void) {
 #ifdef SIGSEGV
 	SIGACTION(SIGSEGV);
 #endif
+#ifdef SIGBREAK
+	SIGACTION(SIGBREAK);
+#endif
 }
 
 scl_any _scl_get_stderr() {
@@ -891,8 +894,9 @@ void _scl_setup(void) {
 	GC_set_oom_fn((GC_oom_func) &_scl_oom);
 
 	_scl_set_up_signal_handler();
-	GC_allow_register_threads();
 
+	// printf("_scl_setup(): thread registration\n");
+	// GC_allow_register_threads();
 	setupCalled = 1;
 }
 

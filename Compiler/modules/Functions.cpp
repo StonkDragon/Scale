@@ -842,7 +842,7 @@ namespace sclc {
                 } else {
                     arguments += "fn_";
                 }
-                arguments += f->name + "* __args";
+                arguments += f->name + "* _scl_args";
             } else {
                 if (f->isMethod) {
                     arguments = sclTypeToCType(result, f->args[f->args.size() - 1].type) + " Var_self";

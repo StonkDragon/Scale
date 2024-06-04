@@ -96,7 +96,7 @@ bool pathcontains(std::filesystem::path str, std::string substr) {
     return strcontains(str.string(), substr);
 }
 
-int main(int argc, char const *argv[]) {
+int real_main(int argc, char const *argv[]) {
     depends_on("clang --version", "clang is required!");
     depends_on("clang++ --version", "clang++ is required!");
 // #if !defined(_WIN32)
@@ -171,6 +171,7 @@ int main(int argc, char const *argv[]) {
         std::filesystem::remove_all(path + DIR_SEP "Frameworks");
         std::filesystem::remove_all(path + DIR_SEP "Internal" DIR_SEP LIB_SCALE_FILENAME);
     }
+    
     std::filesystem::create_directories(path);
     if (is_root()) {
         std::filesystem::permissions(
@@ -198,74 +199,42 @@ int main(int argc, char const *argv[]) {
             std::filesystem::remove_all("bdwgc");
         });
         std::filesystem::current_path("bdwgc");
+        
+        #ifdef _WIN32
+        exec_command(create_command({"git", "clone", "--depth=1", "https://github.com/ivmai/libatomic_ops.git", "libatomic_ops"}));
+        #endif
+
+        std::filesystem::create_directories("out");
+        std::filesystem::current_path("out");
+
         exec_command(create_command({
-            "clang",
-            "-fvisibility=default",
-            "-Iinclude",
-            #ifdef _WIN32
-            "-D_CRT_SECURE_NO_WARNINGS",
-            "-DGC_WIN32_THREADS",
-            #else
-            "-fPIC",
-            #endif
-            "-DGC_THREADS",
-            "-DNO_EXECUTE_PERMISSION",
-            "-DGC_BUILTIN_ATOMIC",
-            "-DGC_DLL",
-            #ifdef _WIN32
-            "-DDONT_USE_USER32_DLL",
-            #endif
-            "-c",
-            "-o",
-            path + DIR_SEP "Internal" DIR_SEP "gc.o",
-            "extra" DIR_SEP "gc.c"
+            "cmake",
+            "-Denable_cplusplus=ON",
+            "-Denable_threads=ON",
+            ".."
         }));
         exec_command(create_command({
-            "clang++",
-            "-fvisibility=default",
-            "-Iinclude",
-            #ifdef _WIN32
-            "-D_CRT_SECURE_NO_WARNINGS",
-            "-DGC_WIN32_THREADS",
-            #else
-            "-fPIC",
-            #endif
-            "-DGC_THREADS",
-            "-DNO_EXECUTE_PERMISSION",
-            "-DGC_BUILTIN_ATOMIC",
-            "-DGC_DLL",
-            #ifdef _WIN32
-            "-DDONT_USE_USER32_DLL",
-            #endif
-            "-Wno-inline-new-delete",
-            "-c",
-            "-o",
-            path + DIR_SEP "Internal" DIR_SEP "gc_cpp.o",
-            "gc_cpp.cpp"
+            "cmake",
+            "--build",
+            "."
         }));
-        exec_command(create_command({
-            "clang++",
-            "-fvisibility=default",
-            "-Iinclude",
-            #ifdef _WIN32
-            "-D_CRT_SECURE_NO_WARNINGS",
-            "-DGC_WIN32_THREADS",
-            #else
-            "-fPIC",
-            #endif
-            "-DGC_THREADS",
-            "-DNO_EXECUTE_PERMISSION",
-            "-DGC_BUILTIN_ATOMIC",
-            "-DGC_DLL",
-            #ifdef _WIN32
-            "-DDONT_USE_USER32_DLL",
-            #endif
-            "-Wno-inline-new-delete",
-            "-c",
-            "-o",
-            path + DIR_SEP "Internal" DIR_SEP "gc_badalc.o",
-            "gc_badalc.cpp"
-        }));
+
+        #if defined(_WIN32)
+        std::filesystem::copy("Debug" DIR_SEP "gc.dll", path + DIR_SEP "Internal", std::filesystem::copy_options::overwrite_existing);
+        std::filesystem::copy("Debug" DIR_SEP "gc.lib", path + DIR_SEP "Internal", std::filesystem::copy_options::overwrite_existing);
+        std::filesystem::copy("Debug" DIR_SEP "gc.pdb", path + DIR_SEP "Internal", std::filesystem::copy_options::overwrite_existing);
+        std::filesystem::copy("Debug" DIR_SEP "gccpp.dll", path + DIR_SEP "Internal", std::filesystem::copy_options::overwrite_existing);
+        std::filesystem::copy("Debug" DIR_SEP "gccpp.lib", path + DIR_SEP "Internal", std::filesystem::copy_options::overwrite_existing);
+        std::filesystem::copy("Debug" DIR_SEP "gccpp.pdb", path + DIR_SEP "Internal", std::filesystem::copy_options::overwrite_existing);
+        #elif defined(__APPLE__)
+        std::filesystem::copy("libgc.dylib", path + DIR_SEP "Internal", std::filesystem::copy_options::overwrite_existing);
+        std::filesystem::copy("libgccpp.dylib", path + DIR_SEP "Internal", std::filesystem::copy_options::overwrite_existing);
+        #else
+        std::filesystem::copy("libgc.so", path + DIR_SEP "Internal", std::filesystem::copy_options::overwrite_existing);
+        std::filesystem::copy("libgccpp.so", path + DIR_SEP "Internal", std::filesystem::copy_options::overwrite_existing);
+        #endif
+
+        std::filesystem::current_path(std::filesystem::current_path().parent_path());
 
         std::filesystem::create_directories(path + DIR_SEP "Internal" DIR_SEP "include");
         std::filesystem::copy("include", path + DIR_SEP "Internal" DIR_SEP "include", std::filesystem::copy_options::overwrite_existing | std::filesystem::copy_options::recursive);
@@ -334,9 +303,8 @@ int main(int argc, char const *argv[]) {
     #endif
         path + DIR_SEP "Internal" DIR_SEP "scale_runtime.o",
         path + DIR_SEP "Internal" DIR_SEP "scale_cxx.o",
-        path + DIR_SEP "Internal" DIR_SEP "gc.o",
-        path + DIR_SEP "Internal" DIR_SEP "gc_cpp.o",
-        path + DIR_SEP "Internal" DIR_SEP "gc_badalc.o",
+        "-L" + path + DIR_SEP "Internal",
+        "-lgc",
         "-o",
         path + DIR_SEP "Internal" DIR_SEP "" LIB_SCALE_FILENAME
     });
@@ -403,9 +371,9 @@ int main(int argc, char const *argv[]) {
         "-fuse-ld=lld",
         "-Wl,-lldmingw",
     #endif
-        path + DIR_SEP "Internal" DIR_SEP "gc.o",
-        path + DIR_SEP "Internal" DIR_SEP "gc_cpp.o",
-        path + DIR_SEP "Internal" DIR_SEP "gc_badalc.o",
+        "-L" + path + DIR_SEP "Internal",
+        "-lgccpp",
+        "-lgc"
     };
 
     for (auto f : source_files) {
@@ -456,9 +424,6 @@ int main(int argc, char const *argv[]) {
 
     std::filesystem::remove(path + DIR_SEP "Internal" DIR_SEP "scale_runtime.o");
     std::filesystem::remove(path + DIR_SEP "Internal" DIR_SEP "scale_cxx.o");
-    std::filesystem::remove(path + DIR_SEP "Internal" DIR_SEP "gc.o");
-    std::filesystem::remove(path + DIR_SEP "Internal" DIR_SEP "gc_cpp.o");
-    std::filesystem::remove(path + DIR_SEP "Internal" DIR_SEP "gc_badalc.o");
 
     std::filesystem::path symlinked_path;
     if (is_root()) {
@@ -543,4 +508,12 @@ int main(int argc, char const *argv[]) {
     #endif
 
     return 0;
+}
+
+int main(int argc, char const *argv[]) {
+    try {
+        return real_main(argc, argv);
+    } catch (std::filesystem::filesystem_error& fs) {
+        std::cerr << "Unexpected filesystem error: " << fs.what() << std::endl;
+    }
 }

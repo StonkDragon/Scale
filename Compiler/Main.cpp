@@ -1232,7 +1232,7 @@ namespace sclc
         cflags.push_back("-Wl," + scaleFolder + DIR_SEP "Internal");
 #endif
         cflags.push_back("-lScaleRuntime");
-        // cflags.push_back("-lgc");
+        cflags.push_back("-lgc");
         if (!Main::options::noLinkScale) {
             cflags.push_back("-lScale");
         }
@@ -1273,7 +1273,9 @@ int main(int argc, char const *argv[]) {
     signal(SIGFPE, sclc::signalHandler);
     signal(SIGSEGV, sclc::signalHandler);
     signal(SIGTERM, sclc::signalHandler);
+#ifdef SIGBREAK
     signal(SIGBREAK, sclc::signalHandler);
+#endif
     signal(SIGABRT, sclc::signalHandler);
 
 #ifndef _WIN32
