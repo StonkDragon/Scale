@@ -39,8 +39,9 @@ namespace sclc {
     std::string retemplate(std::string type);
     
     std::string generateArgumentsForFunction(TPResult& result, Function *func) {
-        std::string args = "";
         size_t maxValue = func->args.size();
+        std::string args;
+        args.reserve(64 * maxValue);
         if (func->isMethod) {
             std::string self_type = func->args[func->args.size() - 1].type;
             if (self_type.front() == '@') {
