@@ -37,7 +37,6 @@ namespace sclc {
     std::vector<bool> bools{false, true};
 
     std::string retemplate(std::string type);
-    
     std::string generateArgumentsForFunction(TPResult& result, Function *func) {
         debugDump(func->name);
         size_t maxValue = func->args.size();
@@ -71,7 +70,7 @@ namespace sclc {
             if (isValueStructParam) {
                 args += "*(";
             } else {
-                const std::string& stack = typeStack[typeStack.size() + i];
+                std::string stack = typeStack[typeStack.size() - maxValue + i];
                 if (isPrimitiveIntegerType(stack) && isPrimitiveIntegerType(arg.type) && !typesCompatible(result, stack, arg.type, false)) {
                     args += "_scl_cast_positive_offset(" + std::to_string(i) + ", " + sclTypeToCType(result, stack) + ", " + sclTypeToCType(result, arg.type) + ")";
                     continue;
@@ -520,6 +519,7 @@ namespace sclc {
     callMethod:
 
         std::string type = typeStackTop;
+        std::string args = generateArgumentsForFunction(result, self);
         if (doActualPop) {
             if (isSelfType(self->return_type)) {
                 for (size_t m = 0; m < self->args.size(); m++) {
@@ -548,7 +548,6 @@ namespace sclc {
         bool found = false;
         size_t argc = self->args.size();
         append("_scl_popn(%zu);\n", argc);
-        std::string args = generateArgumentsForFunction(result, self);
         bool closeThePush = false;
         if (self->return_type.size() && self->return_type.front() == '@' && !self->has_async) {
             const Struct& s = getStructByName(result, self->return_type);
@@ -640,42 +639,6 @@ namespace sclc {
         if (!found) {
             transpilerError("Method '" + sclFunctionNameToFriendlyString(self) + "' not found on type '" + self->member_type + "'", i);
             errors.push_back(err);
-        }
-    }
-
-    void generateUnsafeCallF(Function* self, std::ostream& fp, TPResult& result) {
-        append("_scl_popn(%zu);\n", self->args.size());
-        std::string args = generateArgumentsForFunction(result, self).c_str();
-        if (self->has_async) {
-            if (args.size()) {
-                append("_scl_async(fn_%s, fn_%s, %s);\n", self->name.c_str(), self->name.c_str(), args.c_str());
-            } else {
-                append("_scl_async(fn_%s, fn_%s);\n", self->name.c_str(), self->name.c_str());
-            }
-        } else {
-            if (removeTypeModifiers(self->return_type) == "none" || removeTypeModifiers(self->return_type) == "nothing") {
-                append("fn_%s(%s);\n", self->name.c_str(), args.c_str());
-            } else {
-                append("_scl_push(%s, fn_%s(%s));\n", sclTypeToCType(result, self->return_type).c_str(), self->name.c_str(), args.c_str());
-            }
-        }
-    }
-
-    void generateUnsafeCall(Method* self, std::ostream& fp, TPResult& result) {
-        append("_scl_popn(%zu);\n", self->args.size());
-        std::string args = generateArgumentsForFunction(result, self).c_str();
-        if (self->has_async) {
-            if (args.size()) {
-                append("_scl_async(mt_%s$%s, mt_%s$%s, %s);\n", self->member_type.c_str(), self->name.c_str(), self->member_type.c_str(), self->name.c_str(), args.c_str());
-            } else {
-                append("_scl_async(mt_%s$%s, mt_%s$%s);\n", self->member_type.c_str(), self->name.c_str(), self->member_type.c_str(), self->name.c_str());
-            }
-        } else {
-            if (removeTypeModifiers(self->return_type) == "none" || removeTypeModifiers(self->return_type) == "nothing") {
-                append("mt_%s$%s(%s);\n", self->member_type.c_str(), self->name.c_str(), args.c_str());
-            } else {
-                append("_scl_push(%s, mt_%s$%s(%s));\n", sclTypeToCType(result, self->return_type).c_str(), self->member_type.c_str(), self->name.c_str(), args.c_str());
-            }
         }
     }
 
@@ -1132,11 +1095,11 @@ namespace sclc {
                 }
 
                 std::string type = typeStackTop;
+                std::string args = generateArgumentsForFunction(result, self);
                 for (size_t m = 0; m < self->args.size(); m++) {
                     typePop;
                 }
                 append("_scl_popn(%zu);\n", self->args.size());
-                std::string args = generateArgumentsForFunction(result, self);
 
                 typeStack.push_back(self->return_type);
 
@@ -1184,6 +1147,7 @@ namespace sclc {
     callFunction:
 
         append("_scl_popn(%zu);\n", self->args.size());
+        std::string args = generateArgumentsForFunction(result, self);
         std::string type = typeStackTop;
         if (isSelfType(self->return_type)) {
             for (size_t m = 0; m < self->args.size(); m++) {
@@ -1230,7 +1194,6 @@ namespace sclc {
                 append("");
             }
         }
-        std::string args = generateArgumentsForFunction(result, self);
         if (self->has_async) {
             append("_scl_async(fn_%s, fn_%s%s%s)", self->name.c_str(), self->name.c_str(), args.size() ? ", " : "", args.c_str());
         } else {

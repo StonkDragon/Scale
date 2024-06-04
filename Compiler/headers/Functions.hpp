@@ -10,8 +10,6 @@ namespace sclc {
     Function* findFunctionLocally(Function* self, TPResult& result);
     std::string getFunctionType(TPResult& result, Function* self);
     void methodCall(Method* self, std::ostream& fp, TPResult& result, std::vector<FPResult>& warns, std::vector<FPResult>& errors, std::vector<Token>& body, size_t& i, bool ignoreArgs = false, bool doActualPop = true, bool withIntPromotion = false, bool onSuperType = false, bool checkOverloads = true);
-    void generateUnsafeCallF(Function* self, std::ostream& fp, TPResult& result);
-    void generateUnsafeCall(Method* self, std::ostream& fp, TPResult& result);
     bool hasImplementation(TPResult& result, Function* func);
     bool shouldCall(Function* self, std::vector<FPResult>& warns, std::vector<FPResult>& errors, std::vector<Token>& body, size_t i);
     std::string opToString(std::string op);

@@ -27,8 +27,6 @@ namespace sclc
         return result;
     }
 
-    void generateUnsafeCall(Method* self, std::ostream& fp, TPResult& result);
-    void generateUnsafeCallF(Function* self, std::ostream& fp, TPResult& result);
     std::string generateSymbolForFunction(Function* f);
     std::string sclTypeToCType(TPResult& result, std::string t);
     std::string sclFunctionNameToFriendlyString(Function* f);
