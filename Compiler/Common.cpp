@@ -239,7 +239,7 @@ namespace sclc
     }
 
     bool pathstarts(std::filesystem::path str, std::string prefix) {
-        str = std::filesystem::absolute(str.make_preferred());
+        str = std::filesystem::absolute(str.make_preferred().relative_path());
         return strstarts(str.string(), prefix);
     }
 
@@ -248,7 +248,7 @@ namespace sclc
     }
 
     bool pathcontains(std::filesystem::path str, std::string substr) {
-        str = std::filesystem::absolute(str.make_preferred());
+        str = std::filesystem::absolute(str.make_preferred().relative_path());
         return strcontains(str.string(), substr);
     }
 
