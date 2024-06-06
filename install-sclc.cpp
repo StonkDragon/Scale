@@ -216,28 +216,29 @@ int real_main(int argc, char const *argv[]) {
             "-Denable_docs=OFF",
             "-Denable_atomic_uncollectable=OFF",
             "-Dinstall_headers=OFF",
+            "-DCMAKE_INSTALL_PREFIX=" + path + DIR_SEP "Internal",
             ".."
         }));
         exec_command(create_command({
             "cmake",
             "--build",
-            "."
+            ".",
+            "--target",
+            "install"
         }));
 
-        #if defined(_WIN32)
-        std::filesystem::copy("Debug" DIR_SEP "gc.dll", path + DIR_SEP "Internal", std::filesystem::copy_options::overwrite_existing);
-        std::filesystem::copy("Debug" DIR_SEP "gc.lib", path + DIR_SEP "Internal", std::filesystem::copy_options::overwrite_existing);
-        std::filesystem::copy("Debug" DIR_SEP "gc.pdb", path + DIR_SEP "Internal", std::filesystem::copy_options::overwrite_existing);
-        std::filesystem::copy("Debug" DIR_SEP "gccpp.dll", path + DIR_SEP "Internal", std::filesystem::copy_options::overwrite_existing);
-        std::filesystem::copy("Debug" DIR_SEP "gccpp.lib", path + DIR_SEP "Internal", std::filesystem::copy_options::overwrite_existing);
-        std::filesystem::copy("Debug" DIR_SEP "gccpp.pdb", path + DIR_SEP "Internal", std::filesystem::copy_options::overwrite_existing);
-        #elif defined(__APPLE__)
-        std::filesystem::copy("libgc.dylib", path + DIR_SEP "Internal", std::filesystem::copy_options::overwrite_existing);
-        std::filesystem::copy("libgccpp.dylib", path + DIR_SEP "Internal", std::filesystem::copy_options::overwrite_existing);
-        #else
-        std::filesystem::copy("libgc.so", path + DIR_SEP "Internal", std::filesystem::copy_options::overwrite_existing);
-        std::filesystem::copy("libgccpp.so", path + DIR_SEP "Internal", std::filesystem::copy_options::overwrite_existing);
-        #endif
+        // #if defined(_WIN32)
+        // std::filesystem::copy("Debug" DIR_SEP "gc.dll", path + DIR_SEP "Internal", std::filesystem::copy_options::overwrite_existing);
+        // std::filesystem::copy("Debug" DIR_SEP "gc.lib", path + DIR_SEP "Internal", std::filesystem::copy_options::overwrite_existing);
+        // std::filesystem::copy("Debug" DIR_SEP "gc.pdb", path + DIR_SEP "Internal", std::filesystem::copy_options::overwrite_existing);
+        // std::filesystem::copy("Debug" DIR_SEP "gccpp.dll", path + DIR_SEP "Internal", std::filesystem::copy_options::overwrite_existing);
+        // std::filesystem::copy("Debug" DIR_SEP "gccpp.lib", path + DIR_SEP "Internal", std::filesystem::copy_options::overwrite_existing);
+        // std::filesystem::copy("Debug" DIR_SEP "gccpp.pdb", path + DIR_SEP "Internal", std::filesystem::copy_options::overwrite_existing);
+        // #else
+        // for (auto&& file : listFiles("./", LIB_SUFF)) {
+        //     std::filesystem::copy(file, path + DIR_SEP "Internal" DIR_SEP + file.filename().string(), std::filesystem::copy_options::overwrite_existing | std::filesystem::copy_options::copy_symlinks);
+        // }
+        // #endif
 
         std::filesystem::current_path(std::filesystem::current_path().parent_path());
 
@@ -308,10 +309,13 @@ int real_main(int argc, char const *argv[]) {
     #endif
         path + DIR_SEP "Internal" DIR_SEP "scale_runtime.o",
         path + DIR_SEP "Internal" DIR_SEP "scale_cxx.o",
-        "-L" + path + DIR_SEP "Internal",
+        "-L" + path + DIR_SEP "Internal" DIR_SEP "lib",
+    #ifdef __APPLE__
+        "-Wl,-rpath," + path + DIR_SEP "Internal" DIR_SEP "lib",
+    #endif
         "-lgc",
         "-o",
-        path + DIR_SEP "Internal" DIR_SEP "" LIB_SCALE_FILENAME
+        path + DIR_SEP "Internal" DIR_SEP "lib" DIR_SEP "" LIB_SCALE_FILENAME
     });
 
     #ifdef _WIN32
@@ -374,7 +378,10 @@ int real_main(int argc, char const *argv[]) {
         "-fuse-ld=lld",
         "-Wl,-lldmingw",
     #endif
-        "-L" + path + DIR_SEP "Internal",
+        "-L" + path + DIR_SEP "Internal" DIR_SEP "lib",
+    #ifdef __APPLE__
+        "-Wl,-rpath," + path + DIR_SEP "Internal" DIR_SEP "lib",
+    #endif
         "-lgccpp",
         "-lgc"
     };
@@ -417,7 +424,7 @@ int real_main(int argc, char const *argv[]) {
             x.join();
     }
 
-    std::filesystem::remove(path + DIR_SEP "Internal" DIR_SEP "" LIB_SCALE_FILENAME);
+    std::filesystem::remove(path + DIR_SEP "Internal" DIR_SEP "lib" DIR_SEP "" LIB_SCALE_FILENAME);
     
     exec_command(scale_runtime);
     exec_command(cxx_glue);
@@ -478,7 +485,7 @@ int real_main(int argc, char const *argv[]) {
         "-no-link-std",
         "-makelib",
         "-o",
-        path + DIR_SEP "Internal" DIR_SEP "" + SCALE_STDLIB_FILENAME
+        path + DIR_SEP "Internal" DIR_SEP "lib" DIR_SEP "" SCALE_STDLIB_FILENAME
     });
 
     auto files = listFiles(path + DIR_SEP "Frameworks" DIR_SEP "Scale.framework" DIR_SEP "include", ".scale");

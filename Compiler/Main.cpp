@@ -989,7 +989,11 @@ namespace sclc
         cflags.push_back("-I" + scaleFolder + DIR_SEP "Frameworks");
         cflags.push_back("-I.");
         cflags.push_back("-L" + scaleFolder);
-        cflags.push_back("-L" + scaleFolder + DIR_SEP "Internal");
+        cflags.push_back("-L" + scaleFolder + DIR_SEP "Internal" DIR_SEP "lib");
+    #ifdef __APPLE__
+        cflags.push_back("-Wl,-rpath," + scaleFolder);
+        cflags.push_back("-Wl,-rpath," + scaleFolder + DIR_SEP "Internal" DIR_SEP "lib");
+    #endif
         cflags.push_back("-" + optimizer);
         cflags.push_back("-DVERSION=\"" + std::string(VERSION) + "\"");
         cflags.push_back("-std=" + std::string(C_VERSION));
@@ -1233,7 +1237,7 @@ namespace sclc
 #endif
 #if !defined(__APPLE__) && !defined(_WIN32)
         cflags.push_back("-Wl,-R");
-        cflags.push_back("-Wl," + scaleFolder + DIR_SEP "Internal");
+        cflags.push_back("-Wl," + scaleFolder + DIR_SEP "Internal" DIR_SEP "lib");
 #endif
         cflags.push_back("-lScaleRuntime");
         cflags.push_back("-lgc");
