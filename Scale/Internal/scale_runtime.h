@@ -402,12 +402,8 @@ struct scale_string {
 						struct _scl_exception_handler _scl_exception_handler = { .marker = EXCEPTION_HANDLER_MARKER, .finalizer = _then, .finalization_data = _with }; \
 						if (setjmp(_scl_exception_handler.jmp) != 666)
 
-#ifdef _WIN32
-#define				SCL_BACKTRACE(_func_name)
-#else
 #define				SCL_BACKTRACE(_func_name) \
 						struct _scl_backtrace __scl_backtrace_cur __attribute__((cleanup(_scl_trace_remove))) = { .marker = TRACE_MARKER, .func_name = (_func_name) }
-#endif
 
 void				_scl_trace_remove(struct _scl_backtrace*);
 
