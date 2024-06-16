@@ -324,8 +324,8 @@ _scl_symbol_hidden static void native_trace(void);
 
 char* vstrformat(const char* fmt, va_list args) {
 	size_t len = vsnprintf(nil, 0, fmt, args);
-	char* s = _scl_alloc(len + 1);
-	vsnprintf(s, len, fmt, args);
+	char* s = _scl_alloc(len + 2);
+	vsnprintf(s, len + 1, fmt, args);
 	return s;
 }
 
@@ -763,6 +763,10 @@ void _scl_array_check_bounds_or_throw_unchecked(scl_any* arr, scl_int index) {
 
 void _scl_array_check_bounds_or_throw(scl_any* arr, scl_int index) {
 	if (unlikely(!_scl_is_array(arr))) {
+		if (_scl_get_memory_layout(arr) != nil) {
+			// points into valid memory so *probably* fine
+			return;
+		}
 		_scl_runtime_error(EX_INVALID_ARGUMENT, "Array must be initialized with 'new[]'");
 	}
 	_scl_array_check_bounds_or_throw_unchecked(arr, index);

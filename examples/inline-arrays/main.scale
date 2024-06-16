@@ -1,0 +1,31 @@
+layout Foo
+    decl arr: 4 [int]
+end
+
+struct Bar
+    decl arr: 4 [int]
+end
+
+function main(): none
+    Foo::new => decl f: Foo
+
+    new<int> {
+        1, 2, 3, 4
+    } => f.arr
+
+    f puts
+    123 => f.arr[0]
+    f puts
+    sizeof Foo puts
+
+    Bar::new => decl x: Bar
+
+    new<int> {
+        1, 2, 3, 4
+    } => x.arr
+
+    x puts
+    123 => x.arr[0]
+    x puts
+    sizeof Bar puts
+end

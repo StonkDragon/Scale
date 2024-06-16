@@ -54,14 +54,6 @@ final struct File is Closeable
     end
   ) => decl stderr: const File
 
-  # construct function staticInit(): none
-  #   unsafe
-  #      => File::stdin
-  #      => File::stdout
-  #      => File::stderr
-  #   end
-  # end
-
   function init(name: str): none
     unsafe
       name:view "rb+":view File::__c_fopen => decl file: __c_file?

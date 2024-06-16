@@ -523,10 +523,6 @@ namespace sclc
             std::string type = "[";
             std::string size = "";
             (*i)++;
-            if (body[*i].type == tok_number) {
-                size = body[*i].value;
-                (*i)++;
-            }
             r = parseType(body, i);
             if (!r.success) {
                 return r;
@@ -955,75 +951,67 @@ namespace sclc
                     return;
                 }
 
-                if (useLayout) {
+                Method* f = nullptr;
+                bool mutate = false;
+                if (!doesWriteAfter || (i + 1 < body.size() && (body[i + 1].type == tok_dot || body[i + 1].type == tok_bracket_open))) {
+                    f = attributeAccessor(result, containingType, v.name);
+                } else {
+                    mutate = true;
+                    f = attributeMutator(result, containingType, v.name);
+                }
+                if (f) {
+                    if (containingType.front() == '@' && f->args.back().type.front() != '@') {
+                        path = "&" + path;
+                    } else if (containingType.front() != '@' && f->args.back().type.front() == '@') {
+                        path = "*" + path;
+                    }
+                    if (mutate) {
+                        path = "mt_" + f->member_type + "$" + f->name + "(" + path + ", ";
+                        std::vector<Function*> funcs;
+                        for (auto&& f : result.functions) {
+                            if (f->name_without_overload == v.type + "$operator$store" || f->name_without_overload == v.type + "$=>") {
+                                funcs.push_back(f);
+                            }
+                        }
+
+                        bool funcFound = false;
+                        for (Function* f : funcs) {
+                            if (
+                                f->isMethod ||
+                                f->args.size() != 1 ||
+                                f->return_type != v.type ||
+                                !typesCompatible(result, typeStackTop, f->args[0].type, true)
+                            ) {
+                                continue;
+                            }
+                            if (currentType.front() == '@' && f->return_type.front() != '@') {
+                                path += "*";
+                            }
+                            if (f->args[0].type.front() == '@') {
+                                path += "fn_" + f->name + "(*tmp)";
+                            } else {
+                                path += "fn_" + f->name + "(tmp)";
+                            }
+                            path += "fn_" + f->name + "(tmp)";
+                            funcFound = true;
+                        }
+                        if (currentType.front() == '@') {
+                            path += "*";
+                        }
+                        if (!funcFound) {
+                            path += "tmp";
+                        }
+                        path += ")";
+                        onComplete(path, currentType);
+                        return;
+                    } else {
+                        path = "mt_" + f->member_type + "$" + f->name + "(" + path + ")";
+                    }
+                } else {
                     if (valueType) {
                         path = path + "." + body[i].value;
                     } else {
                         path = path + "->" + body[i].value;
-                    }
-                } else {
-                    Method* f = nullptr;
-                    bool mutate = false;
-                    if (!doesWriteAfter || (i + 1 < body.size() && (body[i + 1].type == tok_dot || body[i + 1].type == tok_bracket_open))) {
-                        f = attributeAccessor(result, s.name, v.name);
-                    } else {
-                        mutate = true;
-                        f = attributeMutator(result, s.name, v.name);
-                    }
-                    if (f) {
-                        if (containingType.front() == '@' && f->args.back().type.front() != '@') {
-                            path = "&" + path;
-                        } else if (containingType.front() != '@' && f->args.back().type.front() == '@') {
-                            path = "*" + path;
-                        }
-                        if (mutate) {
-                            path = "mt_" + f->member_type + "$" + f->name + "(" + path + ", ";
-                            std::vector<Function*> funcs;
-                            for (auto&& f : result.functions) {
-                                if (f->name_without_overload == v.type + "$operator$store" || f->name_without_overload == v.type + "$=>") {
-                                    funcs.push_back(f);
-                                }
-                            }
-
-                            bool funcFound = false;
-                            for (Function* f : funcs) {
-                                if (
-                                    f->isMethod ||
-                                    f->args.size() != 1 ||
-                                    f->return_type != v.type ||
-                                    !typesCompatible(result, typeStackTop, f->args[0].type, true)
-                                ) {
-                                    continue;
-                                }
-                                if (currentType.front() == '@' && f->return_type.front() != '@') {
-                                    path += "*";
-                                }
-                                if (f->args[0].type.front() == '@') {
-                                    path += "fn_" + f->name + "(*tmp)";
-                                } else {
-                                    path += "fn_" + f->name + "(tmp)";
-                                }
-                                path += "fn_" + f->name + "(tmp)";
-                                funcFound = true;
-                            }
-                            if (currentType.front() == '@') {
-                                path += "*";
-                            }
-                            if (!funcFound) {
-                                path += "tmp";
-                            }
-                            path += ")";
-                            onComplete(path, currentType);
-                            return;
-                        } else {
-                            path = "mt_" + f->member_type + "$" + f->name + "(" + path + ")";
-                        }
-                    } else {
-                        if (valueType) {
-                            path = path + "." + body[i].value;
-                        } else {
-                            path = path + "->" + body[i].value;
-                        }
                     }
                 }
                 if (deref) {

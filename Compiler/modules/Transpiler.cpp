@@ -274,6 +274,7 @@ namespace sclc {
         for (Layout& c : result.layouts) {
             append("struct Layout_%s {\n", c.name.c_str());
             for (Variable& s : c.members) {
+                if (s.isVirtual) continue;
                 append("  %s %s;\n", sclTypeToCType(result, s.type).c_str(), s.name.c_str());
             }
             append("};\n");

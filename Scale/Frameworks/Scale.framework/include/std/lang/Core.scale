@@ -11,12 +11,6 @@ cdecl "system"
 private expect foreign unsafe function __c_system(:[int8]): int
 cdecl "getenv"
 private expect foreign unsafe function __c_getenv(:[int8]): [int8]?
-cdecl "atoll"
-private expect foreign unsafe function __c_atoll(:[int8]): int64
-cdecl "atof"
-private expect foreign unsafe function __c_atof(:[int8]): float
-
-typealias varargs "..."
 
 function system(command: str): int
   unsafe

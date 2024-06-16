@@ -1051,11 +1051,6 @@ namespace sclc
             checkFramework(framework, tmpFlags, frameworks, hasCppFiles, FrameworkMinimumVersion);
         }
 
-        Main::config->remove("os");
-        Main::config->remove("os-name");
-        Main::config->remove("arch");
-        Main::config->remove("version");
-
         #ifdef _WIN32
         #define OS_IDENT "win"
         #define OS_NAME "Windows"
@@ -1089,10 +1084,10 @@ namespace sclc
         #endif
         #endif
 
-        Main::config->addString("os", OS_IDENT);
-        Main::config->addString("os-name", OS_NAME);
-        Main::config->addString("arch", ARCH);
-        Main::config->addString("version", VERSION);
+        Main::config->setString("os", OS_IDENT);
+        Main::config->setString("os-name", OS_NAME);
+        Main::config->setString("arch", ARCH);
+        Main::config->setString("version", VERSION);
 
         if (!Main::options::noScaleFramework) {
             auto findModule = [&](const std::string moduleName) -> std::vector<std::string> {

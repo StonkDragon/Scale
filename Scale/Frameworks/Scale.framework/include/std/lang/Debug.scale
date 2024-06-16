@@ -1,8 +1,6 @@
 import std.io
 import std.runtime.Process
 
-typealias nothing "_scl_no_return scl_any"
-
 cdecl "_scl_throw"
 expect foreign function throw(ex: Exception): nothing
 

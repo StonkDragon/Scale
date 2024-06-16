@@ -2364,9 +2364,16 @@ namespace sclc {
                     }
                     std::string name = tokens[i].value;
                     std::string type = "any";
+                    Variable v(name, type, layout.name);
+                    v.name_token = tokens[i];
                     i++;
+                    size_t inlineArraySize = -1;
                     if (tokens[i].type == tok_column) {
                         i++;
+                        if (tokens[i].type == tok_number) {
+                            inlineArraySize = parseNumber(tokens[i].value);
+                            i++;
+                        }
                         FPResult r = parseType(tokens, &i, templateArgs);
                         if (!r.success) {
                             errors.push_back(r);
@@ -2383,9 +2390,61 @@ namespace sclc {
                             errors.push_back(result);
                             break;
                         }
+                        v.type = type;
+                    } else {
+                        FPResult result;
+                        result.message = "Expected a type, but got '" + tokens[i].value + "'";
+                        result.value = tokens[i].value;
+                        result.location = tokens[i].location;
+                        result.type = tokens[i].type;
+                        result.success = false;
+                        errors.push_back(result);
+                        continue;
                     }
                     
-                    layout.addMember(Variable(name, type));
+                    if (inlineArraySize != -1ULL) {
+                        v.isVirtual = true;
+                        std::string element = removeTypeModifiers(type);
+                        element = element.substr(1, element.size() - 2);
+                        for (size_t i = 0; i < inlineArraySize; i++) {
+                            layout.addMember(Variable(name + "$BACKER" + std::to_string(i), element, layout.name));
+                        }
+                        Method* getter = new Method(layout.name, "get" + capitalize(name), layout.name_token);
+                        getter->return_type = v.type;
+                        getter->addModifier("nonvirtual");
+                        getter->addModifier("@getter");
+                        getter->addModifier(v.name);
+                        getter->addArgument(Variable("self", layout.name));
+                        getter->addToken(Token(tok_addr_ref, "ref"));
+                        getter->addToken(Token(tok_identifier, "self"));
+                        getter->addToken(Token(tok_dot, "."));
+                        getter->addToken(Token(tok_identifier, name + "$BACKER0"));
+                        getter->addToken(Token(tok_return, "return"));
+                        functions.push_back(getter);
+
+                        Method* setter = new Method(layout.name, "set" + capitalize(name), layout.name_token);
+                        setter->return_type = "none";
+                        setter->addModifier("nonvirtual");
+                        setter->addModifier("@setter");
+                        setter->addModifier(v.name);
+                        setter->addArgument(Variable("value", v.type));
+                        setter->addArgument(Variable("self", layout.name));
+                        setter->addToken(Token(tok_identifier, "unsafe"));
+                        setter->addToken(Token(tok_addr_ref, "ref"));
+                        setter->addToken(Token(tok_identifier, "self"));
+                        setter->addToken(Token(tok_dot, "."));
+                        setter->addToken(Token(tok_identifier, name + "$BACKER0"));
+                        setter->addToken(Token(tok_identifier, "value"));
+                        setter->addToken(Token(tok_number, std::to_string(inlineArraySize)));
+                        setter->addToken(Token(tok_identifier, "sizeof"));
+                        setter->addToken(Token(tok_identifier, element));
+                        setter->addToken(Token(tok_identifier, "*"));
+                        setter->addToken(Token(tok_identifier, "memcpy"));
+                        setter->addToken(Token(tok_end, "end"));
+                        functions.push_back(setter);
+                    }
+
+                    layout.addMember(v);
                     i++;
                 }
 
@@ -2672,8 +2731,14 @@ namespace sclc {
                 bool isInternalMut = false;
                 bool isPrivate = false;
                 std::string fromTemplate = "";
+                size_t inlineArraySize = -1;
+                bool varIsStatic = currentStructs.back()->isStatic() || contains<std::string>(nextAttributes, "static");
                 if (tokens[i].type == tok_column) {
                     i++;
+                    if (tokens[i].type == tok_number && !varIsStatic) {
+                        inlineArraySize = parseNumber(tokens[i].value);
+                        i++;
+                    }
                     FPResult r = parseType(tokens, &i, templateArgs);
                     if (!r.success) {
                         errors.push_back(r);
@@ -2693,10 +2758,19 @@ namespace sclc {
                         errors.push_back(result);
                         continue;
                     }
+                } else {
+                    FPResult result;
+                    result.message = "Expected a type, but got '" + tokens[i].value + "'";
+                    result.value = tokens[i].value;
+                    result.location = tokens[i].location;
+                    result.type = tokens[i].type;
+                    result.success = false;
+                    errors.push_back(result);
+                    continue;
                 }
                 
                 Variable& v = Variable::emptyVar();
-                if (currentStructs.back()->isStatic() || contains<std::string>(nextAttributes, "static")) {
+                if (varIsStatic) {
                     v = Variable(currentStructs.back()->name + "$" + name, type, currentStructs.back()->name);
                     v.name_token = name_token;
                     v.hasInitializer = i >= 2 && tokens[start - 2].type == tok_store;
@@ -2732,7 +2806,48 @@ namespace sclc {
                     v.name_token = name_token;
                     v.typeFromTemplate = fromTemplate;
                     v.isPrivate = (isPrivate || contains<std::string>(nextAttributes, "private"));
-                    v.isVirtual = contains<std::string>(nextAttributes, "virtual");
+                    if (inlineArraySize != -1ULL) {
+                        v.isVirtual = true;
+                        std::string element = removeTypeModifiers(type);
+                        element = element.substr(1, element.size() - 2);
+                        for (size_t i = 0; i < inlineArraySize; i++) {
+                            currentStructs.back()->addMember(Variable(name + "$BACKER" + std::to_string(i), element, currentStructs.back()->name));
+                        }
+                        Method* getter = new Method(currentStructs.back()->name, "get" + capitalize(name), name_token);
+                        getter->return_type = v.type;
+                        getter->addModifier("@getter");
+                        getter->addModifier(v.name);
+                        getter->addArgument(Variable("self", currentStructs.back()->name));
+                        getter->addToken(Token(tok_addr_ref, "ref"));
+                        getter->addToken(Token(tok_identifier, "self"));
+                        getter->addToken(Token(tok_dot, "."));
+                        getter->addToken(Token(tok_identifier, name + "$BACKER0"));
+                        getter->addToken(Token(tok_return, "return"));
+                        functions.push_back(getter);
+
+                        Method* setter = new Method(currentStructs.back()->name, "set" + capitalize(name), name_token);
+                        setter->return_type = "none";
+                        setter->addModifier("@setter");
+                        setter->addModifier(v.name);
+                        setter->addArgument(Variable("value", v.type));
+                        setter->addArgument(Variable("self", currentStructs.back()->name));
+                        setter->addToken(Token(tok_identifier, "unsafe"));
+                        setter->addToken(Token(tok_addr_ref, "ref"));
+                        setter->addToken(Token(tok_identifier, "self"));
+                        setter->addToken(Token(tok_dot, "."));
+                        setter->addToken(Token(tok_identifier, name + "$BACKER0"));
+                        setter->addToken(Token(tok_identifier, "value"));
+                        setter->addToken(Token(tok_number, std::to_string(inlineArraySize)));
+                        setter->addToken(Token(tok_identifier, "sizeof"));
+                        setter->addToken(Token(tok_identifier, element));
+                        setter->addToken(Token(tok_identifier, "*"));
+                        setter->addToken(Token(tok_identifier, "memcpy"));
+                        setter->addToken(Token(tok_end, "end"));
+                        functions.push_back(setter);
+                        
+                    } else {
+                        v.isVirtual = contains<std::string>(nextAttributes, "virtual");
+                    }
                     currentStructs.back()->addMember(v);
                     nextAttributes.clear();
                 }
@@ -3046,30 +3161,52 @@ namespace sclc {
                 }
                 membersAdded++;
 
-                toString->addToken(Token(tok_string_literal, member.name + ": "));
-                toString->addToken(Token(tok_identifier, "+"));
-                toString->addToken(Token(tok_identifier, "self"));
-                toString->addToken(Token(tok_dot, "."));
-                toString->addToken(Token(tok_identifier, member.name));
-                bool canBeNil = typeCanBeNil(member.type);
-                std::string type = removeTypeModifiers(member.type);
-                if (canBeNil || isPointer(type) || hasEnum(result, type)) {
-                    if (type == "float") {
-                        toString->addToken(Token(tok_identifier, "float"));
+                auto emitMember = [&](const Variable& member) {
+                    toString->addToken(Token(tok_identifier, "self"));
+                    toString->addToken(Token(tok_dot, "."));
+                    toString->addToken(Token(tok_identifier, member.name));
+                    bool canBeNil = typeCanBeNil(member.type);
+                    std::string type = removeTypeModifiers(member.type);
+                    if (canBeNil || isPointer(type) || hasEnum(result, type)) {
+                        if (type == "float") {
+                            toString->addToken(Token(tok_identifier, "float"));
+                            toString->addToken(Token(tok_double_column, "::"));
+                            toString->addToken(Token(tok_identifier, "toString"));
+                        } else {
+                            toString->addToken(Token(tok_identifier, "builtinToString"));
+                        }
+                    } else if (hasTypeAlias(type) || strstarts(type, "lambda(") || type == "lambda") {
+                        toString->addToken(Token(tok_identifier, "any"));
                         toString->addToken(Token(tok_double_column, "::"));
-                        toString->addToken(Token(tok_identifier, "toString"));
+                        toString->addToken(Token(tok_identifier, "toHexString"));
                     } else {
-                        toString->addToken(Token(tok_identifier, "builtinToString"));
+                        toString->addToken(Token(tok_column, ":"));
+                        toString->addToken(Token(tok_identifier, "toString"));
                     }
-                } else if (hasTypeAlias(type) || strstarts(type, "lambda(") || type == "lambda") {
-                    toString->addToken(Token(tok_identifier, "any"));
-                    toString->addToken(Token(tok_double_column, "::"));
-                    toString->addToken(Token(tok_identifier, "toHexString"));
+                };
+
+                if (strcontains(member.name, "$BACKER0")) {
+                    toString->addToken(Token(tok_string_literal, member.name.substr(0, member.name.find('$')) + ": ["));
+                    toString->addToken(Token(tok_identifier, "+"));
+                    
+                    size_t count = 0;
+                    for (member = s.members[i++]; strcontains(member.name, "$BACKER") && i < s.members.size(); member = s.members[i++]) {
+                        if (count) {
+                            toString->addToken(Token(tok_string_literal, ", "));
+                            toString->addToken(Token(tok_identifier, "+"));
+                        }
+                        emitMember(member);
+                        toString->addToken(Token(tok_identifier, "+"));
+                        count++;
+                    }
+                    toString->addToken(Token(tok_string_literal, "]"));
+                    toString->addToken(Token(tok_identifier, "+"));
                 } else {
-                    toString->addToken(Token(tok_column, ":"));
-                    toString->addToken(Token(tok_identifier, "toString"));
+                    toString->addToken(Token(tok_string_literal, member.name + ": "));
+                    toString->addToken(Token(tok_identifier, "+"));
+                    emitMember(member);
+                    toString->addToken(Token(tok_identifier, "+"));
                 }
-                toString->addToken(Token(tok_identifier, "+"));
             }
             toString->addToken(Token(tok_string_literal, "}"));
             toString->addToken(Token(tok_identifier, "+"));
@@ -3099,30 +3236,52 @@ namespace sclc {
                 }
                 membersAdded++;
 
-                toString->addToken(Token(tok_string_literal, member.name + ": "));
-                toString->addToken(Token(tok_identifier, "+"));
-                toString->addToken(Token(tok_identifier, "self"));
-                toString->addToken(Token(tok_dot, "."));
-                toString->addToken(Token(tok_identifier, member.name));
-                bool canBeNil = typeCanBeNil(member.type);
-                std::string type = removeTypeModifiers(member.type);
-                if (canBeNil || isPointer(type) || hasEnum(result, type)) {
-                    if (type == "float") {
-                        toString->addToken(Token(tok_identifier, "float"));
+                auto emitMember = [&](const Variable& member) {
+                    toString->addToken(Token(tok_identifier, "self"));
+                    toString->addToken(Token(tok_dot, "."));
+                    toString->addToken(Token(tok_identifier, member.name));
+                    bool canBeNil = typeCanBeNil(member.type);
+                    std::string type = removeTypeModifiers(member.type);
+                    if (canBeNil || isPointer(type) || hasEnum(result, type)) {
+                        if (type == "float") {
+                            toString->addToken(Token(tok_identifier, "float"));
+                            toString->addToken(Token(tok_double_column, "::"));
+                            toString->addToken(Token(tok_identifier, "toString"));
+                        } else {
+                            toString->addToken(Token(tok_identifier, "builtinToString"));
+                        }
+                    } else if (hasTypeAlias(type) || strstarts(type, "lambda(") || type == "lambda") {
+                        toString->addToken(Token(tok_identifier, "any"));
                         toString->addToken(Token(tok_double_column, "::"));
-                        toString->addToken(Token(tok_identifier, "toString"));
+                        toString->addToken(Token(tok_identifier, "toHexString"));
                     } else {
-                        toString->addToken(Token(tok_identifier, "builtinToString"));
+                        toString->addToken(Token(tok_column, ":"));
+                        toString->addToken(Token(tok_identifier, "toString"));
                     }
-                } else if (hasTypeAlias(type) || strstarts(type, "lambda(") || type == "lambda") {
-                    toString->addToken(Token(tok_identifier, "any"));
-                    toString->addToken(Token(tok_double_column, "::"));
-                    toString->addToken(Token(tok_identifier, "toHexString"));
+                };
+
+                if (strcontains(member.name, "$BACKER0")) {
+                    toString->addToken(Token(tok_string_literal, member.name.substr(0, member.name.find('$')) + ": ["));
+                    toString->addToken(Token(tok_identifier, "+"));
+                    
+                    size_t count = 0;
+                    for (member = s.members[i++]; strcontains(member.name, "$BACKER") && i < s.members.size(); member = s.members[i++]) {
+                        if (count) {
+                            toString->addToken(Token(tok_string_literal, ", "));
+                            toString->addToken(Token(tok_identifier, "+"));
+                        }
+                        emitMember(member);
+                        toString->addToken(Token(tok_identifier, "+"));
+                        count++;
+                    }
+                    toString->addToken(Token(tok_string_literal, "]"));
+                    toString->addToken(Token(tok_identifier, "+"));
                 } else {
-                    toString->addToken(Token(tok_column, ":"));
-                    toString->addToken(Token(tok_identifier, "toString"));
+                    toString->addToken(Token(tok_string_literal, member.name + ": "));
+                    toString->addToken(Token(tok_identifier, "+"));
+                    emitMember(member);
+                    toString->addToken(Token(tok_identifier, "+"));
                 }
-                toString->addToken(Token(tok_identifier, "+"));
             }
             toString->addToken(Token(tok_string_literal, "}"));
             toString->addToken(Token(tok_identifier, "+"));
