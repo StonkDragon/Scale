@@ -165,6 +165,7 @@ namespace sclc {
         static Tokenizer* tokenizer;
         static SyntaxTree* lexer;
         static Parser* parser;
+        static DragonConfig::CompoundEntry* config;
         static std::vector<std::string> frameworkNativeHeaders;
         static std::vector<std::string> frameworks;
         static Version* version;

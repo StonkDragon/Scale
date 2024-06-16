@@ -29,7 +29,6 @@ enum TokenType
     Step
     To
     AddrRef
-    Load
     Store
     Declare
     ContainerDef
@@ -96,6 +95,14 @@ end
 struct Parser
     expect nonvirtual foreign function peek(): Token?
     expect nonvirtual foreign function consume(): Token?
+    expect nonvirtual foreign function getConfig(): Config
+
+    private function init(): none end
+end
+
+struct Config
+    expect nonvirtual foreign function hasKey(key: str): bool
+    expect nonvirtual foreign function getKey(key: str): str?
 
     private function init(): none end
 end

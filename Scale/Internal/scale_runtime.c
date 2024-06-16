@@ -167,18 +167,41 @@ scl_any Parser$consume(scl_any ptr) {
 	return consumer(ptr);
 }
 
+scl_any Parser$getConfig(scl_any ptr) {
+	static scl_any(*consumer)(scl_any) = nil;
+	if (consumer == nil) {
+		consumer = (typeof(consumer)) GetProcAddress(GetModuleHandleA(nil), "SclParser$getConfig");
+	}
+	return consumer(ptr);
+}
+
+scl_any Config$getKey(scl_any ptr, scl_any arg) {
+	static scl_any(*consumer)(scl_any, scl_any) = nil;
+	if (consumer == nil) {
+		consumer = (typeof(consumer)) GetProcAddress(GetModuleHandleA(nil), "SclConfig$getKey");
+	}
+	return consumer(ptr, arg);
+}
+
+scl_any Config$hasKey(scl_any ptr, scl_any arg) {
+	static scl_any(*consumer)(scl_any, scl_any) = nil;
+	if (consumer == nil) {
+		consumer = (typeof(consumer)) GetProcAddress(GetModuleHandleA(nil), "SclConfig$hasKey");
+	}
+	return consumer(ptr, arg);
+}
+
 #endif
 
 static memory_layout_t** static_ptrs = nil;
 static scl_int static_ptrs_cap = 0;
 static scl_int static_ptrs_count = 0;
-static scl_any lock = nil;
 
 scl_any _scl_mark_static(memory_layout_t* layout) {
-	cxx_std_recursive_mutex_lock(&lock);
+	GC_alloc_lock();
 	for (scl_int i = 0; i < static_ptrs_count; i++) {
 		if (static_ptrs[i] == layout) {
-			cxx_std_recursive_mutex_unlock(&lock);
+			GC_alloc_unlock();
 			return layout;
 		}
 	}
@@ -188,7 +211,7 @@ scl_any _scl_mark_static(memory_layout_t* layout) {
 		static_ptrs = realloc(static_ptrs, static_ptrs_cap * sizeof(memory_layout_t*));
 	}
 	static_ptrs[static_ptrs_count - 1] = layout;
-	cxx_std_recursive_mutex_unlock(&lock);
+	GC_alloc_unlock();
 	return layout;
 }
 
@@ -214,7 +237,7 @@ _scl_symbol_hidden static memory_layout_t* _scl_get_memory_layout(scl_any ptr) {
 		return (memory_layout_t*) ptr;
 	}
 	if (unlikely(ptr == nil)) return nil;
-	cxx_std_recursive_mutex_lock(&lock);
+	GC_alloc_lock();
 	memory_layout_t* l = nil;
 	for (scl_int i = 0; i < static_ptrs_count; i++) {
 		if (static_ptrs[i] == ptr) {
@@ -222,14 +245,11 @@ _scl_symbol_hidden static memory_layout_t* _scl_get_memory_layout(scl_any ptr) {
 			break;
 		}
 	}
-	cxx_std_recursive_mutex_unlock(&lock);
+	GC_alloc_unlock();
 	return l;
 }
 
 scl_int _scl_sizeof(scl_any ptr) {
-	if (unlikely(ptr == nil || !GC_is_heap_ptr(ptr))) {
-		return 0;
-	}
 	memory_layout_t* layout = _scl_get_memory_layout(ptr);
 	if (unlikely(layout == nil)) {
 		return 0;

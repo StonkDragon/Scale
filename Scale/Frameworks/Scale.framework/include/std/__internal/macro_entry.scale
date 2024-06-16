@@ -1,14 +1,20 @@
 import std.compiler.Utils
 
+macro! parserNext() {
+    (
+        parser:consume => decl maybeTok: Token?
+        if maybeTok nil == then
+            MacroError {
+                "Expected a token" => msg
+                loc => location
+            } Result::Err return
+        fi
+        maybeTok!!
+    )
+}
+
 foreign function expand(loc: SourceLocation, parser: Parser): Result`<[Token], MacroError>`
-    parser:consume => decl maybeTok: Token?
-    if maybeTok nil == then
-        MacroError {
-            "Expected a token" => msg
-            loc => location
-        } Result::Err return
-    fi
-    maybeTok!! => decl tok: Token
+    parserNext! => decl tok: Token
 
     if tok.type TokenType::CurlyOpen != then
         new<Token>{ tok } Result::Ok return
@@ -47,14 +53,7 @@ foreign function expand(loc: SourceLocation, parser: Parser): Result`<[Token], M
 end
 
 foreign function quote(loc: SourceLocation, parser: Parser): Result`<[Token], MacroError>`
-    parser:consume => decl maybeTok: Token?
-    if maybeTok nil == then
-        MacroError {
-            "Expected a token" => msg
-            loc => location
-        } Result::Err return
-    fi
-    maybeTok!! => decl tok: Token
+    parserNext! => decl tok: Token
 
     if tok.type TokenType::CurlyOpen != then
         new<Token>{
@@ -100,4 +99,66 @@ foreign function quote(loc: SourceLocation, parser: Parser): Result`<[Token], Ma
             loc => location
         }
     } Result::Ok return
+end
+
+foreign function config(loc: SourceLocation, parser: Parser): Result`<[Token], MacroError>`
+    parserNext! => decl tok: Token
+    if tok.type TokenType::StringLiteral != then
+        MacroError {
+            "Expected a string" => msg
+            tok.location => location
+        } Result::Err return
+    fi
+
+    tok.value => decl key: str
+
+    parser:consume!! => tok
+    if tok.type TokenType::Is != then
+        MacroError {
+            "Expected 'is'" => msg
+            tok.location => location
+        } Result::Err return
+    fi
+
+    parser:consume!! => tok
+    if tok.type TokenType::StringLiteral != tok.type TokenType::Nil != && then
+        MacroError {
+            "Expected a string or 'nil'" => msg
+            tok.location => location
+        } Result::Err return
+    fi
+    
+    tok.type TokenType::Nil == => decl checkExistence: bool
+    
+    decl value: str
+    if checkExistence ! then
+        tok.value => value
+    fi
+
+    parser:peek!! => tok
+    true => decl equals: bool
+    if tok.type TokenType::Identifier == tok.value "!" == && then
+        false => equals
+        parser:consume drop
+    fi
+
+    tok.location parser expand => decl block: Result
+    if block:isErr then
+        block return
+    fi
+
+    parser:getConfig => decl conf: Config
+    
+    decl conditionMet: bool
+    if checkExistence then
+        key conf:hasKey equals != => conditionMet
+    else
+        (key conf:getKey value ==) equals == => conditionMet
+    fi
+
+    if conditionMet then
+        block return
+    else
+        new<Token>[0] Result::Ok return
+    fi
 end

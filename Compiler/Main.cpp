@@ -178,6 +178,7 @@ namespace sclc
                 DragonConfig::ListEntry* implHeaders = root->getList("implHeaders");
                 DragonConfig::ListEntry* depends = root->getList("depends");
                 DragonConfig::ListEntry* compilerFlags = root->getList("compilerFlags");
+                DragonConfig::CompoundEntry* config = root->getCompound("config");
 
                 DragonConfig::StringEntry* versionTag = root->getString("version");
                 std::string version = versionTag->getValue();
@@ -248,6 +249,17 @@ namespace sclc
                     std::string header = framework + ".framework" DIR_SEP + implHeaderDir + DIR_SEP + implHeaders->getString(i)->getValue();
                     Main::frameworkNativeHeaders.push_back(header);
                 }
+
+                if (config) {
+                    for (auto x : config->entries) {
+                        if (Main::config->hasMember(x->getKey())) {
+                            std::cerr << "Config entry with key '" << x->getKey() << "' already exists!" << std::endl;
+                        } else {
+                            Main::config->entries.push_back(x);
+                        }
+                    }
+                }
+
                 return true;
             }
         }
@@ -759,6 +771,8 @@ namespace sclc
 
         DBG("Looking for project config");
 
+        Main::config = new DragonConfig::CompoundEntry();
+
         if (std::filesystem::exists("scale.drg")) {
             DragonConfig::CompoundEntry* scaleConfig = DragonConfig::ConfigParser().parse("scale.drg");
             if (scaleConfig) {
@@ -786,6 +800,17 @@ namespace sclc
                 if (scaleConfig->hasMember("featureFlags"))
                     for (size_t i = 0; i < scaleConfig->getList("featureFlags")->size(); i++)
                         Main::options::features.push_back(scaleConfig->getList("featureFlags")->getString(i)->getValue());
+
+                DragonConfig::CompoundEntry* config = scaleConfig->getCompound("config");
+                if (config) {
+                    for (auto x : config->entries) {
+                        if (Main::config->hasMember(x->getKey())) {
+                            std::cerr << "Config entry with key '" << x->getKey() << "' already exists!" << std::endl;
+                        } else {
+                            Main::config->entries.push_back(x);
+                        }
+                    }
+                }
                 
                 Main::options::indexDrgFiles["/local"] = scaleConfig;
             }
@@ -1025,6 +1050,49 @@ namespace sclc
         for (std::string& framework : frameworks) {
             checkFramework(framework, tmpFlags, frameworks, hasCppFiles, FrameworkMinimumVersion);
         }
+
+        Main::config->remove("os");
+        Main::config->remove("os-name");
+        Main::config->remove("arch");
+        Main::config->remove("version");
+
+        #ifdef _WIN32
+        #define OS_IDENT "win"
+        #define OS_NAME "Windows"
+        #elif defined(__APPLE__)
+        #define OS_IDENT "mac"
+        #define OS_NAME "macOS"
+        #else
+        #define OS_IDENT "linux"
+        #define OS_NAME "Linux"
+        #endif
+
+        #if __SIZEOF_POINTER__ < 8
+        #if defined(__wasm__)
+        #define ARCH "WASM32"
+        #elif defined(__arm__)
+        #define ARCH "aarch32"
+        #elif defined(__i386__)
+        #define ARCH "x86"
+        #else
+        #define ARCH "unknown 32-bit"
+        #endif
+        #else
+        #if defined(__wasm__)
+        #define ARCH  "WASM64"
+        #elif defined(__aarch64__)
+        #define ARCH  "aarch64"
+        #elif defined(__x86_64__)
+        #define ARCH  "x86_64"
+        #else
+        #define ARCH  "unknown 64-bit"
+        #endif
+        #endif
+
+        Main::config->addString("os", OS_IDENT);
+        Main::config->addString("os-name", OS_NAME);
+        Main::config->addString("arch", ARCH);
+        Main::config->addString("version", VERSION);
 
         if (!Main::options::noScaleFramework) {
             auto findModule = [&](const std::string moduleName) -> std::vector<std::string> {

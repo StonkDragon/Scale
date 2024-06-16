@@ -988,22 +988,44 @@ namespace sclc {
     #define TO_STRING2(x) #x
     #define TO_STRING(x) TO_STRING2(x)
 
+    struct SclConfig {
+        void* (*str$of)(char*);
+        void* (*alloc)(size_t);
+        char* (*str$view)(void* str);
+
+        static void* getKey(SclConfig* conf, void* key) __asm(TO_STRING(__USER_LABEL_PREFIX__) "Config$getKey");
+        static long long hasKey(SclConfig* conf, void* key) __asm(TO_STRING(__USER_LABEL_PREFIX__) "Config$hasKey");
+    };
+
     struct SclParser {
         std::vector<Token>& tokens;
         size_t& i;
         void* (*str$of)(char*) = nullptr;
         void* (*alloc)(size_t) = nullptr;
+        SclConfig* config;
 
         static CToken* peek(SclParser* parser) __asm(TO_STRING(__USER_LABEL_PREFIX__) "Parser$peek");
         static CToken* consume(SclParser* parser) __asm(TO_STRING(__USER_LABEL_PREFIX__) "Parser$consume");
+        static SclConfig* getConfig(SclParser* parser) __asm(TO_STRING(__USER_LABEL_PREFIX__) "Parser$getConfig");
     };
 
+#ifdef _WIN32
     extern "C" CToken* SclParser$peek(SclParser* parser) {
         return SclParser::peek(parser);
     }
     extern "C" CToken* SclParser$consume(SclParser* parser) {
         return SclParser::consume(parser);
     }
+    extern "C" SclConfig* SclParser$getConfig(SclParser* parser) {
+        return SclParser::getConfig(parser);
+    }
+    extern "C" void* SclConfig$getKey(SclConfig* parser, void* key) {
+        return SclConfig::getKey(parser, key);
+    }
+    extern "C" long long SclConfig$hasKey(SclConfig* parser, void* key) {
+        return SclConfig::hasKey(parser, key);
+    }
+#endif
 
     CToken* SclParser::peek(SclParser* parser) {
         if (parser->i >= parser->tokens.size()) {
@@ -1019,6 +1041,19 @@ namespace sclc {
         CToken* t = parser->tokens[parser->i].toC(parser->alloc, parser->str$of);
         parser->tokens.erase(parser->tokens.begin() + parser->i);
         return t;
+    }
+
+    SclConfig* SclParser::getConfig(SclParser* parser) {
+        return parser->config;
+    }
+
+    void* SclConfig::getKey(SclConfig* conf, void* arg) {
+        auto s = Main::config->getStringByPath(conf->str$view(arg));
+        return s ? conf->str$of((char*) s->getValue().c_str()) : nullptr;
+    }
+    
+    long long SclConfig::hasKey(SclConfig* conf, void* arg) {
+        return SclConfig::getKey(conf, arg) != nullptr;
     }
 
     struct NativeMacro: public Macro {
@@ -1109,12 +1144,21 @@ namespace sclc {
 
         void expand(const Token& macroTok, std::vector<Token>& otherTokens, size_t& i, std::vector<Token>& args, std::vector<FPResult>& errors) override {
             (void) args;
+
+            SclConfig* config = (SclConfig*) alloc(sizeof(SclConfig));
+            config = new (config) SclConfig{
+                str$of,
+                alloc,
+                str$view
+            };
+
             SclParser* parser = (SclParser*) alloc(sizeof(SclParser));
             parser = new (parser) SclParser{
                 otherTokens,
                 i,
                 str$of,
-                alloc
+                alloc,
+                config
             };
 
             CSourceLocation* loc = macroTok.location.toC(alloc, str$of);

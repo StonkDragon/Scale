@@ -62,6 +62,7 @@ namespace sclc
     Tokenizer* Main::tokenizer = nullptr;
     SyntaxTree* Main::lexer = nullptr;
     Parser* Main::parser = nullptr;
+    DragonConfig::CompoundEntry* Main::config = nullptr;
     std::vector<std::string> Main::frameworkNativeHeaders = std::vector<std::string>();
     std::vector<std::string> Main::frameworks = std::vector<std::string>();
     Version* Main::version = new Version(0, 0, 0);
