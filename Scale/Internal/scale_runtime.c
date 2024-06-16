@@ -325,7 +325,7 @@ _scl_symbol_hidden static void native_trace(void);
 char* vstrformat(const char* fmt, va_list args) {
 	size_t len = vsnprintf(nil, 0, fmt, args);
 	char* s = _scl_alloc(len + 1);
-	vsnprintf(s, len + 1, fmt, args);
+	vsnprintf(s, len, fmt, args);
 	return s;
 }
 
@@ -915,7 +915,7 @@ scl_any _scl_thread_start(scl_any func, scl_any args) {
 	if (GC_pthread_create(&x, NULL, func, args) != 0) {
 		_scl_runtime_error(EX_THREAD_ERROR, "Failed to create thread");
 	}
-	return x;
+	return (scl_any) x;
 #endif
 }
 
@@ -923,7 +923,7 @@ void _scl_thread_finish(scl_any thread) {
 #ifdef _WIN32
 	TerminateThread(thread, 0);
 #else
-	if (pthread_join(thread, NULL) != 0) {
+	if (pthread_join((pthread_t) thread, NULL) != 0) {
 		_scl_runtime_error(EX_THREAD_ERROR, "Failed to join thread");
 	}
 #endif
@@ -933,7 +933,7 @@ void _scl_thread_detach(scl_any thread) {
 #ifdef _WIN32
 	unimplemented("Threads can't detach on windows");
 #else
-	if (pthread_detach(thread) != 0) {
+	if (pthread_detach((pthread_t) thread) != 0) {
 		_scl_runtime_error(EX_THREAD_ERROR, "Failed to detach thread");
 	}
 #endif

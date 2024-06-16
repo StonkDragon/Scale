@@ -23,6 +23,7 @@ namespace sclc {
         this->typeFromTemplate = "";
         this->isVirtual = false;
         this->isExtern = false;
+        this->hasInitializer = false;
     }
     Variable::~Variable() {}
 

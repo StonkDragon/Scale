@@ -13,12 +13,16 @@
 #include <stdio.h>
 
 #include "../headers/Common.hpp"
+#include "../headers/TranspilerDefs.hpp"
+#include "../headers/Types.hpp"
+#include "../headers/Functions.hpp"
 
 namespace sclc
 {
     extern Struct currentStruct;
     extern int scopeDepth;
     extern std::map<std::string, std::vector<Method*>> vtables;
+    extern std::vector<std::string> typeStack;
     extern StructTreeNode* structTree;
 
     Parser::Parser(TPResult& result) : result(result) {}
@@ -159,15 +163,66 @@ namespace sclc
 
         scopeDepth = 0;
 
-        for (Variable& s : result.globals) {
-            const std::string& file = s.name_token.location.file;
+        for (Variable& v : result.globals) {
+            const std::string& file = v.name_token.location.file;
             if (!Main::options::noLinkScale && pathstarts(file, scaleFolder + DIR_SEP "Frameworks" DIR_SEP "Scale.framework") && !Main::options::noMain) {
                 if (!pathcontains(file, DIR_SEP "compiler" DIR_SEP) && !pathcontains(file, DIR_SEP "macros" DIR_SEP) && !pathcontains(file, DIR_SEP "__")) {
                     continue;
                 }
             }
-            if (!s.isExtern) {
-                append("%s Var_%s;\n", sclTypeToCType(result, s.type).c_str(), s.name.c_str());
+            if (!v.isExtern) {
+                Method* m = nullptr;
+                const Struct& s = getStructByName(result, v.type);
+                std::string type = v.type;
+                if (!v.canBeNil && !v.hasInitializer) {
+                    if (s != Struct::Null) {
+                        m = getMethodByName(result, "init", type);
+                        bool hasDefaultConstructor = false;
+                        if (m->args.size() == 1) {
+                            hasDefaultConstructor = true;
+                        } else {
+                            for (Function* over_ : m->overloads) {
+                            Method* overload = (Method*) over_;
+                                if (overload->args.size() == 1) {
+                                    hasDefaultConstructor = true;
+                                    m = overload;
+                                    break;
+                                }
+                            }
+                        }
+                        if (!hasDefaultConstructor) {
+                            goto noNil;
+                        }
+                    } else {
+                    noNil:
+                        transpilerErrorTok("Uninitialized global '" + v.name + "' with non-nil type '" + type + "'", v.name_token);
+                        errors.push_back(err);
+                    }
+                }
+                type = sclTypeToCType(result, type);
+                if (type == "scl_float" || type == "scl_float32") {
+                    append("%s Var_%s = 0.0;\n", type.c_str(), v.name.c_str());
+                } else {
+                    if (s != Struct::Null && !s.isStatic()) {
+                        append("%s Var_%s = {0};\n", type.c_str(), v.name.c_str());
+                        if (m != nullptr) {
+                            Function* f = new Function("static_init$" + v.name, v.name_token);
+                            f->return_type = "none";
+                            initFuncs.push_back(f);
+                            append("void fn_static_init$%s() {\n", v.name.c_str());
+                            scopeDepth++;
+                            append("%s tmp = _scl_uninitialized_constant(%s);\n", type.c_str(), s.name.c_str());
+                            append("mt_%s$%s(tmp);\n", m->member_type.c_str(), m->name.c_str());
+                            append("Var_%s = tmp;\n", v.name.c_str());
+                            scopeDepth--;
+                            append("}\n", v.name.c_str());
+                        }
+                    } else if (hasTypealias(result, type) || hasLayout(result, type)) {
+                        append("%s Var_%s;\n", type.c_str(), v.name.c_str());
+                    } else {
+                        append("%s Var_%s = 0;\n", type.c_str(), v.name.c_str());
+                    }
+                }
             }
         }
 
@@ -184,8 +239,6 @@ namespace sclc
         append("_scl_constructor void init_this%llx() {\n", rand);
         scopeDepth++;
         append("_scl_setup();\n");
-        std::vector<Function*> creates;
-        std::vector<Function*> destroys;
         for (auto&& f : initFuncs) {
             if (!Main::options::noLinkScale && pathstarts(f->name_token.location.file, scaleFolder + DIR_SEP "Frameworks" DIR_SEP "Scale.framework") && !Main::options::noMain) {
                 const std::string& file = f->name_token.location.file;

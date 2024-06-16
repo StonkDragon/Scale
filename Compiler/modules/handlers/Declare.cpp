@@ -62,7 +62,7 @@ namespace sclc {
             }
         }
         type = sclTypeToCType(result, type);
-        if (type == "scl_float") {
+        if (type == "scl_float" || type == "scl_float32") {
             append("%s Var_%s = 0.0;\n", type.c_str(), v.name.c_str());
         } else {
             if (s != Struct::Null && !s.isStatic() && m != nullptr) {

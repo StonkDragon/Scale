@@ -16,7 +16,7 @@ namespace sclc {
         }
         const Struct& s = getStructByName(result, type.value);
         if (hasLayout(result, type.value)) {
-            append("SCL_ASSUME(_scl_sizeof(_scl_top(scl_any)) >= sizeof(struct Layout_%s), \"Layout '%%s' requires more memory than the pointer has available (required: \" SCL_INT_FMT \" found: \" SCL_INT_FMT \")\", \"%s\", sizeof(struct Layout_%s), _scl_sizeof(_scl_top(scl_any)));", type.value.c_str(), type.value.c_str(), type.value.c_str());
+            append("_scl_assert(_scl_sizeof(_scl_top(scl_any)) >= sizeof(struct Layout_%s), \"Layout '%%s' requires more memory than the pointer has available (required: \" SCL_INT_FMT \" found: \" SCL_INT_FMT \")\", \"%s\", sizeof(struct Layout_%s), _scl_sizeof(_scl_top(scl_any)));", type.value.c_str(), type.value.c_str(), type.value.c_str());
             typePop;
             typeStack.push_back(type.value);
             return;
@@ -27,7 +27,7 @@ namespace sclc {
 
         if (!typeCanBeNil(type.value) && !typealiasCanBeNil(result, type.value)) {
             if (typeCanBeNil(typeStackTop)) {
-                append("SCL_ASSUME(_scl_top(scl_int), \"Nil cannot be cast to non-nil type '%%s'!\", \"%s\");\n", type.value.c_str());
+                append("_scl_assert(_scl_top(scl_int), \"Nil cannot be cast to non-nil type '%%s'!\", \"%s\");\n", type.value.c_str());
             }
         } else {
             if (!typeCanBeNil(typeStackTop) && !isPrimitiveType(type.value)) {

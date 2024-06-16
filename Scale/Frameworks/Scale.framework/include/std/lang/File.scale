@@ -24,29 +24,43 @@ final struct File is Closeable
   private decl _file: __c_file
   private decl _can_close: bool
 
-  static decl stdin: const File
-  static decl stdout: const File
-  static decl stderr: const File
-
-  construct function staticInit(): none
+  static (
     unsafe
-      File {
+      File static {
         "stdin" => _name
         __c_stdin => _file
         false => _can_close
-      } => File::stdin
-      File {
+      }
+    end
+  ) => decl stdin: const File
+  
+  static (
+    unsafe
+      File static {
         "stdout" => _name
         __c_stdout => _file
         false => _can_close
-      } => File::stdout
-      File {
+      }
+    end
+  ) => decl stdout: const File
+  
+  static (
+    unsafe
+      File static {
         "stderr" => _name
         __c_stderr => _file
         false => _can_close
-      } => File::stderr
+      }
     end
-  end
+  ) => decl stderr: const File
+
+  # construct function staticInit(): none
+  #   unsafe
+  #      => File::stdin
+  #      => File::stdout
+  #      => File::stderr
+  #   end
+  # end
 
   function init(name: str): none
     unsafe

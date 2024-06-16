@@ -45,6 +45,7 @@ namespace sclc
         bool isPrivate;
         bool canBeNil;
         std::string typeFromTemplate;
+        bool hasInitializer;
         Variable(std::string name, std::string type);
         Variable(std::string name, std::string type, std::string memberType);
         virtual ~Variable();

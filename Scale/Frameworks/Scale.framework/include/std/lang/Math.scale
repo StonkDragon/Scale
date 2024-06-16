@@ -1,9 +1,9 @@
 static final sealed struct MathConstants
-  decl e: const float
-  decl pi: const float
-  decl nan: const float
-  decl infinity: const float
-  decl negativeInfinity: const float
+  (2.71828182845904523536028747135266250) => decl e: const float
+  (3.14159265358979323846264338327950288) => decl pi: const float
+  (0.0 0.0 /) => decl nan: const float
+  (1.0 0.0 /) => decl infinity: const float
+  (-1.0 0.0 /) => decl negativeInfinity: const float
 end
 
 cdecl "rand"
@@ -14,13 +14,6 @@ cdecl "time"
 private expect foreign unsafe function __c_time(:[int]?): int
 
 construct function mathInitialization(): none
-  2.71828182845904523536028747135266250 => MathConstants::e
-  3.14159265358979323846264338327950288 => MathConstants::pi
-
-  0.0 0.0 / => MathConstants::nan
-  1.0 0.0 / => MathConstants::infinity
-  -1.0 0.0 / => MathConstants::negativeInfinity
-
   unsafe
     time:bits __c_srand
   end

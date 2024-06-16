@@ -603,7 +603,7 @@ namespace sclc {
             if (UNLIKELY(typeCanBeNil(arg.type) || hasEnum(result, arg.type) || arg.type == "varargs" || (hasTypealias(result, arg.type) && typealiasCanBeNil(result, arg.type)))) continue;
 
             if (!arg.name.empty() && arg.type.front() != '@') {
-                append("SCL_ASSUME(*(scl_int*) &Var_%s, \"Argument '%%s' is nil\", \"%s\");\n", arg.name.c_str(), arg.name.c_str());
+                append("_scl_assert(*(scl_int*) &Var_%s, \"Argument '%%s' is nil\", \"%s\");\n", arg.name.c_str(), arg.name.c_str());
             }
         }
         if (!function->has_async) {
@@ -721,7 +721,20 @@ namespace sclc {
                     continue;
                 }
             } else {
-                currentStruct = Struct::Null;
+                if (function->member_type.empty()) {
+                    currentStruct = Struct::Null;
+                } else {
+                    currentStruct = getStructByName(result, function->member_type);
+                    if (UNLIKELY(currentStruct == Struct::Null)) {
+                        if (!hasLayout(result, function->member_type) && !hasEnum(result, function->member_type)) {
+                            transpilerErrorTok("Function '" + function->name + "' is member of unknown Struct '" + function->member_type + "'", function->name_token);
+                            errors.push_back(err);
+                            continue;
+                        }
+                    } else if (UNLIKELY(currentStruct.templateInstance)) {
+                        continue;
+                    }
+                }
             }
 
             const std::string& file = function->name_token.location.file;

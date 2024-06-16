@@ -240,7 +240,6 @@ namespace sclc
     }
 
     bool pathstarts(std::filesystem::path str, std::string prefix) {
-        str = std::filesystem::absolute(str.make_preferred().relative_path());
         return strstarts(str.string(), prefix);
     }
 
@@ -249,7 +248,6 @@ namespace sclc
     }
 
     bool pathcontains(std::filesystem::path str, std::string substr) {
-        str = std::filesystem::absolute(str.make_preferred().relative_path());
         return strcontains(str.string(), substr);
     }
 
@@ -343,11 +341,16 @@ namespace sclc
     }
 
     std::string replaceAll(const std::string& src, const std::string& from, const std::string& to) {
-        try {
-            return regex_replace(src, std::regex(from), to);
-        } catch (std::regex_error& e) {
+        if (from.empty())
             return src;
+
+        std::string str = src;
+        size_t start_pos = 0;
+        while ((start_pos = str.find(from, start_pos)) != std::string::npos) {
+            str.replace(start_pos, from.length(), to);
+            start_pos += to.length();
         }
+        return str;
     }
 
     std::string replaceFirstAfter(const std::string& src, const std::string& from, const std::string& to, int index) {

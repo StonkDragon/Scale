@@ -236,10 +236,7 @@ void Thread$detach0(scl_Thread self) {
 scl_Thread Thread$currentThread(void) {
 	SCL_BACKTRACE("Thread::currentThread(): Thread");
 	if (!_currentThread) {
-		_currentThread = _scl_uninitialized_constant(Thread);
-		_currentThread->name = str_of_exact("Main Thread");
-		_currentThread->nativeThread = nil;
-		_currentThread->function = nil;
+		_currentThread = Var_Thread$mainThread;
 	}
 	return _currentThread;
 }
@@ -399,10 +396,7 @@ scl_str _scl_array_to_string(scl_any* arr) {
 	return (scl_str) virtual_call(s, "append(s;)s;", str_of_exact("]"));
 }
 
-_scl_constructor
-void _scale_framework_init(void) {
-	_scl_setup();
-
-	Var_Thread$mainThread = _currentThread = Thread$currentThread();
-	_scl_set_thread_name(_currentThread->name->data);
-}
+// _scl_constructor
+// void _scale_framework_init(void) {
+// 	_scl_setup();
+// }

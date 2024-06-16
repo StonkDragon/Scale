@@ -16,17 +16,16 @@ private expect foreign unsafe function __c_sprintf(:[int8], :[int8], :varargs): 
 
 macro! IntStruct(type) {
   final static sealed struct $type
-    decl minValue: const $type
-    decl maxValue: const $type
-
-    construct function init(): none
-      1 sizeof $type 8 * 1 - << => $type::minValue
+    (
+      1 sizeof $type 8 * 1 - <<
+    ) => decl minValue: const $type
+    (
       if sizeof $type 8 == then
-        0x7fffffffffffffff => $type::maxValue
+        0x7fffffffffffffff
       else
-        1 sizeof $type 8 * 1 - << 1 - => $type::maxValue
+        1 sizeof $type 8 * 1 - << 1 -
       fi
-    end
+    ) => decl maxValue: const $type
 
     function toString(x: $type): str
       new<int8>[2] => decl out: [int8]
@@ -61,13 +60,8 @@ macro! IntStruct(type) {
 }
 macro! UIntStruct(type) {
   final static sealed struct $type
-    decl minValue: const $type
-    decl maxValue: const $type
-
-    construct function $type(): none
-      0 => $type::minValue
-      -1 => $type::maxValue
-    end
+    (0) => decl minValue: const $type
+    (-1) => decl maxValue: const $type
 
     function toString(x: $type): str
       new<int8>[2] => decl out: [int8]

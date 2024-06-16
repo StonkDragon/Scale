@@ -1,18 +1,11 @@
-construct function float_scale_init(): none
-    1023  => float::maxExponent
-    -1022 => float::minExponent
-    127   => float32::maxExponent
-    -126  => float32::minExponent
-end
-
 cdecl "sprintf"
 private expect foreign unsafe function __c_sprintf(:[int8], :[int8], :varargs): int
 cdecl "atof"
 private expect foreign unsafe function __c_atof(:[int8]): float
 
 final static sealed struct float
-    decl maxExponent: const int
-    decl minExponent: const int
+    (1023) => decl maxExponent: const int
+    (-1022) => decl minExponent: const int
 
     function toString(x: float): str
         if x:isNaN then
@@ -88,8 +81,8 @@ final static sealed struct float
 end
 
 final static sealed struct float32
-    decl maxExponent: const int
-    decl minExponent: const int
+    (127) => decl maxExponent: const int
+    (-126) => decl minExponent: const int
 
     function toString(x: float32): str
         if x:isNaN then

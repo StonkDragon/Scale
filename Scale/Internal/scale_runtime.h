@@ -421,8 +421,6 @@ void				_scl_unlock_ptr(void* lock_ptr);
 
 void				_scl_delete_ptr(void* ptr);
 
-#define				SCL_ASSUME _scl_assert
-
 #include "preproc.h"
 
 #define				func_ptr_on(instance, methodIdentifier) \

@@ -208,7 +208,7 @@ namespace sclc {
                             errors.push_back(err);
                             return;
                         }
-                        append("_scl_push(typeof(&mt_%s$%s), &mt_%s$%s);\n", s.name.c_str(), f->name.c_str(), s.name.c_str(), f->name.c_str());
+                        append("_scl_push(typeof(&mt_%s$%s), &mt_%s$%s);\n", f->member_type.c_str(), f->name.c_str(), f->member_type.c_str(), f->name.c_str());
                         std::string lambdaType = "lambda(" + std::to_string(f->args.size()) + "):" + f->return_type;
                         typeStack.push_back(lambdaType);
                         return;

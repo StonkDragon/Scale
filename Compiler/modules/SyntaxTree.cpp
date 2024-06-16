@@ -684,6 +684,26 @@ namespace sclc {
                 }
                 result.functions.push_back(mt);
             }
+            for (auto&& func : result.functions) {
+                if (func->isMethod || func->member_type != src.name) continue;
+                Function* f = func->clone();
+                f->name = replaceAll(f->name, f->member_type, dest.name);
+                f->name_without_overload = replaceAll(f->name_without_overload, f->member_type, dest.name);
+                f->member_type = dest.name;
+                f->clearArgs();
+                for (Variable arg : func->args) {
+                    arg.type = reparseArgType(arg.type, this->arguments);
+                    f->addArgument(arg);
+                }
+                f->return_type = reparseArgType(f->return_type, this->arguments);
+                for (size_t i = 0; i < f->body.size(); i++) {
+                    if (f->body[i].type != tok_identifier) continue;
+                    if (this->arguments.find(f->body[i].value) != this->arguments.end()) {
+                        f->body[i] = this->arguments.at(f->body[i].value);
+                    }
+                }
+                result.functions.push_back(f); 
+            }
         }
 
         Token& operator[](std::string key) {
@@ -2572,6 +2592,10 @@ namespace sclc {
                     errors.push_back(result);
                     continue;
                 }
+                for (auto&& s : currentStructs) {
+                    currentFunction->addToken(s->name_token);
+                    currentFunction->addToken(Token(tok_double_column, "::", tokens[i].location));
+                }
                 currentFunction->addToken(tokens[i]);
                 i -= 2;
                 functions.push_back(currentFunction);
@@ -2612,6 +2636,7 @@ namespace sclc {
                 }
                 Variable v(name, type);
                 v.name_token = tokens[start];
+                v.hasInitializer = i >= 2 && tokens[start - 2].type == tok_store;
                 if (contains<std::string>(nextAttributes, "expect")) {
                     v.isExtern = true;
                 }
@@ -2674,6 +2699,7 @@ namespace sclc {
                 if (currentStructs.back()->isStatic() || contains<std::string>(nextAttributes, "static")) {
                     v = Variable(currentStructs.back()->name + "$" + name, type, currentStructs.back()->name);
                     v.name_token = name_token;
+                    v.hasInitializer = i >= 2 && tokens[start - 2].type == tok_store;
                     v.isPrivate = (isPrivate || contains<std::string>(nextAttributes, "private"));
                     nextAttributes.clear();
                     if (contains<std::string>(nextAttributes, "expect")) {

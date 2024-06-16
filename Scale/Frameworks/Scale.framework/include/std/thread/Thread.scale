@@ -13,20 +13,21 @@ end
 final sealed open struct MutexError: Error
 
 final sealed struct Thread
-    private static decl threads: Array
+    private static (TypedArray<Thread>::new) => decl threads: Array
     private static decl nextID: int
 
-    static decl mainThread: readonly Thread
+    static (
+        Thread static {
+            "Main Thread" => name
+            nil => func
+            nil => tid
+        }
+    ) => decl mainThread: readonly Thread
 
-    private decl func: lambda(): none
+    private decl func: any
     private decl tid: any
 
     decl name: str
-
-    construct function __privateInit(): none
-        0 => Thread::nextID
-        1 TypedArray<Thread>::new => Thread::threads
-    end
 
     static function stackTrace(): [str]
         Process::stackTrace return
