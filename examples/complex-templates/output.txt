@@ -1,0 +1,13 @@
+Foo
+3.000000
+4
+Hello!
+Hello, World!
+TypedResult<none, str> {Error}
+[A, B, C, D]
+ArrayTest {x: [1, 2, 3, 4]}
+32
+1
+2
+3
+4

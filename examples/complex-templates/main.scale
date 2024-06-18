@@ -1,0 +1,72 @@
+template<T, U>
+static struct IsSame
+    function value(): bool
+        typeid T typeid U == return
+    end
+end
+
+template<T>
+static struct Not
+    function value(): bool
+        T ! return
+    end
+end
+
+template<T>
+struct Foo
+    static function test(a: T, b: T): T
+        if IsSame<T, float>::value then
+            a b * return
+        else
+            a b + return
+        fi
+    end
+end
+
+template<Msg>
+function printMsg(): none
+    Msg puts
+end
+
+template<T, E>
+union TypedResult
+    Ok: T
+    Err: E
+end
+
+layout ArrayTest
+    decl x: @StaticArray<int, 4>
+end
+
+function main(): none
+    if Not<IsSame<any, Float>::value>::value then
+        "Foo" puts
+    fi
+
+    1.0 3.0 Foo<float>::test puts
+    1 3 Foo<int>::test puts
+
+    printMsg<"Hello!">
+    printMsg<"Hello, World!">
+
+    "Error" TypedResult<none, str>::Err puts
+
+    ArrayTest local {
+        (varargs 1 2 3 4 staticArrayOf<int, 4>) => x
+    } => decl x: ArrayTest
+
+    new<str> {
+        "A",
+        "B",
+        "C",
+        "D"
+    } puts
+
+    x puts
+
+    sizeof ArrayTest puts
+
+    foreach i in x.x do
+        i puts
+    done
+end
