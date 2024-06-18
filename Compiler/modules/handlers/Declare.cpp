@@ -1,4 +1,3 @@
-#include <gc/gc_allocator.h>
 
 #include "../../headers/Common.hpp"
 #include "../../headers/TranspilerDefs.hpp"
@@ -21,7 +20,7 @@ namespace sclc {
         safeInc();
         if (body[i].type == tok_column) {
             safeInc();
-            FPResult r = parseType(body, &i, getTemplates(result, function));
+            FPResult r = parseType(body, i);
             if (!r.success) {
                 errors.push_back(r);
                 return;

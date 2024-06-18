@@ -1,4 +1,3 @@
-#include <gc/gc_allocator.h>
 
 #include "../../headers/Common.hpp"
 #include "../../headers/TranspilerDefs.hpp"
@@ -59,6 +58,7 @@ namespace sclc {
             return;
         }
         std::string type = typeStackTop;
+        bool isConst = typeIsConst(type);
         std::string tmp = removeTypeModifiers(type);
         if (tmp.size() > 2 && tmp.front() == '[' && tmp.back() == ']') {
             safeInc();
@@ -222,17 +222,6 @@ namespace sclc {
             }
             functionCall(f, fp, result, warns, errors, body, i);
         } else {
-            // std::string typeRemoved = removeTypeModifiers(type);
-            // if (typeRemoved == "str") {
-            //     if (body[i].value == "toString") {
-            //         return;
-            //     } else if (body[i].value == "view") {
-            //         append("_scl_top(scl_any) = _scl_top(scl_str)->data;\n");
-            //         typePop;
-            //         typeStack.push_back("[int8]");
-            //         return;
-            //     }
-            // }
             if (typeCanBeNil(type)) {
                 {
                     transpilerError("Calling method on maybe-nil type '" + type + "'", i);
@@ -246,6 +235,11 @@ namespace sclc {
             Method* f = getMethodByName(result, body[i].value, s.name);
             if (f->has_private && function->member_type != f->member_type) {
                 transpilerError("'" + body[i].value + "' has private access in Struct '" + s.name + "'", i);
+                errors.push_back(err);
+                return;
+            }
+            if (!f->has_const && isConst) {
+                transpilerError("Cannot call non-const qualified method '" + body[i].value + "' on const instance", i);
                 errors.push_back(err);
                 return;
             }

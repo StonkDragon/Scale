@@ -125,7 +125,7 @@ final sealed struct str is Equatable, Cloneable, Stringifyable, Iterable
     c self:indexOf 0 > return
   end
 
-  function toString(): str
+  const function toString(): str
     self return
   end
 

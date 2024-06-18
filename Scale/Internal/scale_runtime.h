@@ -372,6 +372,9 @@ struct scale_string {
 #define CONCAT(a, b) CONCAT_(a, b)
 #define CONCAT_(a, b) a ## b
 
+#define likely(x) _scl_expect(!!(x), 1)
+#define unlikely(x) _scl_expect(!!(x), 0)
+
 // Get the offset of a member in a struct
 #define _scl_offsetof(type, member) ((scl_int)&((type*)0)->member)
 
@@ -402,8 +405,12 @@ struct scale_string {
 						struct _scl_exception_handler _scl_exception_handler = { .marker = EXCEPTION_HANDLER_MARKER, .finalizer = _then, .finalization_data = _with }; \
 						if (setjmp(_scl_exception_handler.jmp) != 666)
 
+#ifndef SCL_EMBEDDED
 #define				SCL_BACKTRACE(_func_name) \
 						struct _scl_backtrace __scl_backtrace_cur __attribute__((cleanup(_scl_trace_remove))) = { .marker = TRACE_MARKER, .func_name = (_func_name) }
+#else
+#define				SCL_BACKTRACE(_func_name)
+#endif
 
 void				_scl_trace_remove(struct _scl_backtrace*);
 
@@ -474,6 +481,19 @@ _scl_no_return void	_scl_throw(scl_any ex);
 
 _scl_constructor
 void				_scl_setup(void);
+
+#ifdef SCL_EMBEDDED
+static inline scl_any _scl_mark_static(scl_any x) { return x; }
+
+_scl_constructor
+void _scl_setup(void) {}
+
+static inline void _scl_assert(scl_int b, const scl_int8* msg, ...) {
+	if (unlikely(!b)) {
+		abort();
+	}
+}
+#endif
 
 #define _scl_create_string(_data) ({ \
 						const scl_int8* _data_ = (scl_int8*) (_data); \
@@ -626,11 +646,14 @@ scl_int				_scl_identity_hash(scl_any obj);
 scl_any				_scl_alloc_struct(const TypeInfo* statics);
 scl_any				_scl_init_struct(scl_any ptr, const TypeInfo* statics, memory_layout_t* layout);
 scl_int				_scl_is_instance(scl_any ptr);
+#ifndef SCL_EMBEDDED
 scl_any				_scl_mark_static(memory_layout_t* layout);
+#endif
 scl_int				_scl_is_instance_of(scl_any ptr, ID_t type_id);
 scl_any				_scl_get_vtable_function(scl_int onSuper, scl_any instance, const scl_int8* methodIdentifier);
 scl_any				_scl_checked_cast(scl_any instance, ID_t target_type, const scl_int8* target_type_name);
 scl_int8*			_scl_typename_or_else(scl_any instance, const scl_int8* else_);
+ID_t				_scl_typeid_or_else(scl_any instance, ID_t else_);
 scl_any				_scl_cvarargs_to_array(va_list args, scl_int count);
 void				_scl_lock(scl_any obj);
 void				_scl_unlock(scl_any obj);
@@ -762,7 +785,7 @@ static inline void _scl_reset_local_buffer(scl_int* ptr) {
 #define _scl_dec(a)						((a) - 1)
 #define _scl_ann(a)						({ __auto_type _a = (a); _scl_assert(_a, "Expected non-nil value"); _a; })
 #define _scl_elvis(a, b)				({ __auto_type _a = (a); _a ? _a : (b); })
-#ifndef UNSAFE_ARRAY_ACCESS
+#if !defined(UNSAFE_ARRAY_ACCESS) && !defined(SCL_EMBEDDED)
 #define _scl_checked_index(a, i)		({ __auto_type _a = (a); __auto_type _i = (i); _scl_array_check_bounds_or_throw((scl_any*) _a, _i); _a[_i]; })
 #define _scl_checked_write(a, i, w)		({ __auto_type _a = (a); __auto_type _i = (i); _scl_array_check_bounds_or_throw((scl_any*) _a, _i); _scl_putlocal(_a[_i], (w)); })
 #else
@@ -795,9 +818,6 @@ static inline scl_uint64 _scl_rol64(scl_uint64 a, scl_int b) { return (a << b) |
 		scl_int64: _scl_ror64, scl_uint64: _scl_ror64, \
 		scl_int: _scl_ror64, scl_uint: _scl_ror64 \
 	))((a), (b))
-
-#define likely(x) _scl_expect(!!(x), 1)
-#define unlikely(x) _scl_expect(!!(x), 0)
 
 #if defined(__cplusplus)
 }

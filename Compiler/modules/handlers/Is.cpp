@@ -1,4 +1,3 @@
-#include <gc/gc_allocator.h>
 
 #include "../../headers/Common.hpp"
 #include "../../headers/TranspilerDefs.hpp"
@@ -9,7 +8,7 @@ namespace sclc {
     handler(Is) {
         noUnused;
         safeInc();
-        FPResult res = parseType(body, &i);
+        FPResult res = parseType(body, i);
         if (!res.success) {
             errors.push_back(res);
             return;

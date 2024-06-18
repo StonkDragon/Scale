@@ -39,6 +39,9 @@ namespace sclc {
         ~SourceLocation();
         CSourceLocation* toC(void*(*alloc)(size_t), void*(*toString)(char*)) const;
         std::string toString() const;
+
+        bool operator==(const SourceLocation& other) const;
+        bool operator!=(const SourceLocation& other) const;
     };
 
     struct Token {

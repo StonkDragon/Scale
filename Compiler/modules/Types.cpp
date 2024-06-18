@@ -1,4 +1,3 @@
-#include <gc/gc_allocator.h>
 
 #include <array>
 
@@ -11,7 +10,7 @@ namespace sclc {
     extern std::vector<std::string> typeStack;
     extern Struct currentStruct;
 
-    const std::array<std::string, 3> removableTypeModifiers = {"mut ", "const ", "readonly "};
+    const std::array<std::string, 2> removableTypeModifiers{"const ", "readonly "};
 
     std::string notNilTypeOf(std::string t) {
         if (t == "?") return t;
@@ -314,6 +313,31 @@ namespace sclc {
         return true;
     }
 
+    bool checkConstable(TPResult& result, std::vector<Variable>& args) {
+        (void) result;
+        if (args.empty()) {
+            return true;
+        }
+        if (typeStack.size() < args.size()) {
+            return false;
+        }
+
+        if (args.back().type == "varargs") {
+            return true;
+        }
+
+        size_t startIndex = typeStack.size() - args.size();
+
+        for (ssize_t i = args.size() - 1; i >= 0; i--) {
+            bool stackIsConst = typeIsConst(typeStack[startIndex + i]);
+            bool argIsConst = typeIsConst(args[i].type);
+            if (stackIsConst && !argIsConst) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     std::string stackSliceToString(size_t amount) {
         if (typeStack.size() < amount) amount = typeStack.size();
 
@@ -341,15 +365,6 @@ namespace sclc {
         }
         return false;
     }
-
-    std::map<std::string, Token> getTemplates(TPResult& result, Function* func) {
-        if (!func->isMethod) {
-            return std::map<std::string, Token>();
-        }
-        Struct s = getStructByName(result, func->member_type);
-        return s.templates;
-    }
-
 
     bool hasTypealias(TPResult& r, std::string t) {
         t = removeTypeModifiers(t);
@@ -518,9 +533,9 @@ namespace sclc {
         if (type == "uint32") return "u32;";
         if (type == "uint64") return "u64;";
         if (type == "?") return "?;";
-        if (currentStruct.templates.find(type) != currentStruct.templates.end()) {
-            return typeToRTSig(currentStruct.templates[type].value);
-        }
+        // if (currentStruct.templates.find(type) != currentStruct.templates.end()) {
+        //     return typeToRTSig(currentStruct.templates[type].value);
+        // }
         return "L" + type + ";";
     }
 
@@ -551,9 +566,12 @@ namespace sclc {
         if (type == "uint16") return capitalize(typeToSymbol(type.substr(1)));
         if (type == "uint32") return capitalize(typeToSymbol(type.substr(1)));
         if (type == "uint64") return capitalize(typeToSymbol(type.substr(1)));
-        if (currentStruct.templates.find(type) != currentStruct.templates.end()) {
-            return typeToSymbol(currentStruct.templates[type].value);
-        }
+        // if (currentStruct.templates.find(type) != currentStruct.templates.end()) {
+        //     if (currentStruct.templates[type].value == type) {
+        //         return "T" + std::to_string(type.length()) + type;
+        //     }
+        //     return typeToSymbol(currentStruct.templates[type].value);
+        // }
         return std::to_string(type.length()) + type;
     }
 
@@ -600,13 +618,21 @@ namespace sclc {
         if (type == "uint32") return "u32$";
         if (type == "uint64") return "u64$";
         if (type == "?") return "Q$";
-        if (currentStruct.templates.find(type) != currentStruct.templates.end()) {
-            return typeToRTSigIdent(currentStruct.templates[type].value);
-        }
+        // if (currentStruct.templates.find(type) != currentStruct.templates.end()) {
+        //     if (currentStruct.templates[type].value == type) {
+        //         return "T" + type + "$";
+        //     }
+        //     return typeToRTSigIdent(currentStruct.templates[type].value);
+        // }
         return "L" + type + "$";
     }
 
     std::string argsToRTSignatureIdent(Function* f) {
+        static std::unordered_map<Function*, std::string> cache;
+        if (cache.find(f) != cache.end()) {
+            return cache[f];
+        }
+
         std::string args = "$$";
         for (const Variable& v : f->args) {
             std::string type = removeTypeModifiers(v.type);
@@ -617,7 +643,7 @@ namespace sclc {
         }
         args += "$$";
         args += typeToRTSigIdent(f->return_type);
-        return args;
+        return cache[f] = args;
     }
 
     bool argVecEquals(std::vector<Variable>& a, std::vector<Variable>& b) {

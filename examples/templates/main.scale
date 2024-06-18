@@ -7,9 +7,9 @@
 # generic data structures that can be used with
 # any type.
 
-# the T parameter must be a subtype of Int, or Int itself
-# the U parameter must be a subtype of SclObject, or SclObject itself
-struct Foo<T: Int, U: SclObject>
+# Both T and U can be any valid token in Scale
+template<T, U>
+struct Foo
     decl x: T
     decl y: U
 
@@ -31,16 +31,4 @@ function main(): none
     # undefined behavior
     "hello" f:setY
     42:asReference f:setX
-
-    ```scale
-    # passing incompatible types to a templated argument
-    # normally results in a runtime error like this
-    # -> Cannot cast non-object to type 'str'
-    # but here it is actually a compile time error
-    # because 'int' cannot be cast to 'SclObject'
-    # because 'SclObject' is the base type of the 
-    # template argument 'U'
-    
-    42 f:setY
-    ```
 end

@@ -1,4 +1,3 @@
-#include <gc/gc_allocator.h>
 
 #include <sstream>
 
@@ -63,7 +62,7 @@ namespace sclc {
                         fp.flush();
                     }
                 } else {
-                    FPResult r = parseType(body, &i);
+                    FPResult r = parseType(body, i);
                     if (!r.success) {
                         errors.push_back(r);
                         return;

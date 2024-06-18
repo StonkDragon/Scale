@@ -1,4 +1,3 @@
-#include <gc/gc_allocator.h>
 
 #include "../../headers/Common.hpp"
 #include "../../headers/TranspilerDefs.hpp"
@@ -32,7 +31,7 @@ namespace sclc {
         std::string type = "any";
         if (i + 1 < body.size() && body[i + 1].type == tok_as) {
             safeIncN(2);
-            FPResult r = parseType(body, &i, getTemplates(result, function));
+            FPResult r = parseType(body, i);
             if (!r.success) {
                 errors.push_back(r);
                 return;

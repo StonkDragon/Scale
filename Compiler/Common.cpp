@@ -1,5 +1,3 @@
-#include <gc/gc_cpp.h>
-#include <gc/gc_allocator.h>
 
 #if !defined(_WIN32) && !defined(__wasm__)
 #include <execinfo.h>
@@ -72,6 +70,7 @@ namespace sclc
     long long Main::writeTablesTime = 0;
     long long Main::tokenHandleTime = 0;
     long long Main::writeHeaderTime = 0;
+    bool Main::options::embedded = false;
     long long Main::writeStructsTime = 0;
     long long Main::writeGlobalsTime = 0;
     size_t Main::options::errorLimit = 20;
@@ -208,6 +207,12 @@ namespace sclc
 
     #define WRITESIGSTRING(_sig) if (signum == _sig) write(2, #_sig, sizeof(#_sig) - 1)
 
+    jmp_buf global_jmp_buf;
+
+    void throw_up(int sig) {
+        longjmp(global_jmp_buf, sig);
+    }
+
     void signalHandler(int signum) {
         write(2, "\n", 1);
         write(2, "Signal ", 7);
@@ -215,7 +220,8 @@ namespace sclc
         WRITESIGSTRING(SIGSEGV);
         write(2, " received.\n", 11);
         print_trace();
-        exit(1);
+        
+        throw_up(signum);
     }
 
     bool strends(const std::string& str, const std::string& suffix) {
@@ -428,101 +434,100 @@ namespace sclc
 
     void logWarns(std::vector<FPResult>& warns);
 
-    FPResult parseType(std::vector<Token>& body, size_t* i, const std::map<std::string, Token>& typeReplacements) {
-        (void) typeReplacements;
+    FPResult parseType(std::vector<Token>& body, size_t& i) {
         FPResult r;
         r.success = true;
-        r.location = body[*i].location;
-        r.type = body[*i].type;
+        r.location = body[i].location;
+        r.type = body[i].type;
         r.message = "";
         r.value = "";
         std::string type_mods = "";
         bool isConst = false;
         bool isReadonly = false;
 
-        if ((body[*i].type == tok_identifier && body[*i].value == "*") || body[*i].type == tok_addr_of) {
-            if (body[*i].type != tok_addr_of) {
+        if ((body[i].type == tok_identifier && body[i].value == "*") || body[i].type == tok_addr_of) {
+            if (body[i].type != tok_addr_of) {
                 FPResult r2;
                 r2.success = true;
-                r2.location = body[*i].location;
-                r2.value = body[*i].value;
-                r2.type = body[*i].type;
+                r2.location = body[i].location;
+                r2.value = body[i].value;
+                r2.type = body[i].type;
                 r2.message = "Using '*' to denote a value-type is deprecated. Use '@' instead";
                 r.warns.push_back(r2);
                 logWarns(r.warns);
             }
             type_mods += "@";
-            (*i)++;
+            i++;
         }
 
-        while (body[(*i)].value == "const"|| body[(*i)].value == "readonly") {
-            if (!isConst && body[(*i)].value == "const") {
+        while (body[i].value == "const"|| body[i].value == "readonly") {
+            if (!isConst && body[i].value == "const") {
                 type_mods += "const ";
                 isConst = true;
-            } else if (!isReadonly && body[(*i)].value == "readonly") {
+            } else if (!isReadonly && body[i].value == "readonly") {
                 type_mods += "readonly ";
                 isReadonly = true;
             }
-            (*i)++;
+            i++;
         }
-        if (body[*i].type == tok_lambda) {
+        if (body[i].type == tok_lambda) {
             r.value = type_mods + "lambda";
-            if (body[*i + 1].type == tok_paren_open) {
-                (*i)++;
+            if (body[i + 1].type == tok_paren_open) {
+                i++;
                 r.value += "(";
                 int count = 0;
-                if (body[*i].type == tok_paren_open) {
-                    (*i)++;
-                    while (body[*i].type != tok_paren_close) {
+                if (body[i].type == tok_paren_open) {
+                    i++;
+                    while (body[i].type != tok_paren_close) {
                         FPResult tmp = parseType(body, i);
                         if (!tmp.success) return tmp;
-                        (*i)++;
-                        if (body[*i].type == tok_comma) {
-                            (*i)++;
+                        i++;
+                        if (body[i].type == tok_comma) {
+                            i++;
                         }
                         count++;
                     }
-                    (*i)++;
+                    i++;
                 }
                 r.value += std::to_string(count) + ")";
-                if (body[*i].type == tok_column) {
-                    (*i)++;
+                if (body[i].type == tok_column) {
+                    i++;
                     FPResult tmp = parseType(body, i);
                     if (!tmp.success) return tmp;
                     r.value += ":" + tmp.value;
                 } else {
-                    (*i)--;
+                    i--;
                     r.value += ":none";
                 }
             }
-        } else if (body[*i].type == tok_identifier) {
-            r.value = type_mods + body[*i].value;
-            if (body[*i].value == "async") {
-                (*i)++;
-                if (r.type != tok_identifier || body[*i].value != "<") {
+        } else if (body[i].type == tok_identifier) {
+            r.value = type_mods + body[i].value;
+            if (body[i].value == "async") {
+                i++;
+                if (r.type != tok_identifier || body[i].value != "<") {
                     r.success = false;
-                    r.message = "Expected '<', but got '" + body[*i].value + "'";
+                    r.message = "Expected '<', but got '" + body[i].value + "'";
                     return r;
                 }
-                (*i)++;
+                i++;
                 FPResult tmp = parseType(body, i);
                 if (!tmp.success) return tmp;
                 r.value += "<" + tmp.value + ">";
-                (*i)++;
+                i++;
                 return r;
-            } else if (*i + 1 < body.size() && body[*i + 1].type == tok_double_column) {
-                (*i)++;
-                (*i)++;
+            } else if (i + 1 < body.size() && body[i + 1].type == tok_double_column) {
+                i++;
+                i++;
                 FPResult tmp = parseType(body, i);
                 if (!tmp.success) return tmp;
                 r.value += "$" + tmp.value;
             }
-        } else if (body[*i].type == tok_question_mark || body[*i].value == "?") {
+        } else if (body[i].type == tok_question_mark || body[i].value == "?") {
             r.value = type_mods + "?";
-        } else if (body[*i].type == tok_bracket_open) {
+        } else if (body[i].type == tok_bracket_open) {
             std::string type = "[";
             std::string size = "";
-            (*i)++;
+            i++;
             r = parseType(body, i);
             if (!r.success) {
                 return r;
@@ -531,26 +536,26 @@ namespace sclc
             if (size.size()) {
                 type += ";" + size;
             }
-            (*i)++;
-            if (body[*i].type == tok_bracket_close) {
+            i++;
+            if (body[i].type == tok_bracket_close) {
                 type += "]";
                 r.value = type_mods + type;
             } else {
-                r.message = "Expected ']', but got '" + body[*i].value + "'";
-                r.value = type_mods + body[*i].value;
-                r.location = body[*i].location;
-                r.type = body[*i].type;
+                r.message = "Expected ']', but got '" + body[i].value + "'";
+                r.value = type_mods + body[i].value;
+                r.location = body[i].location;
+                r.type = body[i].type;
                 r.success = false;
             }
         } else {
             r.success = false;
-            r.location = body[*i].location;
-            r.value = body[*i].value;
-            r.type = body[*i].type;
-            r.message = "Unexpected token: '" + body[*i].toString() + "'";
+            r.location = body[i].location;
+            r.value = body[i].value;
+            r.type = body[i].type;
+            r.message = "Unexpected token: '" + body[i].toString() + "'";
         }
-        if (body[(*i + 1)].value == "?") {
-            (*i)++;
+        if (i + 1 < body.size() && body[i + 1].value == "?") {
+            i++;
             r.value += "?";
         }
         return r;
@@ -818,6 +823,7 @@ namespace sclc
     }
 
     bool typeIsReadonly(std::string s) {
+        if (s.empty()) return false;
         if (s.size() && s.front() == '@') s.erase(0, 1);
         while (strstarts(s, "const ")) {
             s.erase(0, 6);
@@ -826,6 +832,7 @@ namespace sclc
     }
 
     bool typeIsConst(std::string s) {
+        if (s.empty()) return false;
         if (s.size() && s.front() == '@') s.erase(0, 1);
         while (strstarts(s, "readonly ")) {
             s.erase(0, 9);
@@ -891,6 +898,11 @@ namespace sclc
             currentType = typePointedTo(currentType);
         }
 
+        if (doesWriteAfter && !v.isWritableFrom(currentFunction)) {
+            transpilerError("Variable '" + v.name + "' is not mutable", i);
+            errors.push_back(err);
+        }
+
         Struct s = Struct::Null;
         Layout l = EmptyLayout;
         while (i + 1 < body.size() && (body[i + 1].type == tok_dot || body[i + 1].type == tok_bracket_open)) {
@@ -942,13 +954,11 @@ namespace sclc
                 if (!v.isAccessible(currentFunction)) {
                     transpilerError("'" + body[i].value + "' has private access in Struct '" + s.name + "'", i);
                     errors.push_back(err);
-                    return;
                 }
 
                 if (doesWriteAfter && !v.isWritableFrom(currentFunction)) {
                     transpilerError("Variable '" + v.name + "' is not mutable", i);
                     errors.push_back(err);
-                    return;
                 }
 
                 Method* f = nullptr;
@@ -1018,6 +1028,7 @@ namespace sclc
                     path = "(*" + path + ")";
                 }
             } else if (body[i].type == tok_bracket_open) {
+                size_t start = i;
                 safeInc();
 
                 if (body[i].type == tok_bracket_close) {
@@ -1047,7 +1058,7 @@ namespace sclc
                 } else if (getElem) {
                     m = getMethodByName(result, "[]", arrayType);
                     if (m == nullptr) {
-                        transpilerError("Type '" + arrayType + "' does not overload operator '[]'", i);
+                        transpilerError("Type '" + arrayType + "' does not overload operator '[]'", start);
                         errors.push_back(err);
                         return;
                     }
@@ -1055,7 +1066,7 @@ namespace sclc
                 } else {
                     m = getMethodByName(result, "=>[]", arrayType);
                     if (m == nullptr) {
-                        transpilerError("Type '" + arrayType + "' does not overload operator '=>[]'", i);
+                        transpilerError("Type '" + arrayType + "' does not overload operator '=>[]'", start);
                         errors.push_back(err);
                         return;
                     }
@@ -1064,13 +1075,19 @@ namespace sclc
                 std::string indexType = removeTypeModifiers(typeStackTop);
                 typePop;
                 if (!typeEquals(indexType, removeTypeModifiers(indexingType))) {
-                    transpilerError("'" + arrayType + "' cannot be indexed with '" + indexType + "'", i);
+                    transpilerError("'" + arrayType + "' cannot be indexed with '" + indexType + "'", start);
                     errors.push_back(err);
                     return;
                 }
 
                 if (primitive) {
                     currentType = arrayType.substr(1, arrayType.size() - 2);
+
+                    if (doesWriteAfter && typeIsConst(currentType)) {
+                        transpilerError("Variable '" + v.name + "' is an array of '" + currentType + "' which is not mutable", start);
+                        errors.push_back(err);
+                    }
+
                     if (getElem) {
                         path = "_scl_checked_index(" + path + ", " + index + ")";
                     } else {
@@ -1113,6 +1130,12 @@ namespace sclc
                         return;
                     }
                 } else {
+                    if (currentType.front() == '@' && m->args.back().type.front() != '@') {
+                        path = "&" + path;
+                    } else if (currentType.front() != '@' && m->args.back().type.front() == '@') {
+                        path = "*" + path;
+                    }
+
                     if (getElem) {
                         path = "mt_" + arrayType + "$" + m->name + "(" + path + ", " + index + ")";
                         currentType = m->return_type;
@@ -1198,14 +1221,12 @@ namespace sclc
                 }
                 path += "tmp)";
             }
-        // } else {
-        //     path = "_scl_getlocal(" + path + ")";
         }
         
         onComplete(path, currentType);
     }
 
-    std::pair<std::string, std::string> findNth(std::map<std::string, std::string> val, size_t n) {
+    std::pair<std::string, std::string> findNth(std::unordered_map<std::string, std::string> val, size_t n) {
         size_t i = 0;
         for (auto&& member : val) {
             if (i == n) {
@@ -1431,3 +1452,63 @@ namespace sclc
         }
     }
 } // namespace sclc
+
+struct alloc_data {
+    size_t bytes_alloced;
+    size_t bytes_freed;
+    size_t new_calls;
+    size_t delete_calls;
+
+    alloc_data() {
+        bytes_alloced = 0;
+        bytes_freed = 0;
+        new_calls = 0;
+        delete_calls = 0;
+    }
+
+    ~alloc_data() {
+        DBG_NOALLOC("Allocated %zu bytes (%zu new calls)\n", bytes_alloced, new_calls);
+        DBG_NOALLOC("Freed %zu bytes (%zu delete calls)\n", bytes_freed, delete_calls);
+        DBG_NOALLOC("Leaked %zu bytes\n", bytes_alloced - bytes_freed);
+    }
+};
+
+static alloc_data adata;
+
+void* operator new(size_t x) {
+	x = ((x + 7) >> 3) << 3;
+	if (x < 32) x = 32;
+
+    adata.bytes_alloced += x;
+    adata.new_calls++;
+
+    size_t* a = (size_t*) malloc(x + sizeof(size_t));
+    if (a == nullptr) {
+        throw std::bad_alloc();
+    }
+
+    *a = x;
+    return (void*) ((ptrdiff_t) a + sizeof(size_t));
+}
+void operator delete(void* x) noexcept {
+    adata.delete_calls++;
+    size_t* a = (size_t*) ((ptrdiff_t) x - sizeof(size_t));
+    adata.bytes_freed += *a;
+
+    free(a);
+}
+
+void* operator new(size_t x, std::nothrow_t&) noexcept
+    { return operator new(x); }
+void* operator new[](size_t x)
+    { return operator new(x); }
+void* operator new[](size_t x, std::nothrow_t&) noexcept
+    { return operator new(x); }
+
+void operator delete(void* x, std::nothrow_t&) noexcept
+    { operator delete(x); }
+void operator delete[](void* x) noexcept
+    { operator delete(x); }
+void operator delete[](void* x, std::nothrow_t&) noexcept
+    { operator delete(x); }
+

@@ -1,4 +1,3 @@
-#include <gc/gc_allocator.h>
 
 #include <iostream>
 #include <string>

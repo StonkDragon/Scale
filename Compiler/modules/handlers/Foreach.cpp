@@ -1,4 +1,3 @@
-#include <gc/gc_allocator.h>
 
 #include "../../headers/Common.hpp"
 #include "../../headers/TranspilerDefs.hpp"
@@ -30,7 +29,7 @@ namespace sclc {
             safeInc();
             if (body[i].type == tok_column) {
                 safeInc();
-                FPResult type = parseType(body, &i);
+                FPResult type = parseType(body, i);
                 if (!type.success) {
                     errors.push_back(type);
                     return;
@@ -60,7 +59,7 @@ namespace sclc {
             safeInc();
             if (body[i].type == tok_column) {
                 safeInc();
-                FPResult type = parseType(body, &i);
+                FPResult type = parseType(body, i);
                 if (!type.success) {
                     errors.push_back(type);
                     return;
@@ -115,11 +114,13 @@ namespace sclc {
         
         Struct s = getStructByName(result, typeStackTop);
         if (s == Struct::Null) {
-            transpilerError("Can only iterate over structs and arrays, but got '" + typeStackTop + "'", i);
-            errors.push_back(err);
-            return;
-        }
-        if (!structImplements(result, s, "Iterable")) {
+            const Layout& l = getLayout(result, typeStackTop);
+            if (l.name.empty()) {
+                transpilerError("Can only iterate over structs, layouts and arrays, but got '" + typeStackTop + "'", i);
+                errors.push_back(err);
+                return;
+            }
+        } else if (!structImplements(result, s, "Iterable")) {
             transpilerError("Struct '" + typeStackTop + "' is not iterable", i);
             errors.push_back(err);
             return;

@@ -1,4 +1,3 @@
-#include <gc/gc_allocator.h>
 
 #include "../../headers/Common.hpp"
 #include "../../headers/TranspilerDefs.hpp"
@@ -48,7 +47,7 @@ namespace sclc {
             }
         } else if (body[i].value == "typeof") {
             safeInc();
-            auto templates = currentStruct.templates;
+            // auto templates = currentStruct.templates;
             if (hasVar(body[i].value)) {
                 std::string type = getVar(body[i].value).type;
                 const Struct& s = getStructByName(result, type);
@@ -84,7 +83,7 @@ namespace sclc {
                 append("}\n");
                 typePop;
             } else {
-                FPResult res = parseType(body, &i);
+                FPResult res = parseType(body, i);
                 if (!res.success) {
                     errors.push_back(res);
                     return;
@@ -92,6 +91,52 @@ namespace sclc {
                 append("_scl_push(scl_str, _scl_create_string(\"%s\"));\n", retemplate(res.value).c_str());
             }
             typeStack.push_back("str");
+        } else if (body[i].value == "typeid") {
+            safeInc();
+            // auto templates = currentStruct.templates;
+            if (hasVar(body[i].value)) {
+                std::string type = getVar(body[i].value).type;
+                const Struct& s = getStructByName(result, type);
+                if (s != Struct::Null && !s.isStatic()) {
+                    if (type.front() == '@') {
+                        append("_scl_push(scl_uint, Var_%s.$type->type);\n", body[i].value.c_str());
+                    } else {
+                        append("_scl_push(scl_uint, Var_%s->$type->type);\n", body[i].value.c_str());
+                    }
+                } else {
+                    append("_scl_push(scl_uint, _scl_typeid_or_else(*(scl_any*) &Var_%s, 0x%016llxULL));\n", getVar(body[i].value).name.c_str(), id(retemplate(getVar(body[i].value).type).c_str()));
+                }
+            } else if (hasFunction(result, body[i].value)) {
+                Function* f = getFunctionByName(result, body[i].value);
+                std::string lambdaType = "lambda(" + std::to_string(f->args.size()) + "):" + f->return_type;
+                append("_scl_push(scl_int, 0x%016llx);\n", id(lambdaType.c_str()));
+            } else if (body[i].type == tok_paren_open) {
+                append("{\n");
+                scopeDepth++;
+                size_t stack_start = typeStack.size();
+                handle(ParenOpen);
+                if (typeStack.size() <= stack_start) {
+                    transpilerError("Expected expression evaluating to a value after 'typeid'", i);
+                    errors.push_back(err);
+                }
+                const Struct& s = getStructByName(result, typeStackTop);
+                if (s != Struct::Null && !s.isStatic()) {
+                    append("_scl_top(scl_uint) = _scl_top(scl_SclObject)->$type->type;\n");
+                } else {
+                    append("_scl_top(scl_uint) = _scl_typeid_or_else(_scl_top(scl_any), 0x%016llxULL);\n", id(retemplate(typeStackTop).c_str()));
+                }
+                scopeDepth--;
+                append("}\n");
+                typePop;
+            } else {
+                FPResult res = parseType(body, i);
+                if (!res.success) {
+                    errors.push_back(res);
+                    return;
+                }
+                append("_scl_push(scl_uint, 0x%016llxULL);\n", id(retemplate(res.value).c_str()));
+            }
+            typeStack.push_back("uint");
         } else if (body[i].value == "nameof") {
             safeInc();
             if (hasVar(body[i].value)) {
@@ -104,7 +149,6 @@ namespace sclc {
             }
         } else if (body[i].value == "sizeof") {
             safeInc();
-            auto templates = getTemplates(result, function);
             if (isPrimitiveType(body[i].value)) {
                 append("_scl_push(scl_int, sizeof(%s));\n", sclTypeToCType(result, body[i].value).c_str());
             } else if (body[i].value == "none" || body[i].value == "nothing") {
@@ -117,18 +161,8 @@ namespace sclc {
                 append("_scl_push(scl_int, sizeof(%s));\n", sclTypeToCType(result, body[i].value).c_str());
             } else if (hasLayout(result, body[i].value)) {
                 append("_scl_push(scl_int, sizeof(struct Layout_%s));\n", body[i].value.c_str());
-            } else if (templates.find(body[i].value) != templates.end()) {
-                std::string replaceWith = templates[body[i].value].value;
-                if (getStructByName(result, replaceWith) != Struct::Null)
-                    append("_scl_push(scl_int, sizeof(struct Struct_%s));\n", replaceWith.c_str());
-                else if (hasTypealias(result, replaceWith))
-                    append("_scl_push(scl_int, sizeof(%s));\n", sclTypeToCType(result, replaceWith).c_str());
-                else if (hasLayout(result, replaceWith))
-                    append("_scl_push(scl_int, sizeof(struct Layout_%s));\n", replaceWith.c_str());
-                else
-                    append("_scl_push(scl_int, sizeof(%s));\n", sclTypeToCType(result, replaceWith).c_str());
             } else {
-                FPResult type = parseType(body, &i, getTemplates(result, function));
+                FPResult type = parseType(body, i);
                 if (!type.success) {
                     transpilerError("Unknown Type: '" + body[i].value + "'", i);
                     errors.push_back(err);
@@ -317,7 +351,7 @@ namespace sclc {
                     append("%s Var_super = Var_self;\n", sclTypeToCType(result, getVar("self").type).c_str());
                 }
                 append("scl_%s Var_self = tmp;\n", s.name.c_str());
-                vars.push_back(Variable("self", "mut " + s.name));
+                vars.push_back(Variable("self", s.name));
                 std::vector<std::string> missedMembers;
 
                 size_t membersToInitialize = 0;
@@ -398,7 +432,7 @@ namespace sclc {
                     append("_scl_push(scl_any, _scl_alloc(sizeof(struct Layout_%s)));\n", l.name.c_str());
                     typeStack.push_back(l.name);
                 } else if (body[i].value == "local") {
-                    append("_scl_push(scl_any, _scl_stack_alloc_ctype(sizeof(struct Layout_%s)));\n", l.name.c_str());
+                    append("_scl_push(scl_any, _scl_stack_alloc_ctype(struct Layout_%s));\n", l.name.c_str());
                     typeStack.push_back(l.name);
                 } else {
                     transpilerError("Expected 'new' to create new layout, but got '" + body[i].value + "'", i);
@@ -427,7 +461,7 @@ namespace sclc {
                     append("%s Var_super = Var_self;\n", sclTypeToCType(result, getVar("self").type).c_str());
                 }
                 append("scl_%s Var_self = tmp;\n", l.name.c_str());
-                vars.push_back(Variable("self", "mut " + l.name));
+                vars.push_back(Variable("self", l.name));
                 std::vector<std::string> missedMembers;
 
                 size_t membersToInitialize = 0;
@@ -472,7 +506,11 @@ namespace sclc {
                         errors.push_back(err);
                         return;
                     }
-                    append("tmp->%s = _scl_pop(%s);\n", body[i].value.c_str(), sclTypeToCType(result, lastType).c_str());
+                    if (v.type.front() == '@' && lastType.front() != '@') {
+                        append("tmp->%s = *_scl_pop(%s);\n", body[i].value.c_str(), sclTypeToCType(result, lastType).c_str());
+                    } else {
+                        append("tmp->%s = _scl_pop(%s);\n", body[i].value.c_str(), sclTypeToCType(result, lastType).c_str());
+                    }
                     typePop;
                     scopeDepth--;
                     append("}\n");

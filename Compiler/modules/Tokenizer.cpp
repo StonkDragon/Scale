@@ -1,4 +1,3 @@
-#include <gc/gc_allocator.h>
 
 #include <iostream>
 #include <string.h>
@@ -43,8 +42,21 @@ namespace sclc
         String,
     };
 
-    Tokenizer::Tokenizer() {current = 0;}
+    Tokenizer::Tokenizer() { reset(); }
     Tokenizer::~Tokenizer() {}
+
+    void Tokenizer::reset() {
+        tokens.clear();
+        errors.clear();
+        warns.clear();
+        source = nullptr;
+        current = 0;
+        additional = false;
+        line = 1;
+        column = 1;
+        begin = 1;
+        filename = "";
+    }
 
     Token Tokenizer::nextToken() {
         if (current >= strlen(source)) {
@@ -541,6 +553,9 @@ namespace sclc
         this->source = (char*) data.c_str();
 
         token = nextToken();
+        
+        this->tokens.reserve(data.size() + this->tokens.capacity());
+
         while (token.type != tok_eof) {
             this->tokens.push_back(token);
             if (additional) {
@@ -592,6 +607,8 @@ namespace sclc
             if (tokens[i].type != tok_identifier) continue;
             if (tokens[i].value != "import") continue;
 
+            ssize_t start = i;
+
             i++;
             if (i >= (long) tokens.size()) {
                 FPResult r;
@@ -642,6 +659,10 @@ namespace sclc
                 }
                 break;
             }
+            
+            tokens.erase(tokens.begin() + start, tokens.begin() + i + 1);
+            i = start - 1;
+
             if (found) continue;
 
             std::string file = replaceCharWithChar(moduleName, '.', PATH_SEPARATOR[0]);

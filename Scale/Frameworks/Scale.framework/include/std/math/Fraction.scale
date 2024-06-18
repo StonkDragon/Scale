@@ -7,10 +7,8 @@ final struct Fraction
         denominator => self.denominator
     end
 
-    function toString(): str
-        self:lock
+    const function toString(): str
         numerator:toString "/" + denominator:toString +
-        self:unlock
         return
     end
 

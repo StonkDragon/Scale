@@ -40,6 +40,8 @@ namespace sclc
         std::vector<Layout> layouts;
         std::vector<Enum> enums;
         std::unordered_map<std::string, std::pair<std::string, bool>> typealiases;
+
+        ~TPResult();
     };
 
     template<typename R, typename E>

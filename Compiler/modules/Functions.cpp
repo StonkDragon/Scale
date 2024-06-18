@@ -1,4 +1,3 @@
-#include <gc/gc_allocator.h>
 
 #include <csignal>
 
@@ -30,7 +29,7 @@ namespace sclc {
     extern std::vector<std::string> typeStack;
     extern Function* currentFunction;
     extern Struct currentStruct;
-    extern std::map<std::string, std::vector<Method*>> vtables;
+    extern std::unordered_map<std::string, std::vector<Method*>> vtables;
     extern int isInUnsafe;
 
     std::unordered_map<Function*, std::string> functionPtrs;
@@ -141,7 +140,7 @@ namespace sclc {
         bool closeThePush = false;
         if (f->return_type.size() && f->return_type.front() == '@' && !f->has_async) {
             const Struct& s = getStructByName(result, f->return_type);
-            append("_scl_push_value(%s, %S, ", sclTypeToCType(result, f->return_type).c_str(), (s != Struct::Null ? "MEM_FLAG_INSTANCE" : ""));
+            append("_scl_push_value(%s, %s, ", sclTypeToCType(result, f->return_type).c_str(), (s != Struct::Null ? "MEM_FLAG_INSTANCE" : "0"));
             closeThePush = true;
         } else {
             if (f->return_type != "none" && f->return_type != "nothing" && !f->has_async) {
@@ -408,7 +407,7 @@ namespace sclc {
             safeInc();
             std::vector<std::string> argTypes;
             while (body[i].value != ">") {
-                FPResult type = parseType(body, &i, getTemplates(result, self));
+                FPResult type = parseType(body, i);
                 if (!type.success) {
                     errors.push_back(type);
                     return;
@@ -549,7 +548,7 @@ namespace sclc {
         bool closeThePush = false;
         if (self->return_type.size() && self->return_type.front() == '@' && !self->has_async) {
             const Struct& s = getStructByName(result, self->return_type);
-            append("_scl_push_value(%s, %s, ", sclTypeToCType(result, self->return_type).c_str(), (s != Struct::Null ? "MEM_FLAG_INSTANCE" : ""));
+            append("_scl_push_value(%s, %s, ", sclTypeToCType(result, self->return_type).c_str(), (s != Struct::Null ? "MEM_FLAG_INSTANCE" : "0"));
             closeThePush = true;
         } else {
             if (self->return_type != "none" && self->return_type != "nothing" && !self->has_async) {
@@ -679,8 +678,44 @@ namespace sclc {
         return "???";
     }
 
-    std::string reparseArgType(std::string type, const std::map<std::string, Token>& templateArgs);
-    std::string reparseArgType(std::string type, const std::unordered_map<std::string, std::string>& templateArgs);
+    template<typename T>
+    std::string _reparseArgType(std::string type, const std::unordered_map<std::string, T>& templateArgs, const std::string& target) {
+        std::string mods = "";
+        bool isVal = type.front() == '@';
+        bool isNil = type.back() == '?';
+        type = removeTypeModifiers(type);
+        if (type == "Self") {
+            return mods + target + (isNil ? "?" : "");
+        }
+        if (isVal) {
+            return "@" + mods + _reparseArgType(type.substr(1), templateArgs, target);
+        } else if (type.front() == '[') {
+            std::string inner = type.substr(1, type.size() - 2);
+            return "[" + _reparseArgType(inner, templateArgs, target) + "]" + (isNil ? "?" : "");
+        }
+        if (strstarts(type, "lambda(")) {
+            std::string lt = type.substr(0, type.find(':'));
+            std::string ret = type.substr(type.find(':') + 1);
+            type = lt + ":" + _reparseArgType(ret, templateArgs, target);
+        }
+        if (templateArgs.find(type) != templateArgs.end()) {
+            if constexpr (std::is_same_v<T, Token>) {
+                type = templateArgs.at(type).value;
+            } else {
+                type = templateArgs.at(type);
+            }
+        }
+        return mods + type + (isNil ? "?" : "");
+    }
+
+    std::string reparseArgType(std::string type, const std::unordered_map<std::string, std::string>& templateArgs, const std::string& target) {
+        return _reparseArgType(type, templateArgs, target);
+    }
+
+    std::string reparseArgType(std::string type, const std::unordered_map<std::string, Token>& templateArgs, const std::string& target) {
+        return _reparseArgType(type, templateArgs, target);
+    }
+
     std::string argsToRTSignatureIdent(Function* f);
 
     std::string declassifyReify(const std::string& what) {
@@ -731,8 +766,7 @@ namespace sclc {
             if (param.empty()) {
                 continue;
             }
-            std::string decl = declassifyReify(param);
-            reified_mappings[decl] = reifyType(param, removeTypeModifiers(types[i]));
+            reified_mappings[declassifyReify(param)] = reifyType(param, removeTypeModifiers(types[i]));
         }
         bool has_A_type = false;
         bool has_B_type = false;
@@ -773,14 +807,16 @@ namespace sclc {
         Function* f = self->clone();
         if (f->isMethod) {
             ((Method*) f)->force_add = true;
-            f->addModifier("nonvirtual");
+            if (!f->has_nonvirtual) {
+                f->addModifier(std::string("nonvirtual"));
+            }
         }
         f->clearArgs();
         for (Variable arg : self->args) {
-            arg.type = reparseArgType(arg.type, reified_mappings);
+            arg.type = reparseArgType(arg.type, reified_mappings, f->member_type);
             f->addArgument(arg);
         }
-        f->return_type = reparseArgType(f->return_type, reified_mappings);
+        f->return_type = reparseArgType(f->return_type, reified_mappings, f->member_type);
         f->name_token.location = body[i].location;
         std::string sigident = argsToRTSignatureIdent(f);
         f->name = f->name_without_overload + sigident;
@@ -789,8 +825,7 @@ namespace sclc {
             if (f2->isMethod != f->isMethod) continue;
             if (f2->name_without_overload != f->name_without_overload) continue;
             if (f2->has_reified) continue;
-            std::string ident = argsToRTSignatureIdent(f2);
-            if (sigident == ident) {
+            if (sigident == argsToRTSignatureIdent(f2)) {
                 contains = true;
                 break;
             }
@@ -800,7 +835,7 @@ namespace sclc {
         }
         f->has_reified = 0;
         f->reified_parameters = self->reified_parameters;
-        std::string arguments = "";
+        std::string arguments;
         if (f->args.empty() && !f->has_async) {
             arguments = "void";
         } else {
@@ -856,7 +891,7 @@ namespace sclc {
             }
             safeInc();
             while (body[i].value != ">") {
-                FPResult type = parseType(body, &i, getTemplates(result, currentFunction));
+                FPResult type = parseType(body, i);
                 if (!type.success) {
                     errors.push_back(type);
                     return nullptr;
@@ -960,7 +995,7 @@ namespace sclc {
             safeInc();
             std::vector<std::string> argTypes;
             while (body[i].value != ">") {
-                FPResult type = parseType(body, &i, getTemplates(result, self));
+                FPResult type = parseType(body, i);
                 if (!type.success) {
                     errors.push_back(type);
                     return;
@@ -1015,6 +1050,9 @@ namespace sclc {
             if (have_reified) {
                 found = true;
                 self = generateReifiedFunction(have_reified, fp, result, errors, body, i, argTypes);
+                if (self == nullptr) {
+                    return;
+                }
             }
             if (!found) {
                 transpilerError("No overload of '" + self->name + "' with arguments [ " + argVectorToString(argTypes) + " ] found", begin);
@@ -1063,6 +1101,9 @@ namespace sclc {
                         }
                     }
                     self = reifiedPreamble(self, fp, result, errors, body, i);
+                    if (self == nullptr) {
+                        return;
+                    }
                 }
             after:
                 size_t sym = self->has_operator;
@@ -1185,7 +1226,7 @@ namespace sclc {
         bool closeThePush = false;
         if (self->return_type.size() && self->return_type.front() == '@' && !self->has_async) {
             const Struct& s = getStructByName(result, self->return_type);
-            append("_scl_push_value(%s, %s, ", sclTypeToCType(result, self->return_type).c_str(), (s != Struct::Null ? "MEM_FLAG_INSTANCE" : ""));
+            append("_scl_push_value(%s, %s, ", sclTypeToCType(result, self->return_type).c_str(), (s != Struct::Null ? "MEM_FLAG_INSTANCE" : "0"));
             closeThePush = true;
         } else {
             if (removeTypeModifiers(self->return_type) != "none" && removeTypeModifiers(self->return_type) != "nothing" && !self->has_async) {
@@ -1252,18 +1293,26 @@ namespace sclc {
             return cache[type];
         }
 
+        if (strstarts(type, "$T")) type = type.substr(2);
+
         std::string ret = "";
         const char* s = type.c_str();
         while (*s) {
-            if (strncmp(s, "$$b", 3) == 0) {
+            if (strncmp(s, "$$B", 3) == 0) {
                 ret += "<";
                 s += 3;
-            } else if (strncmp(s, "$$e", 3) == 0) {
+            } else if (strncmp(s, "$$E", 3) == 0) {
                 ret += ">";
                 s += 3;
-            } else if (strncmp(s, "$$n", 3) == 0) {
-                ret += ", ";
-                s += 3;
+            } else if (strncmp(s, "$x", 2) == 0) {
+                s += 2;
+                const char data[] = {
+                    s[0],
+                    s[1],
+                    0
+                };
+                s += 2;
+                ret += (char) std::strtol(data, nullptr, 16);
             } else if (*s == '$') {
                 ret += "::";
                 s++;
@@ -1281,6 +1330,10 @@ namespace sclc {
         name = sclFunctionNameToFriendlyString(name);
         if (f->isMethod) {
             name = retemplate(f->member_type) + ":" + name;
+        } else if (!f->member_type.empty()) {
+            name = retemplate(f->member_type) + "::" + name.substr(f->member_type.size() + 1);
+        } else if (strcontains(name, "$$B")) {
+            name = retemplate(name);
         }
         if (f->has_lambda) {
             name += "[" + std::to_string(f->lambdaIndex) + "]";

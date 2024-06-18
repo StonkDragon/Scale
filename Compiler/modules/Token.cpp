@@ -1,4 +1,3 @@
-#include <gc/gc_allocator.h>
 #include <cstring>
 #ifdef _WIN32
 #define strdup _strdup
@@ -49,6 +48,17 @@ namespace sclc {
 
     std::string SourceLocation::toString() const {
         return "SourceLocation(file=" + file + ", line=" + std::to_string(line) + ", column=" + std::to_string(column) + ")";
+    }
+
+    bool SourceLocation::operator==(const SourceLocation& other) const {
+        if (this->line != other.line) return false;
+        if (this->column != other.column) return false;
+        if (this->file != other.file) return false;
+        return true;
+    }
+
+    bool SourceLocation::operator!=(const SourceLocation& other) const {
+        return !(this->operator==(other));
     }
 
     Token Token::Default(tok_identifier, "");

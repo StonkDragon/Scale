@@ -9,7 +9,7 @@ final sealed struct Triple
     c => self.c
   end
 
-	function toString(): str
+	const function toString(): str
 		( ( ("(" a:toString +) (", " b:toString +) +) ( (", " c:toString +) ")" +) +) return
 	end
 

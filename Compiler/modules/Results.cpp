@@ -1,4 +1,3 @@
-#include <gc/gc_allocator.h>
 
 #include "../headers/Common.hpp"
 
@@ -23,5 +22,16 @@ namespace sclc {
                 ", location: " +
                 location.toString() +
                 "}";
+    }
+
+    TPResult::~TPResult() {
+        for (auto&& x : functions) {
+            if (x->isMethod) {
+                delete (Method*) x;
+            } else {
+                delete x;
+            }
+            x = nullptr;
+        }
     }
 }

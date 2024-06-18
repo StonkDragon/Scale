@@ -1,4 +1,3 @@
-#include <gc/gc_allocator.h>
 
 #include "../../headers/Common.hpp"
 #include "../../headers/TranspilerDefs.hpp"
@@ -113,7 +112,7 @@ namespace sclc {
             safeInc();
             if (body[i].type == tok_column) {
                 safeInc();
-                FPResult r = parseType(body, &i, getTemplates(result, function));
+                FPResult r = parseType(body, i);
                 if (!r.success) {
                     errors.push_back(r);
                     return;
@@ -255,18 +254,32 @@ namespace sclc {
                 }
             } else if (function->isMethod) {
                 Method* m = ((Method*) function);
-                Struct s = getStructByName(result, m->member_type);
-                if (s.hasMember(body[i].value)) {
-                    Token here = body[i];
-                    body.insert(body.begin() + i, Token(tok_dot, ".", here.location));
-                    body.insert(body.begin() + i, Token(tok_identifier, "self", here.location));
-                    goto normalVar;
-                } else if (hasGlobal(result, s.name + "$" + body[i].value)) {
-                    v = getVar(s.name + "$" + body[i].value);
+                const Struct& s = getStructByName(result, m->member_type);
+                if (s == Struct::Null) {
+                    const Layout& l = getLayout(result, m->member_type);
+                    if (l.hasMember(body[i].value)) {
+                        Token here = body[i];
+                        body.insert(body.begin() + i, Token(tok_dot, ".", here.location));
+                        body.insert(body.begin() + i, Token(tok_identifier, "self", here.location));
+                        goto normalVar;
+                    } else {
+                        transpilerError("Layout '" + l.name + "' has no member named '" + body[i].value + "'", i);
+                        errors.push_back(err);
+                        return;
+                    }
                 } else {
-                    transpilerError("Struct '" + s.name + "' has no member named '" + body[i].value + "'", i);
-                    errors.push_back(err);
-                    return;
+                    if (s.hasMember(body[i].value)) {
+                        Token here = body[i];
+                        body.insert(body.begin() + i, Token(tok_dot, ".", here.location));
+                        body.insert(body.begin() + i, Token(tok_identifier, "self", here.location));
+                        goto normalVar;
+                    } else if (hasGlobal(result, s.name + "$" + body[i].value)) {
+                        v = getVar(s.name + "$" + body[i].value);
+                    } else {
+                        transpilerError("Struct '" + s.name + "' has no member named '" + body[i].value + "'", i);
+                        errors.push_back(err);
+                        return;
+                    }
                 }
             } else {
                 transpilerError("Unknown variable: '" + body[i].value + "'", i);

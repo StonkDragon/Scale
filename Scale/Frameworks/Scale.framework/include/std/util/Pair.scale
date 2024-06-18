@@ -7,7 +7,7 @@ final sealed struct Pair
 		b => self.b
 	end
 
-	function toString(): str
+	const function toString(): str
 		( ( ("(" a:toString +) (", " b:toString +) +) ")" +) return
 	end
 

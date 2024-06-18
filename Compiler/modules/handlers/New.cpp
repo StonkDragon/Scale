@@ -1,4 +1,3 @@
-#include <gc/gc_allocator.h>
 
 #include "../../headers/Common.hpp"
 #include "../../headers/TranspilerDefs.hpp"
@@ -13,7 +12,7 @@ namespace sclc {
         std::string typeString = "any";
         if (body[i].type == tok_identifier && body[i].value == "<") {
             safeInc();
-            auto type = parseType(body, &i);
+            auto type = parseType(body, i);
             if (!type.success) {
                 errors.push_back(type);
                 return;
@@ -95,9 +94,13 @@ namespace sclc {
                 handle(Token);
                 safeInc();
             }
+            if (i + 1 >= body.size()) {
+                goto lastTokenInBody;
+            }
             safeInc();
         }
         i--;
+    lastTokenInBody:
         if (dimensions == 0) {
             transpilerError("Expected '[', but got '" + body[i].value + "'", i);
             errors.push_back(err);

@@ -54,7 +54,7 @@ namespace sclc
         bool isAccessible(Function* f) const;
         bool operator==(const Variable& other) const;
         bool operator!=(const Variable& other) const;
-        virtual Variable& also(std::function<void(Variable&)> f);
+        Variable& also(std::function<void(Variable&)> f) override;
 
         static Variable& emptyVar();
     };

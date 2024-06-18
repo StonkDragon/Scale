@@ -161,7 +161,7 @@ struct Int
     self.value return
   end
 
-  function toString(): str
+  const function toString(): str
     self.value:toString return
   end
 end

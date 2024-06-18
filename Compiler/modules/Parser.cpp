@@ -1,4 +1,3 @@
-#include <gc/gc_allocator.h>
 
 #include <memory>
 #include <iostream>
@@ -21,7 +20,7 @@ namespace sclc
 {
     extern Struct currentStruct;
     extern int scopeDepth;
-    extern std::map<std::string, std::vector<Method*>> vtables;
+    extern std::unordered_map<std::string, std::vector<Method*>> vtables;
     extern std::vector<std::string> typeStack;
     extern StructTreeNode* structTree;
 
@@ -37,7 +36,7 @@ namespace sclc
     std::string sclFunctionNameToFriendlyString(std::string name);
     std::string argsToRTSignature(Function* f);
 
-    FPResult Parser::parse(std::string func_file, std::string rt_file, std::string header_file) {
+    void Parser::parse(FPResult& output, std::string func_file, std::string rt_file, std::string header_file) {
         std::vector<FPResult> errors;
         std::vector<FPResult> warns;
         std::vector<Variable> globals;
@@ -54,12 +53,11 @@ namespace sclc
                 result.location = SourceLocation(func_file, 0, 0);
                 errors.push_back(result);
 
-                FPResult parseResult;
-                parseResult.success = true;
-                parseResult.message = "";
-                parseResult.errors = errors;
-                parseResult.warns = warns;
-                return parseResult;
+                output.success = true;
+                output.message = "";
+                output.errors = errors;
+                output.warns = warns;
+                return;
             }
         }
 
@@ -150,7 +148,6 @@ namespace sclc
 
         t.writeHeader();
         t.writeContainers();
-        t.writeStructs();
         t.writeGlobals();
         t.writeFunctionHeaders();
 
@@ -165,7 +162,7 @@ namespace sclc
 
         for (Variable& v : result.globals) {
             const std::string& file = v.name_token.location.file;
-            if (!Main::options::noLinkScale && pathstarts(file, scaleFolder + DIR_SEP "Frameworks" DIR_SEP "Scale.framework") && !Main::options::noMain) {
+            if (!strstarts(v.name, "$T") && !Main::options::noLinkScale && pathstarts(file, scaleFolder + DIR_SEP "Frameworks" DIR_SEP "Scale.framework") && !Main::options::noMain) {
                 if (!pathcontains(file, DIR_SEP "compiler" DIR_SEP) && !pathcontains(file, DIR_SEP "macros" DIR_SEP) && !pathcontains(file, DIR_SEP "__")) {
                     continue;
                 }
@@ -240,7 +237,7 @@ namespace sclc
         scopeDepth++;
         append("_scl_setup();\n");
         for (auto&& f : initFuncs) {
-            if (!Main::options::noLinkScale && pathstarts(f->name_token.location.file, scaleFolder + DIR_SEP "Frameworks" DIR_SEP "Scale.framework") && !Main::options::noMain) {
+            if (!strstarts(f->member_type, "$T") && !Main::options::noLinkScale && pathstarts(f->name_token.location.file, scaleFolder + DIR_SEP "Frameworks" DIR_SEP "Scale.framework") && !Main::options::noMain) {
                 const std::string& file = f->name_token.location.file;
                 if (!pathcontains(file, DIR_SEP "compiler" DIR_SEP) && !pathcontains(file, DIR_SEP "macros" DIR_SEP) && !pathcontains(file, DIR_SEP "__")) {
                     continue;
@@ -272,11 +269,11 @@ namespace sclc
             structTree->forEach([&fp](StructTreeNode* node) {
                 append("\n");
                 const Struct& s = node->s;
-                if (s.isStatic() || s.isExtern() || s.templateInstance) {
+                if (s.isStatic() || s.isExtern()) {
                     return;
                 }
                 const std::string& file = s.name_token.location.file;
-                if (!Main::options::noLinkScale && (s.templates.size() == 0 || s.usedInStdLib) && pathstarts(file, scaleFolder + DIR_SEP "Frameworks" DIR_SEP "Scale.framework") && !Main::options::noMain) {
+                if (!strstarts(s.name, "$T") && !Main::options::noLinkScale && pathstarts(file, scaleFolder + DIR_SEP "Frameworks" DIR_SEP "Scale.framework") && !Main::options::noMain) {
                     if (!pathcontains(file, DIR_SEP "compiler" DIR_SEP) && !pathcontains(file, DIR_SEP "macros" DIR_SEP) && !pathcontains(file, DIR_SEP "__")) {
                         append("extern expect const TypeInfo _scl_ti_%s __asm(\"__T%s\");\n", s.name.c_str(), s.name.c_str());
                         return;
@@ -317,7 +314,7 @@ namespace sclc
                 append("const TypeInfo _scl_ti_%s __asm(\"__T%s\") = {\n", s.name.c_str(), s.name.c_str());
                 scopeDepth++;
                 append(".type = 0x%lxUL,\n", id(s.name.c_str()));
-                append(".type_name = \"%s\",\n", s.name.c_str());
+                append(".type_name = \"%s\",\n", retemplate(s.name).c_str());
                 append(".vtable_info = (&_scl_vtable_info_%s)->infos,\n", s.name.c_str());
                 // append(".vtable = (&_scl_vtable_%s)->funcs,\n", s.name.c_str());
                 if (s.super.size()) {
@@ -341,6 +338,9 @@ namespace sclc
             std::ofstream rt(rt_file, std::ios::out);
             fp.flush();
             rt << fp.str();
+        } else {
+            std::ofstream rt(rt_file, std::ios::out);
+            rt << "";
         }
 
         if (Main::options::Werror) {
@@ -348,11 +348,9 @@ namespace sclc
             warns.clear();
         }
 
-        FPResult parseResult;
-        parseResult.success = true;
-        parseResult.message = "";
-        parseResult.errors = errors;
-        parseResult.warns = warns;
-        return parseResult;
+        output.success = true;
+        output.message = "";
+        output.errors = errors;
+        output.warns = warns;
     }
 }

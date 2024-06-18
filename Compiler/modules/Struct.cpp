@@ -1,4 +1,3 @@
-#include <gc/gc_allocator.h>
 
 #include "../headers/Common.hpp"
 
@@ -8,7 +7,6 @@ namespace sclc {
         this->name = name;
         this->name_token = t;
         this->flags = 0;
-        this->required_typed_arguments = 0;
     }
     Struct::~Struct() {};
     void Struct::addMember(Variable member, bool inherited) {
@@ -62,9 +60,6 @@ namespace sclc {
     void Struct::implement(const std::string& interface) {
         interfaces.insert(interface);
     }
-    void Struct::addTemplateArgument(std::string name, Token type) {
-        templates[name] = type;
-    }
     bool Struct::isSealed() const {
         return (flags & 0b00000100) != 0;
     }
@@ -114,8 +109,8 @@ namespace sclc {
     void Layout::addMember(Variable member) {
         members.push_back(member);
     }
-    bool Layout::hasMember(std::string member) {
-        for (Variable& v : members) {
+    bool Layout::hasMember(std::string member) const {
+        for (const Variable& v : members) {
             if (v.name == member) {
                 return true;
             }

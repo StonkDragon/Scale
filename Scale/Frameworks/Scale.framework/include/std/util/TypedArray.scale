@@ -7,7 +7,28 @@ final struct InvalidTypeException : Exception
     end
 end
 
-final sealed struct TypedArray<T>: Array
+template<T>
+sealed struct TypedArrayIterator is Iterator
+  private decl array: TypedArray<T>
+  private decl pos: int
+
+  function init(arr: TypedArray<T>): none
+    arr => self.array
+    0 => self.pos
+  end
+
+  function hasNext(): bool
+    self.pos self.array.count < return
+  end
+
+  function next(): T
+    self.pos 1 + => self.pos
+    self.array[self.pos 1 -] return
+  end
+end
+
+template<T>
+final sealed struct TypedArray: Array
     overrides function [](index: int): T
         index self:get return
     end
@@ -108,5 +129,9 @@ final sealed struct TypedArray<T>: Array
         while val self:indexOf -1 != do
             val self:remove
         done
+    end
+
+    overrides function iterate(): TypedArrayIterator<T>
+        self TypedArrayIterator<T>::new return
     end
 end

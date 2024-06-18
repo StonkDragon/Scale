@@ -1,4 +1,3 @@
-#include <gc/gc_allocator.h>
 
 #include "../../headers/Common.hpp"
 #include "../../headers/TranspilerDefs.hpp"
@@ -8,10 +7,18 @@
 namespace sclc {
     handler(As) {
         noUnused;
+        size_t start = i;
         safeInc();
-        FPResult type = parseType(body, &i, getTemplates(result, function));
+        FPResult type = parseType(body, i);
         if (!type.success) {
             errors.push_back(type);
+            return;
+        }
+        bool constBefore = typeIsConst(typeStackTop);
+        bool constAfter = typeIsConst(type.value);
+        if (constBefore && !constAfter) {
+            transpilerError("Cannot cast away 'const' qualifier of type '" + typeStackTop + "' in cast to '" + type.value + "'", start);
+            errors.push_back(err);
             return;
         }
         const Struct& s = getStructByName(result, type.value);
@@ -31,14 +38,14 @@ namespace sclc {
             }
         } else {
             if (!typeCanBeNil(typeStackTop) && !isPrimitiveType(type.value)) {
-                transpilerError("Unneccessary cast to maybe-nil type '" + type.value + "' from not-nil type '" + typeStackTop + "'", i - 1);
+                transpilerError("Unneccessary cast to maybe-nil type '" + type.value + "' from not-nil type '" + typeStackTop + "'", start);
                 warns.push_back(err);
             }
         }
 
         append("_scl_cast_stack(%s, %s);\n", sclTypeToCType(result, type.value).c_str(), sclTypeToCType(result, typeStackTop).c_str());
         if (isPrimitiveIntegerType(type.value)) {
-            append("_scl_top(scl_int) &= SCL_%s_MASK;\n", type.value.c_str());
+            append("_scl_top(scl_int) &= SCL_%s_MASK;\n", removeTypeModifiers(type.value).c_str());
         }
         typePop;
         typeStack.push_back(type.value);

@@ -20,10 +20,6 @@ namespace sclc
         std::vector<bool> memberInherited;
         std::unordered_set<std::string> interfaces;
         std::unordered_set<std::string> toImplementFunctions;
-        size_t required_typed_arguments;
-        std::map<std::string, Token> templates;
-        bool templateInstance = false;
-        bool usedInStdLib = false;
         static Struct Null;
 
         Struct(std::string name);
@@ -37,7 +33,6 @@ namespace sclc
         const Variable& getMember(const std::string& name) const;
         bool implements(const std::string& name) const;
         void implement(const std::string& interface);
-        void addTemplateArgument(std::string name, Token type);
         bool isSealed() const;
         bool isStatic() const;
         bool isFinal() const;
@@ -57,7 +52,7 @@ namespace sclc
         Layout(std::string name);
         Layout(std::string name, Token t);
         void addMember(Variable member);
-        bool hasMember(std::string member);
+        bool hasMember(std::string member) const;
         Variable getMember(std::string name);
 
         bool operator==(const Layout& other) const;

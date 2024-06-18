@@ -1,5 +1,5 @@
 macro! ImplMove(on) {
-    function $on:init(other: const [const $on]): none
+    function $on:init(other: [$on]): none
         unsafe
             self as int 16 + other@ as int 16 + self any::size 16 - memcpy
             other@ any::delete
@@ -8,7 +8,7 @@ macro! ImplMove(on) {
 }
 
 macro! ImplCopy(on) {
-    function $on:init(other: const $on): none
+    function $on:init(other: $on): none
         unsafe
             self as int 16 + other as int 16 + self any::size 16 - memcpy
         end

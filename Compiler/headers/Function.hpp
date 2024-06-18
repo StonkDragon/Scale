@@ -7,7 +7,6 @@
 #include <regex>
 #include <unordered_map>
 
-#include <gc_cpp.h>
 
 #include "Variable.hpp"
 #include "Token.hpp"
@@ -16,7 +15,7 @@ namespace sclc
 {
     typedef std::unordered_map<std::string, std::string> Deprecation;
 
-    struct Function /* : public gc */ {
+    struct Function {
         size_t lambdaIndex;
         std::string name;
         std::string name_without_overload;
@@ -54,6 +53,7 @@ namespace sclc
         long has_async;
         long has_reified;
         long has_inline;
+        long has_const;
         
         std::vector<Variable> captures;
         std::vector<Variable> ref_captures;

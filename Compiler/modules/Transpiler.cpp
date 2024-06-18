@@ -1,4 +1,3 @@
-#include <gc/gc_allocator.h>
 
 #include <filesystem>
 #include <stack>
@@ -95,8 +94,7 @@ namespace sclc {
 
     Function* currentFunction = nullptr;
     Struct currentStruct("");
-    std::map<std::string, std::vector<Method*>> vtables;
-    FILE* scale_header = NULL;
+    std::unordered_map<std::string, std::vector<Method*>> vtables;
     StructTreeNode* structTree;
     int scopeDepth = 0;
     size_t i = 0;
@@ -192,13 +190,6 @@ namespace sclc {
                         errors.push_back(res);
                         continue;
                     }
-                    if (scale_header) {
-                        fprintf(scale_header, "extern ");
-                        if (UNLIKELY(function->return_type == "nothing")) {
-                            fprintf(scale_header, "_scl_no_return ");
-                        }
-                        fprintf(scale_header, "%s %s(%s) __asm(%s);\n", return_type.c_str(), function->name.c_str(), arguments.c_str(), symbol.c_str());
-                    }
                 }
             } else {
                 if (UNLIKELY(function->has_async)) {
@@ -216,16 +207,7 @@ namespace sclc {
                     append("%s mt_%s$%s(%s)", return_type.c_str(), function->member_type.c_str(), function->name.c_str(), arguments.c_str());
                 }
                 append2(" __asm(%s);\n", symbol.c_str());
-                if (UNLIKELY(function->has_export && scale_header)) {
-                    fprintf(scale_header, "extern %s %s$%s(%s) __asm(%s);\n", return_type.c_str(), function->member_type.c_str(), function->name.c_str(), arguments.c_str(), symbol.c_str());
-                }
             }
-        }
-
-        if (UNLIKELY(scale_header)) {
-            fprintf(scale_header, "#endif\n");
-            fclose(scale_header);
-            scale_header = NULL;
         }
 
         append("\n");
@@ -238,7 +220,6 @@ namespace sclc {
 
         for (Variable& s : result.globals) {
             append("extern %s Var_%s", sclTypeToCType(result, s.type).c_str(), s.name.c_str());
-            fprintf(scale_header, "extern %s %s __asm(_scl_macro_to_string(__USER_LABEL_PREFIX__) \"%s%s\");\n", sclTypeToCType(result, s.type).c_str(), s.name.c_str(), s.isExtern ? "" : "Var_" ,s.name.c_str());
             if (s.isExtern) {
                 append2("__asm(_scl_macro_to_string(__USER_LABEL_PREFIX__) \"%s\")", s.name.c_str());
             }
@@ -271,51 +252,56 @@ namespace sclc {
             append("typedef struct Layout_%s* scl_%s;\n", c.name.c_str(), c.name.c_str());
         }
         append("\n");
-        for (Layout& c : result.layouts) {
+
+        auto writeLayout = [&](const Layout& c) {
             append("struct Layout_%s {\n", c.name.c_str());
-            for (Variable& s : c.members) {
+            for (const Variable& s : c.members) {
                 if (s.isVirtual) continue;
                 append("  %s %s;\n", sclTypeToCType(result, s.type).c_str(), s.name.c_str());
             }
             append("};\n");
+        };
+        
+        auto writeStruct = [&](const Struct& c) {
+            if (c.isStatic()) return;
+            append("struct Struct_%s {\n", c.name.c_str());
+            append("  const TypeInfo* $type;\n");
+            append("  scl_any $mutex;\n");
+            
+            for (const Variable& s : c.members) {
+                if (s.isVirtual) continue;
+                append("  %s %s;\n", sclTypeToCType(result, s.type).c_str(), s.name.c_str());
+            }
+
+            append("};\n");
+        };
+
+        std::vector<std::string> decldStructs;
+        std::vector<std::string> decldLayouts;
+        for (Layout& c : result.layouts) {
+            if (contains(decldLayouts, c.name)) continue;
+            for (Variable& s : c.members) {
+                if (s.type.front() != '@') continue;
+
+                const Layout& x = getLayout(result, s.type);
+                if (x.name.empty()) {
+                    const Struct& st = getStructByName(result, s.type);
+                    if (st == Struct::Null) continue;
+
+                    writeStruct(st);
+                    decldStructs.push_back(st.name);
+                } else if (!contains(decldLayouts, x.name)) {
+                    writeLayout(x);
+                    decldLayouts.push_back(x.name);
+                }
+            }
+            writeLayout(c);
         }
         append("\n");
-    }
 
-    void Transpiler::writeStructs() {
-        int scopeDepth = 0;
-        if (result.structs.empty()) return;
         append("/* STRUCT DEFINITIONS */\n");
 
         structTree = StructTreeNode::fromArrayOfStructs(result);
-
-        remove("scale_interop.h");
-        scale_header = fopen("scale_interop.h", "a+");
-        if (!scale_header) {
-            std::cerr << "Could not open scale_interop.h: " << strerror(errno) << std::endl;
-            std::raise(SIGSEGV);
-        }
-        fprintf(scale_header, "#if !defined(SCALE_INTEROP_H)\n");
-        fprintf(scale_header, "#define SCALE_INTEROP_H\n");
-        fprintf(scale_header, "#include <scale_runtime.h>\n\n");
-
-        for (Struct& c : result.structs) {
-            if (c.isStatic() || c.name == "str") continue;
-            fprintf(scale_header, "typedef struct Struct_%s* scl_%s;\n", c.name.c_str(), c.name.c_str());
-        }
-        fprintf(scale_header, "\n");
-
-        for (auto&& ta : result.typealiases) {
-            if (ta.first == "nothing" || ta.first == "varargs") continue;
-            std::string type = ta.second.first;
-            std::string name = " ta_" + ta.first;
-            if (strcontains(type, "%")) {
-                type = replace(type, "%", name);
-                name = "";
-            }
-            fprintf(scale_header, "typedef %s%s;\n", type.c_str(), name.c_str());
-        }
-        fprintf(scale_header, "\n");
 
         for (Struct& c : result.structs) {
             if (c.isStatic()) continue;
@@ -452,30 +438,22 @@ namespace sclc {
                 }
             }
         }
-
-        if (structTree) {
-            structTree->forEach([&](StructTreeNode* currentNode) {
-                Struct c = currentNode->s;
-                if (c.isStatic() || c.templateInstance) return;
-                append("struct Struct_%s {\n", c.name.c_str());
-                append("  const TypeInfo* $type;\n");
-                append("  scl_any $mutex;\n");
-                
-                fprintf(scale_header, "struct Struct_%s {\n", c.name.c_str());
-                fprintf(scale_header, "  const TypeInfo* $type;\n");
-                fprintf(scale_header, "  scl_any $mutex;\n");
-                
-                for (Variable& s : c.members) {
-                    if (s.isVirtual) continue;
-                    append("  %s %s;\n", sclTypeToCType(result, s.type).c_str(), s.name.c_str());
-                    fprintf(scale_header, "  %s %s;\n", sclTypeToCType(result, s.type).c_str(), s.name.c_str());
-                }
-
-                append("};\n");
-                fprintf(scale_header, "};\n");
-            });
-        }
         
+        for (Struct& c : result.structs) {
+            if (contains(decldStructs, c.name)) continue;
+            for (Variable& s : c.members) {
+                if (s.type.front() != '@') continue;
+
+                const Struct& x = getStructByName(result, s.type);
+                if (x == Struct::Null) continue;
+
+                if (!contains(decldStructs, x.name)) {
+                    writeStruct(x);
+                    decldStructs.push_back(x.name);
+                }
+            }
+            writeStruct(c);
+        }
 
         currentStruct = Struct::Null;
         append("\n");
@@ -713,13 +691,12 @@ namespace sclc {
             if (function->isMethod) {
                 currentStruct = getStructByName(result, function->member_type);
                 if (UNLIKELY(currentStruct == Struct::Null)) {
-                    if (!hasLayout(result, function->member_type) && !hasEnum(result, function->member_type)) {
+                    const Layout& l = getLayout(result, function->member_type);
+                    if (l.name.empty() && !hasEnum(result, function->member_type)) {
                         transpilerErrorTok("Method '" + function->name + "' is member of unknown Struct '" + function->member_type + "'", function->name_token);
                         errors.push_back(err);
                         continue;
                     }
-                } else if (UNLIKELY(currentStruct.templateInstance)) {
-                    continue;
                 }
             } else {
                 if (function->member_type.empty()) {
@@ -727,19 +704,25 @@ namespace sclc {
                 } else {
                     currentStruct = getStructByName(result, function->member_type);
                     if (UNLIKELY(currentStruct == Struct::Null)) {
-                        if (!hasLayout(result, function->member_type) && !hasEnum(result, function->member_type)) {
+                        const Layout& l = getLayout(result, function->member_type);
+                        if (l.name.empty() && !hasEnum(result, function->member_type)) {
                             transpilerErrorTok("Function '" + function->name + "' is member of unknown Struct '" + function->member_type + "'", function->name_token);
                             errors.push_back(err);
                             continue;
                         }
-                    } else if (UNLIKELY(currentStruct.templateInstance)) {
-                        continue;
                     }
                 }
             }
 
+            bool isTemplate = false;
+            if (function->isMethod) {
+                isTemplate = strstarts(function->member_type, "$T");
+            } else {
+                isTemplate = strstarts(function->name, "$T");
+            }
+
             const std::string& file = function->name_token.location.file;
-            if (!Main::options::noLinkScale && (currentStruct.templates.size() == 0 || currentStruct.usedInStdLib) && function->reified_parameters.size() == 0 && pathstarts(file, scaleFolder + DIR_SEP "Frameworks" DIR_SEP "Scale.framework") && !Main::options::noMain) {
+            if (!isTemplate && !Main::options::noLinkScale && function->reified_parameters.size() == 0 && pathstarts(file, scaleFolder + DIR_SEP "Frameworks" DIR_SEP "Scale.framework") && !Main::options::noMain) {
                 if (!pathcontains(file, DIR_SEP "compiler" DIR_SEP) && !pathcontains(file, DIR_SEP "macros" DIR_SEP) && !pathcontains(file, DIR_SEP "__")) {
                     continue;
                 }

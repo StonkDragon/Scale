@@ -20,9 +20,9 @@ namespace sclc {
     size_t intBitWidth(std::string s);
     bool typesCompatible(TPResult& result, std::string stack, std::string arg, bool allowIntPromotion);
     bool checkStackType(TPResult& result, std::vector<Variable>& args, bool allowIntPromotion = false);
+    bool checkConstable(TPResult& result, std::vector<Variable>& args);
     std::string stackSliceToString(size_t amount);
     bool argsContainsIntType(std::vector<Variable>& args);
-    std::map<std::string, Token> getTemplates(TPResult& result, Function* func);
     bool hasTypealias(TPResult& r, std::string t);
     std::string getTypealias(TPResult& r, std::string t);
     bool typealiasCanBeNil(TPResult& r, std::string t);

@@ -7,7 +7,7 @@ struct Union
         val => self.__value
     end
 
-    function toString(): str
+    const function toString(): str
         typeof self " {" + __value:toString + "}" + return
     end
 

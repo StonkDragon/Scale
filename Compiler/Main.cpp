@@ -1,4 +1,3 @@
-#include <gc/gc_allocator.h>
 
 #include <iostream>
 #include <string>
@@ -134,7 +133,7 @@ namespace sclc
     using DocumentationEntries = std::vector<DocumentationEntry>;
 
     struct Documentation {
-        std::map<std::string, DocumentationEntries> entries;
+        std::unordered_map<std::string, DocumentationEntries> entries;
 
         auto begin() {
             return entries.begin();
@@ -924,6 +923,11 @@ namespace sclc
                 Main::options::noScaleFramework = true;
             } else if (args[i] == "-no-link-std") {
                 Main::options::noLinkScale = true;
+            } else if (args[i] == "-embedded") {
+                Main::options::noScaleFramework = true;
+                Main::options::noLinkScale = true;
+                Main::options::embedded = true;
+                tmpFlags.push_back("-DSCL_EMBEDDED");
             } else if (args[i] == "-verbose-linker") {
                 tmpFlags.push_back("-v");
             } else if (args[i] == "-create-framework") {
@@ -1156,10 +1160,17 @@ namespace sclc
             }
 
             if (Main::tokenizer) {
-                delete Main::tokenizer;
+                Main::tokenizer->reset();
             }
             Main::tokenizer = new Tokenizer();
-            FPResult result = Main::tokenizer->tokenize(filename);
+            FPResult result;
+            if (int sig; !(sig = setjmp(global_jmp_buf))) {
+                result = Main::tokenizer->tokenize(filename);
+            } else {
+                logWarns(result.warns);
+                logErrors(result.errors);
+                std::exit(1);
+            }
 
             logWarns(result.warns);
             logErrors(result.errors);
@@ -1201,7 +1212,13 @@ namespace sclc
         TPResult result;
         if (!Main::options::printCflags) {
             Main::lexer = new SyntaxTree(tokens);
-            result = Main::lexer->parse();
+            if (int sig; !(sig = setjmp(global_jmp_buf))) {
+                Main::lexer->parse(result);
+            } else {
+                logWarns(result.warns);
+                logErrors(result.errors);
+                exit(1);
+            }
         }
 
         logWarns(result.warns);
@@ -1243,11 +1260,19 @@ namespace sclc
 
         DBG("Parsing");
         
-        FPResult parseResult = Main::parser->parse(
-            code_file,
-            types_file,
-            headers_file
-        );
+        FPResult parseResult;
+        if (int sig; !(sig = setjmp(global_jmp_buf))) {
+            Main::parser->parse(
+                parseResult,
+                code_file,
+                types_file,
+                headers_file
+            );
+        } else {
+            logWarns(parseResult.warns);
+            logErrors(parseResult.errors);
+            exit(1);
+        }
         cflags.push_back(code_file);
         cflags.push_back(types_file);
         
@@ -1295,15 +1320,17 @@ namespace sclc
             cflags.push_back("\"" + outfile + "\"");
         }
         
-#ifdef LINK_MATH
-        cflags.push_back("-lm");
-#endif
 #if !defined(__APPLE__) && !defined(_WIN32)
         cflags.push_back("-Wl,-R");
         cflags.push_back("-Wl," + scaleFolder + DIR_SEP "Internal" DIR_SEP "lib");
 #endif
-        cflags.push_back("-lScaleRuntime");
-        cflags.push_back("-lgc");
+        if (!Main::options::embedded) {
+        #ifdef LINK_MATH
+            cflags.push_back("-lm");
+        #endif
+            cflags.push_back("-lScaleRuntime");
+            cflags.push_back("-lgc");
+        }
         if (!Main::options::noLinkScale) {
             cflags.push_back("-lScale");
         }

@@ -209,14 +209,17 @@ int real_main(int argc, char const *argv[]) {
 
         exec_command(create_command({
             "cmake",
-            "-Denable_cplusplus=ON",
+            "-DBUILD_SHARED_LIBS=OFF",
+            "-Denable_cplusplus=OFF",
             "-Denable_threads=ON",
-            "-Denable_throw_bad_alloc_library=OFF",
             "-Dbuild_cord=OFF",
             "-Denable_docs=OFF",
             "-Denable_atomic_uncollectable=OFF",
             "-Dinstall_headers=OFF",
             "-DCMAKE_INSTALL_PREFIX=" + path + DIR_SEP "Internal",
+        #ifndef _WIN32
+            "-DCFLAGS_EXTRA=-fPIC",
+        #endif
             ".."
         }));
         exec_command(create_command({
@@ -226,19 +229,6 @@ int real_main(int argc, char const *argv[]) {
             "--target",
             "install"
         }));
-
-        // #if defined(_WIN32)
-        // std::filesystem::copy("Debug" DIR_SEP "gc.dll", path + DIR_SEP "Internal", std::filesystem::copy_options::overwrite_existing);
-        // std::filesystem::copy("Debug" DIR_SEP "gc.lib", path + DIR_SEP "Internal", std::filesystem::copy_options::overwrite_existing);
-        // std::filesystem::copy("Debug" DIR_SEP "gc.pdb", path + DIR_SEP "Internal", std::filesystem::copy_options::overwrite_existing);
-        // std::filesystem::copy("Debug" DIR_SEP "gccpp.dll", path + DIR_SEP "Internal", std::filesystem::copy_options::overwrite_existing);
-        // std::filesystem::copy("Debug" DIR_SEP "gccpp.lib", path + DIR_SEP "Internal", std::filesystem::copy_options::overwrite_existing);
-        // std::filesystem::copy("Debug" DIR_SEP "gccpp.pdb", path + DIR_SEP "Internal", std::filesystem::copy_options::overwrite_existing);
-        // #else
-        // for (auto&& file : listFiles("./", LIB_SUFF)) {
-        //     std::filesystem::copy(file, path + DIR_SEP "Internal" DIR_SEP + file.filename().string(), std::filesystem::copy_options::overwrite_existing | std::filesystem::copy_options::copy_symlinks);
-        // }
-        // #endif
 
         std::filesystem::current_path(std::filesystem::current_path().parent_path());
 
@@ -307,6 +297,9 @@ int real_main(int argc, char const *argv[]) {
     #endif
         "-shared",
     #endif
+    #ifndef _WIN32
+        "-fPIC",
+    #endif
         path + DIR_SEP "Internal" DIR_SEP "scale_runtime.o",
         path + DIR_SEP "Internal" DIR_SEP "scale_cxx.o",
         "-L" + path + DIR_SEP "Internal" DIR_SEP "lib",
@@ -352,8 +345,6 @@ int real_main(int argc, char const *argv[]) {
     #ifdef _WIN32
         "-D_CRT_SECURE_NO_WARNINGS",
     #endif
-        "-DGC_NOT_DLL",
-        "-Wno-inline-new-delete",
     });
 
     if (debug) {
@@ -378,12 +369,6 @@ int real_main(int argc, char const *argv[]) {
         "-fuse-ld=lld",
         "-Wl,-lldmingw",
     #endif
-        "-L" + path + DIR_SEP "Internal" DIR_SEP "lib",
-    #ifdef __APPLE__
-        "-Wl,-rpath," + path + DIR_SEP "Internal" DIR_SEP "lib",
-    #endif
-        "-lgccpp",
-        "-lgc"
     };
 
     for (auto f : source_files) {

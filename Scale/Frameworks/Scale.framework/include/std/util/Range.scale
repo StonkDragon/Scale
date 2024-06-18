@@ -27,7 +27,7 @@ final sealed struct Range is Iterable
     return
   end
 
-  function toString(): str
+  const function toString(): str
     lower:toString " to " + upper:toString + return
   end
 
@@ -63,7 +63,7 @@ final sealed struct ReverseRange is Iterable
     lower => self.lower
   end
 
-  function toString(): str
+  const function toString(): str
     upper:toString " to " + lower:toString + return
   end
 
@@ -131,7 +131,7 @@ struct UnboundRange is Iterable
     UnboundRangeIterator::new return
   end
 
-  function toString(): str
+  const function toString(): str
     "( to )" return
   end
 end
@@ -181,7 +181,7 @@ struct PartialRange is Iterable
     fi
   end
 
-  function toString(): str
+  const function toString(): str
     if hasUpperBound then
       "to " bound + return
     else

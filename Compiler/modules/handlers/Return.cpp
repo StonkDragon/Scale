@@ -1,4 +1,3 @@
-#include <gc/gc_allocator.h>
 
 #include "../../headers/Common.hpp"
 #include "../../headers/TranspilerDefs.hpp"
@@ -57,6 +56,12 @@ namespace sclc {
                 if (cantBeNil) {
                     if (typeCanBeNil(returningType) && !TYPEALIAS_CAN_BE_NIL(result, returningType)) {
                         transpilerError("Returning maybe-nil type '" + returningType + "' from function with not-nil return type '" + function->return_type + "'", i);
+                        errors.push_back(err);
+                    }
+                    bool returnTypeConst = typeIsConst(function->return_type);
+                    bool returningTypeConst = typeIsConst(returningType);
+                    if (returnTypeConst && !returningTypeConst) {
+                        transpilerError("Returning const-qualified type '" + returningType + "' from function with non-const return type '" + function->return_type + "'", i);
                         errors.push_back(err);
                     }
                     if (!function->namedReturnValue.name.size()) {

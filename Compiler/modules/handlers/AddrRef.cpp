@@ -1,4 +1,3 @@
-#include <gc/gc_allocator.h>
 
 #include "../../headers/Common.hpp"
 #include "../../headers/TranspilerDefs.hpp"
@@ -31,7 +30,7 @@ namespace sclc {
                 safeInc();
                 std::vector<std::string> argTypes;
                 while (body[i].value != ">") {
-                    FPResult type = parseType(body, &i, getTemplates(result, f));
+                    FPResult type = parseType(body, i);
                     if (!type.success) {
                         errors.push_back(type);
                         return;
@@ -148,7 +147,7 @@ namespace sclc {
                             safeInc();
                             std::vector<std::string> argTypes;
                             while (body[i].value != ">") {
-                                FPResult type = parseType(body, &i, getTemplates(result, f));
+                                FPResult type = parseType(body, i);
                                 if (!type.success) {
                                     errors.push_back(type);
                                     return;
@@ -250,7 +249,7 @@ namespace sclc {
                         safeInc();
                         std::vector<std::string> argTypes;
                         while (body[i].value != ">") {
-                            FPResult type = parseType(body, &i, getTemplates(result, f));
+                            FPResult type = parseType(body, i);
                             if (!type.success) {
                                 errors.push_back(type);
                                 return;

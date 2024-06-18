@@ -50,6 +50,7 @@ typedef struct Struct_AssertError {
 	scl_str msg;
 	scl_str* stackTrace;
 }* scl_AssertError;
+
 typedef struct Struct_SignalError {
 	Struct rtFields;
 	scl_str msg;
@@ -682,6 +683,13 @@ scl_int8* _scl_typename_or_else(scl_any instance, const scl_int8* else_) {
 		return (scl_int8*) ((Struct*) instance)->type->type_name;
 	}
 	return (scl_int8*) else_;
+}
+
+ID_t _scl_typeid_or_else(scl_any instance, ID_t else_) {
+	if (likely(_scl_is_instance(instance))) {
+		return ((Struct*) instance)->type->type;
+	}
+	return else_;
 }
 
 scl_any _scl_new_array_by_size(scl_int num_elems, scl_int elem_size) {

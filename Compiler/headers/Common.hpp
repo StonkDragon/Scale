@@ -1,8 +1,6 @@
 #ifndef COMMON_H
 #define COMMON_H
 
-#include <gc/gc_allocator.h>
-
 #include <iostream>
 #include <string>
 #include <vector>
@@ -15,15 +13,14 @@
 #include <chrono>
 #include <filesystem>
 
+#include <setjmp.h>
+
 #ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #else
 #include <dlfcn.h>
 #endif
-
-#include <gc.h>
-#include <gc_cpp.h>
 
 #define TOKEN(x, y, line, file) if (value == x) return Token(y, value, line, file, begin)
 
@@ -33,8 +30,10 @@
 
 #ifdef DEBUG
 #define DBG(...) std::cout << sclc::format(__VA_ARGS__) << std::endl
+#define DBG_NOALLOC(...) printf(__VA_ARGS__)
 #else
 #define DBG(...)
+#define DBG_NOALLOC(...)
 #endif
 
 #if __has_builtin(__builtin_expect)
@@ -96,6 +95,8 @@ namespace sclc {
         #pragma clang diagnostic pop
     }
 
+    extern jmp_buf global_jmp_buf;
+
     class SyntaxTree
     {
     private:
@@ -103,7 +104,7 @@ namespace sclc {
     public:
         SyntaxTree(std::vector<Token>& tokens);
         ~SyntaxTree() {}
-        TPResult parse();
+        void parse(TPResult& result);
     };
 
     class Parser
@@ -113,7 +114,7 @@ namespace sclc {
     public:
         Parser(TPResult& result);
         ~Parser() {}
-        FPResult parse(std::string func_file, std::string rt_file, std::string header_file);
+        void parse(FPResult& output, std::string func_file, std::string rt_file, std::string header_file);
         TPResult& getResult();
     };
 
@@ -139,6 +140,7 @@ namespace sclc {
         void printTokens();
         void removeInvalidTokens();
         FPResult tryImports();
+        void reset();
     };
     
     class Transpiler {
@@ -155,7 +157,6 @@ namespace sclc {
         void writeFunctionHeaders();
         void writeGlobals();
         void writeContainers();
-        void writeStructs();
         void writeFunctions(const std::string& header_file);
         void filePreamble(const std::string& header_file);
         void filePostamble();
@@ -181,6 +182,7 @@ namespace sclc {
             static bool noMain;
             static bool Werror;
             static bool dumpInfo;
+            static bool embedded;
             static bool printDocs;
             static bool printCflags;
             static bool noLinkScale;
@@ -252,7 +254,7 @@ namespace sclc {
     std::vector<Method*> methodsOnType(TPResult& res, std::string type);
     bool hasMethod(TPResult& result, const std::string& name, const std::string& type);
     bool hasGlobal(TPResult& result, std::string name);
-    FPResult parseType(std::vector<Token>& tokens, size_t* i, const std::map<std::string, Token>& typeReplacements = std::map<std::string, Token>());
+    FPResult parseType(std::vector<Token>& tokens, size_t& i);
     bool sclIsProhibitedInit(std::string s);
     bool typeCanBeNil(std::string s, bool doRemoveMods = true);
     bool typeIsConst(std::string s);
@@ -269,7 +271,7 @@ namespace sclc {
     std::vector<Method*> makeVTable(TPResult& res, std::string name);
     std::string argsToRTSignatureIdent(Function* f);
     void makePath(TPResult& result, Variable v, bool topLevelDeref, std::vector<Token>& body, size_t& i, std::vector<FPResult>& errors, bool doesWriteAfter, Function* function, std::vector<FPResult>& warns, std::ostream& fp, std::function<void(std::string, std::string)> onComplete);
-    std::pair<std::string, std::string> findNth(std::map<std::string, std::string> val, size_t n);
+    std::pair<std::string, std::string> findNth(std::unordered_map<std::string, std::string> val, size_t n);
     std::vector<std::string> vecWithout(std::vector<std::string> vec, std::string elem);
     std::string unquote(const std::string& str);
     std::string capitalize(std::string s);
@@ -354,6 +356,24 @@ namespace sclc {
         }
         return h;
     }
+
+    struct signal_exception {
+        signal_exception(int sig) : sig(sig) {}
+
+        int signal();
+
+    private:
+        int sig;
+    };
 }
+
+void* operator new(size_t x);
+void* operator new(size_t x, std::nothrow_t&) noexcept;
+void* operator new[](size_t x);
+void* operator new[](size_t x, std::nothrow_t&) noexcept;
+void operator delete(void* x) noexcept;
+void operator delete(void* x, std::nothrow_t&) noexcept;
+void operator delete[](void* x) noexcept;
+void operator delete[](void* x, std::nothrow_t&) noexcept;
 
 #endif // COMMON_H

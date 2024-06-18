@@ -166,7 +166,7 @@ sealed struct Array is Iterable
     self return
   end
 
-  function toString() s: str
+  const function toString() s: str
     if self.count 0 == then
       "{}" => s
     else
