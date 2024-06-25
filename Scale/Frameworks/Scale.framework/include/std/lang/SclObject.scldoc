@@ -1,7 +1,7 @@
 @std.SclObject
 @@{frameworkPath}/include/std/lang/SclObject.scale
 ## SclObject
-### struct SclObject is Cloneable, Equatable, Hashable
+### struct SclObject
 The struct `SclObject` is the base class for all objects in Scale.
 
 ### function SclObject:==(other: any): bool

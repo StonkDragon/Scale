@@ -1,4 +1,3 @@
-import std.util.Stringifyable
 import std.math
 
 cdecl "strlen"
@@ -16,7 +15,7 @@ private expect foreign unsafe function __c_strcat(dest: [int8], src: [int8]): [i
 cdecl "strtok"
 private expect foreign unsafe function __c_strtok(:any, :[int8]): [int8]?
 
-final sealed struct str is Equatable, Cloneable, Stringifyable, Iterable
+final sealed struct str is Iterable
   private decl data: [int8]
   private decl length: int
   private decl hash: uint

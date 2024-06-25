@@ -518,28 +518,8 @@ namespace sclc {
         std::string type = typeStackTop;
         std::string args = generateArgumentsForFunction(result, self);
         if (doActualPop) {
-            if (isSelfType(self->return_type)) {
-                for (size_t m = 0; m < self->args.size(); m++) {
-                    if (!typesCompatible(result, typeStackTop, type, true)) {
-                        if (typeCanBeNil(self->args[m].type) && typeCanBeNil(typeStackTop)) {
-                            goto cont;
-                        }
-                        {
-                            transpilerError("Method returning 'self' requires all arguments to be of the same type", i);
-                            errors.push_back(err);
-                        }
-                        transpilerError("Expected '" + type + "', but got '" + typeStackTop + "'", i);
-                        err.isNote = true;
-                        errors.push_back(err);
-                        return;
-                    }
-                cont:
-                    typePop;
-                }
-            } else {
-                for (size_t m = 0; m < self->args.size(); m++) {
-                    typePop;
-                }
+            for (size_t m = 0; m < self->args.size(); m++) {
+                typePop;
             }
         }
         bool found = false;
@@ -560,9 +540,9 @@ namespace sclc {
         }
         if (self->has_nonvirtual) {
             if (self->has_async) {
-                append("_scl_async(mt_%s$%s, mt_%s$%s, %s)", self->member_type.c_str(), self->name.c_str(), self->member_type.c_str(), self->name.c_str(), args.c_str());
+                append2("_scl_async(mt_%s$%s, mt_%s$%s, %s)", self->member_type.c_str(), self->name.c_str(), self->member_type.c_str(), self->name.c_str(), args.c_str());
             } else {
-                append("mt_%s$%s(%s)", self->member_type.c_str(), self->name.c_str(), args.c_str());
+                append2("mt_%s$%s(%s)", self->member_type.c_str(), self->name.c_str(), args.c_str());
             }
             found = true;
         } else if (getInterfaceByName(result, self->member_type) == nullptr) {
@@ -599,7 +579,7 @@ namespace sclc {
                 warns.push_back(err);
             }
             append(
-                "((%s) (_scl_get_vtable_function(0, _scl_positive_offset(%zu, scl_any), \"%s%s\")))(%s)",
+                "((%s) (_scl_get_vtable_function(_scl_positive_offset(%zu, scl_any), \"%s%s\")))(%s)",
                 functionPtrCast.c_str(),
                 argc - 1,
                 self->name.c_str(),
@@ -618,19 +598,7 @@ namespace sclc {
             if (self->return_type.front() == '@') {
                 typeStack.push_back(self->return_type.substr(1));
             } else {
-                if (isSelfType(self->return_type)) {
-                    std::string retType = "";
-                    if (self->return_type.front() == '@') {
-                        retType += "@";
-                    }
-                    retType += removeTypeModifiers(type);
-                    if (typeCanBeNil(self->return_type)) {
-                        retType += "?";
-                    }
-                    typeStack.push_back(retType);
-                } else {
-                    typeStack.push_back(self->return_type);
-                }
+                typeStack.push_back(self->return_type);
             }
         }
         if (!found) {
@@ -684,9 +652,6 @@ namespace sclc {
         bool isVal = type.front() == '@';
         bool isNil = type.back() == '?';
         type = removeTypeModifiers(type);
-        if (type == "Self") {
-            return mods + target + (isNil ? "?" : "");
-        }
         if (isVal) {
             return "@" + mods + _reparseArgType(type.substr(1), templateArgs, target);
         } else if (type.front() == '[') {
@@ -1191,28 +1156,8 @@ namespace sclc {
         append("_scl_popn(%zu);\n", self->args.size());
         std::string args = generateArgumentsForFunction(result, self);
         std::string type = typeStackTop;
-        if (isSelfType(self->return_type)) {
-            for (size_t m = 0; m < self->args.size(); m++) {
-                if (!typesCompatible(result, typeStackTop, type, true)) {
-                    if (typeCanBeNil(self->args[m].type) && typeCanBeNil(typeStackTop)) {
-                        goto cont2;
-                    }
-                    {
-                        transpilerError("Function returning 'self' requires all arguments to be of the same type", i);
-                        errors.push_back(err);
-                    }
-                    transpilerError("Expected '" + retemplate(type) + "', but got '" + retemplate(typeStackTop) + "'", i);
-                    err.isNote = true;
-                    errors.push_back(err);
-                    return;
-                }
-            cont2:
-                typePop;
-            }
-        } else {
-            for (size_t m = 0; m < self->args.size(); m++) {
-                typePop;
-            }
+        for (size_t m = 0; m < self->args.size(); m++) {
+            typePop;
         }
         if (self->name == "throw" || self->name == "builtinUnreachable") {
             if (currentFunction->has_restrict) {
@@ -1251,19 +1196,7 @@ namespace sclc {
             if (self->return_type.front() == '@') {
                 typeStack.push_back(self->return_type.substr(1));
             } else {
-                if (isSelfType(self->return_type)) {
-                    std::string retType = "";
-                    if (self->return_type.front() == '@') {
-                        retType += "@";
-                    }
-                    retType += removeTypeModifiers(type);
-                    if (typeCanBeNil(self->return_type)) {
-                        retType += "?";
-                    }
-                    typeStack.push_back(retType);
-                } else {
-                    typeStack.push_back(self->return_type);
-                }
+                typeStack.push_back(self->return_type);
             }
         }
     }

@@ -1,8 +1,0 @@
-@std.util.Stringifyable
-@@{frameworkPath}/include/std/util/Stringifyable.scale
-## Util: Stringifyable
-### interface Stringifyable
-The interface `Stringifyable` is implemented by all types that can be converted to a string.
-
-### function Stringifyable:toString(): str
-Returns a string representation of `self`.

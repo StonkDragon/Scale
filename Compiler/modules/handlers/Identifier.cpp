@@ -47,18 +47,14 @@ namespace sclc {
             }
         } else if (body[i].value == "typeof") {
             safeInc();
-            // auto templates = currentStruct.templates;
-            if (hasVar(body[i].value)) {
-                std::string type = getVar(body[i].value).type;
-                const Struct& s = getStructByName(result, type);
-                if (s != Struct::Null && !s.isStatic()) {
-                    if (type.front() == '@') {
-                        append("_scl_push(scl_str, _scl_create_string(Var_%s.$type->type_name));\n", body[i].value.c_str());
-                    } else {
-                        append("_scl_push(scl_str, _scl_create_string(Var_%s->$type->type_name));\n", body[i].value.c_str());
-                    }
+            
+            const Variable& var = getVar(body[i].value);
+            if (var.name.size()) {
+                std::string type = var.type;
+                if (type.front() == '@') {
+                    append("_scl_push(scl_str, _scl_create_string(_scl_typename_or_else((scl_any) &Var_%s, \"%s\")))", var.name.c_str(), retemplate(type).c_str());
                 } else {
-                    append("_scl_push(scl_str, _scl_create_string(_scl_typename_or_else(*(scl_any*) &Var_%s, \"%s\")));\n", getVar(body[i].value).name.c_str(), retemplate(getVar(body[i].value).type).c_str());
+                    append("_scl_push(scl_str, _scl_create_string(_scl_typename_or_else(*(scl_any*) &Var_%s, \"%s\")));\n", var.name.c_str(), retemplate(type).c_str());
                 }
             } else if (hasFunction(result, body[i].value)) {
                 Function* f = getFunctionByName(result, body[i].value);
@@ -74,8 +70,19 @@ namespace sclc {
                     errors.push_back(err);
                 }
                 const Struct& s = getStructByName(result, typeStackTop);
+                Enum e = getEnumByName(result, typeStackTop);
                 if (s != Struct::Null && !s.isStatic()) {
                     append("_scl_top(scl_str) = _scl_create_string(_scl_top(scl_SclObject)->$type->type_name);\n");
+                } else if (hasLayout(result, typeStackTop)) {
+                    append("_scl_top(scl_str) = _scl_create_string(\"%s\");\n", retemplate(typeStackTop).c_str());
+                } else if (e.name.size()) {
+                    append("_scl_top(scl_str) = _scl_create_string(((char*[]){\n");
+                    scopeDepth++;
+                    for (auto&& x : e.member_types) {
+                        append("[%ld] = \"%s\",\n", e.members[x.first], x.second.c_str());
+                    }
+                    scopeDepth--;
+                    append("})[_scl_top(%s)]);\n", sclTypeToCType(result, typeStackTop).c_str());
                 } else {
                     append("_scl_top(scl_str) = _scl_create_string(_scl_typename_or_else(_scl_top(scl_any), \"%s\"));\n", retemplate(typeStackTop).c_str());
                 }
@@ -120,8 +127,19 @@ namespace sclc {
                     errors.push_back(err);
                 }
                 const Struct& s = getStructByName(result, typeStackTop);
+                Enum e = getEnumByName(result, typeStackTop);
                 if (s != Struct::Null && !s.isStatic()) {
                     append("_scl_top(scl_uint) = _scl_top(scl_SclObject)->$type->type;\n");
+                } else if (hasLayout(result, typeStackTop)) {
+                    append("_scl_top(scl_uint) = 0x%016llxULL;\n", id(retemplate(typeStackTop).c_str()));
+                } else if (e.name.size()) {
+                    append("_scl_top(scl_uint) = ((scl_uint*[]){\n");
+                    scopeDepth++;
+                    for (auto&& x : e.member_types) {
+                        append("[%ld] = 0x%026llxULL,\n", e.members[x.first], id(retemplate(x.second).c_str()));
+                    }
+                    scopeDepth--;
+                    append("})[_scl_top(%s)];\n", sclTypeToCType(result, typeStackTop).c_str());
                 } else {
                     append("_scl_top(scl_uint) = _scl_typeid_or_else(_scl_top(scl_any), 0x%016llxULL);\n", id(retemplate(typeStackTop).c_str()));
                 }
@@ -149,18 +167,8 @@ namespace sclc {
             }
         } else if (body[i].value == "sizeof") {
             safeInc();
-            if (isPrimitiveType(body[i].value)) {
-                append("_scl_push(scl_int, sizeof(%s));\n", sclTypeToCType(result, body[i].value).c_str());
-            } else if (body[i].value == "none" || body[i].value == "nothing") {
-                append("_scl_push(scl_int, 0);\n");
-            } else if (hasVar(body[i].value)) {
+            if (hasVar(body[i].value)) {
                 append("_scl_push(scl_int, sizeof(%s));\n", sclTypeToCType(result, getVar(body[i].value).type).c_str());
-            } else if (getStructByName(result, body[i].value) != Struct::Null) {
-                append("_scl_push(scl_int, sizeof(struct Struct_%s));\n", body[i].value.c_str());
-            } else if (hasTypealias(result, body[i].value)) {
-                append("_scl_push(scl_int, sizeof(%s));\n", sclTypeToCType(result, body[i].value).c_str());
-            } else if (hasLayout(result, body[i].value)) {
-                append("_scl_push(scl_int, sizeof(struct Layout_%s));\n", body[i].value.c_str());
             } else {
                 FPResult type = parseType(body, i);
                 if (!type.success) {
@@ -168,7 +176,14 @@ namespace sclc {
                     errors.push_back(err);
                     return;
                 }
-                append("_scl_push(scl_int, sizeof(%s));\n", sclTypeToCType(result, type.value).c_str());
+                const Struct& s = getStructByName(result, type.value);
+                if (s != Struct::Null && !s.isStatic()) {
+                    append("_scl_push(scl_int, sizeof(struct Struct_%s));\n", type.value.c_str());
+                } else if (hasLayout(result, type.value)) {
+                    append("_scl_push(scl_int, sizeof(struct Layout_%s));\n", type.value.c_str());
+                } else {
+                    append("_scl_push(scl_int, sizeof(%s));\n", sclTypeToCType(result, type.value).c_str());
+                }
             }
             typeStack.push_back("int");
         } else if (body[i].value == "try") {
@@ -394,8 +409,10 @@ namespace sclc {
                     
                     if (mutator) {
                         append("mt_%s$%s(tmp, _scl_pop(%s));\n", mutator->member_type.c_str(), mutator->name.c_str(), sclTypeToCType(result, lastType).c_str());
+                    } else if (v.type.front() == '@' && lastType.front() != '@') {
+                        append("tmp->%s = *_scl_pop(%s);\n", v.name.c_str(), sclTypeToCType(result, lastType).c_str());
                     } else {
-                        append("tmp->%s = _scl_pop(%s);\n", body[i].value.c_str(), sclTypeToCType(result, lastType).c_str());
+                        append("tmp->%s = _scl_pop(%s);\n", v.name.c_str(), sclTypeToCType(result, lastType).c_str());
                     }
                     typePop;
                     scopeDepth--;

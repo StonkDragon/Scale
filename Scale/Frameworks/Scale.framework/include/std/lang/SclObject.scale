@@ -1,8 +1,4 @@
-import std.util.Cloneable
-import std.util.Equatable
-import std.util.Hashable
-
-struct SclObject is Cloneable, Equatable, Hashable
+struct SclObject
     function ==(other: any): bool
         other self:equals return
     end

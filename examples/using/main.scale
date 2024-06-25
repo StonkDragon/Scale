@@ -1,4 +1,4 @@
-struct Foo is Closeable
+struct Foo
     function close(): none
         "closed" puts
     end

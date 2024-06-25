@@ -1,8 +1,0 @@
-@std.util.Hashable
-@@{frameworkPath}/include/std/util/Hashable.scale
-## Util: Hashable
-### interface Hashable
-The interface `Hashable` is implemented by all types that can be hashed.
-
-### function Hashable:hashCode(): int
-Returns the hash code of `self`.

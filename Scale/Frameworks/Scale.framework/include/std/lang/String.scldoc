@@ -2,7 +2,7 @@
 @std.String
 @@{frameworkPath}/include/std/lang/String.scale
 ## String
-### final struct str is Equatable, Cloneable, Stringifyable, Iterable
+### final struct str is Iterable
 The struct `str` represents a string.
 
 ### function str:+(what: str | int | float | [int8]): str

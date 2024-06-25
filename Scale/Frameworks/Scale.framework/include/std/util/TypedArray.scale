@@ -1,12 +1,6 @@
 import std.util.Array
 import std.util.ReadOnlyArray
 
-final struct InvalidTypeException : Exception
-    function init(msg: str): none
-        msg => self.msg
-    end
-end
-
 template<T>
 sealed struct TypedArrayIterator is Iterator
   private decl array: TypedArray<T>

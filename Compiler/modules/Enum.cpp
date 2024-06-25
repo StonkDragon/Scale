@@ -6,8 +6,9 @@ namespace sclc {
     Enum::Enum(std::string name) {
         this->name = name;
     }
-    void Enum::addMember(std::string member, long value) {
+    void Enum::addMember(std::string member, long value, std::string type) {
         members[member] = value;
+        member_types[member] = type;
         nextValue = value + 1;
     }
     size_t Enum::indexOf(std::string name) {

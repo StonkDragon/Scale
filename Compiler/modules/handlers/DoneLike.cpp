@@ -13,12 +13,6 @@ namespace sclc {
             const Variable& v = getVar(name);
             append("_scl_push(%s, Var_%s);\n", sclTypeToCType(result, v.type).c_str(), v.name.c_str());
             typeStack.push_back(v.type);
-            Struct& s = getStructByName(result, v.type);
-            if (!s.implements("Closeable")) {
-                transpilerError("Type '" + v.type + "' does not implement 'Closeable'", i);
-                errors.push_back(err);
-                return;
-            }
             Method* closeMethod = getMethodByName(result, "close", v.type);
             if (closeMethod == nullptr) {
                 transpilerError("No method 'close' found in type '" + v.type + "'", i);

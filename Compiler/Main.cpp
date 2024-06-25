@@ -614,7 +614,7 @@ namespace sclc
                 std::cout << Color::BOLDRED << "Fatal Error: Could not open file " << error.location.file << ": " << strerror(errno) << Color::RESET << std::endl;
                 continue;
             }
-            char* line = new char[sizeof(char) * 500];
+            char* line = (char*) malloc(sizeof(char) * 512);
             int i = 1;
             if (f) fseek(f, 0, SEEK_SET);
             std::string colString;
@@ -637,7 +637,7 @@ namespace sclc
                 Color::RESET <<
                 std::endl;
             i = 1;
-            while (fgets(line, 500, f) != NULL) {
+            while (fgets(line, 511, f) != NULL) {
                 if (i == error.location.line) {
                     std::cerr << line << Color::RESET;
                     std::cerr << std::string(error.location.column - 1, ' ') << Color::BOLDGREEN << "^" << Color::RESET << std::endl;
@@ -645,9 +645,9 @@ namespace sclc
                 i++;
             }
             fclose(f);
-            delete[] line;
-            logWarns(error.warns);
+            free(line);
             logErrors(error.errors);
+            logWarns(error.warns);
         }
     }
 
@@ -681,7 +681,7 @@ namespace sclc
                 std::cout << Color::BOLDRED << "Fatal Error: Could not open file " << error.location.file << ": " << strerror(errno) << Color::RESET << std::endl;
                 continue;
             }
-            char* line = (char*) malloc(sizeof(char) * 500);
+            char* line = (char*) malloc(sizeof(char) * 512);
             int i = 1;
             if (f) fseek(f, 0, SEEK_SET);
             std::string fileRelativeToCurrent = std::filesystem::relative(error.location.file, std::filesystem::current_path()).string();
@@ -698,7 +698,7 @@ namespace sclc
                 Color::RESET <<
                 std::endl;
             i = 1;
-            while (fgets(line, 500, f) != NULL) {
+            while (fgets(line, 511, f) != NULL) {
                 if (i == error.location.line) {
                     if (strToAdd.size()) {
                         std::cerr << std::string(line).insert(addAtCol, strToAdd) << Color::RESET;
@@ -712,8 +712,8 @@ namespace sclc
             fclose(f);
             free(line);
             errorCount++;
-            logWarns(error.warns);
             logErrors(error.errors);
+            logWarns(error.warns);
         }
     }
 
@@ -1192,9 +1192,10 @@ namespace sclc
             Main::tokenizer->removeInvalidTokens();
 
             FPResult importResult = Main::tokenizer->tryImports();
-            if (!importResult.success) {
-                std::cerr << Color::BOLDRED << "Include Error: " << importResult.location.file << ":" << importResult.location.line << ":" << importResult.location.column << ": " << importResult.message << std::endl;
-                return 1;
+            logErrors(importResult.errors);
+            logWarns(importResult.warns);
+            if (!importResult.errors.empty()) {
+                exit(1);
             }
 
             std::vector<Token> theseTokens = Main::tokenizer->getTokens();

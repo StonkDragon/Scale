@@ -400,6 +400,9 @@ namespace sclc
     }
 
     long long parseNumber(std::string str) {
+        if (str == "true") return 1;
+        if (str == "false" || str == "nil") return 0;
+        
         long long value;
         if (str.substr(0, 2) == "0x") {
             value = std::stoll(str.substr(2), nullptr, 16);

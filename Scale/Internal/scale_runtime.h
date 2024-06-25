@@ -379,8 +379,8 @@ struct scale_string {
 #define _scl_offsetof(type, member) ((scl_int)&((type*)0)->member)
 
 #define REINTERPRET_CAST(_type, _value) ({ \
-	typeof(_value) _tmp ## __LINE__ = (_value); \
-	*(_type*) &_tmp ## __LINE__; \
+	typeof(_value) _tmp = (_value); \
+	*(_type*) &_tmp; \
 })
 
 #define _scl_async(x, at, ...) ({ \
@@ -426,54 +426,12 @@ void				_scl_delete_ptr(void* ptr);
 
 #include "preproc.h"
 
-#define				func_ptr_on(instance, methodIdentifier) \
-						_scl_get_vtable_function(0, (instance), (methodIdentifier))
-
-#define				func_ptr_on_super(instance, methodIdentifier) \
-						_scl_get_vtable_function(1, (instance), (methodIdentifier))
-
 // call a method on an instance
-// return value is undefined if the method return type is `none`
-#define				virtual_call(instance, methodIdentifier, ...) \
-						_Pragma("clang diagnostic push") \
-						_Pragma("clang diagnostic ignored \"-Wincompatible-pointer-types-discards-qualifiers\"") \
-						_Pragma("clang diagnostic ignored \"-Wint-conversion\"") \
+#define				virtual_call(instance, methodIdentifier, rtype, ...) \
 						({ \
-							scl_any _tmp ## __LINE__ = (instance); \
-							(((scl_any(*)(scl_any __VA_OPT__(, _SCL_PREPROC_REPEAT_N(_SCL_PREPROC_NARG(__VA_ARGS__), scl_any)))) func_ptr_on(_tmp ## __LINE__, (methodIdentifier))))(_tmp ## __LINE__, ##__VA_ARGS__); \
-						}) \
-						_Pragma("clang diagnostic pop")
-// call a method on an instance
-#define				virtual_callf(instance, methodIdentifier, ...) \
-						_Pragma("clang diagnostic push") \
-						_Pragma("clang diagnostic ignored \"-Wincompatible-pointer-types-discards-qualifiers\"") \
-						_Pragma("clang diagnostic ignored \"-Wint-conversion\"") \
-						({ \
-							scl_any _tmp ## __LINE__ = (instance); \
-							(((scl_float(*)(scl_any __VA_OPT__(, _SCL_PREPROC_REPEAT_N(_SCL_PREPROC_NARG(__VA_ARGS__), scl_any)))) func_ptr_on(_tmp ## __LINE__, (methodIdentifier))))(_tmp ## __LINE__, ##__VA_ARGS__); \
-						}) \
-						_Pragma("clang diagnostic pop")
-// call a method on the super class of an instance
-// return value is undefined if the method return type is `none`
-#define				virtual_call_super(instance, methodIdentifier, ...) \
-						_Pragma("clang diagnostic push") \
-						_Pragma("clang diagnostic ignored \"-Wincompatible-pointer-types-discards-qualifiers\"") \
-						_Pragma("clang diagnostic ignored \"-Wint-conversion\"") \
-						({ \
-							scl_any _tmp ## __LINE__ = (instance); \
-							(((scl_any(*)(scl_any __VA_OPT__(, _SCL_PREPROC_REPEAT_N(_SCL_PREPROC_NARG(__VA_ARGS__), scl_any)))) func_ptr_on_super(_tmp ## __LINE__, (methodIdentifier))))(_tmp ## __LINE__, ##__VA_ARGS__); \
-						}) \
-						_Pragma("clang diagnostic pop")
-// call a method on the super class of an instance
-#define				virtual_call_superf(instance, methodIdentifier, ...) \
-						_Pragma("clang diagnostic push") \
-						_Pragma("clang diagnostic ignored \"-Wincompatible-pointer-types-discards-qualifiers\"") \
-						_Pragma("clang diagnostic ignored \"-Wint-conversion\"") \
-						({ \
-							scl_any _tmp ## __LINE__ = (instance); \
-							(((scl_float(*)(scl_any __VA_OPT__(, _SCL_PREPROC_REPEAT_N(_SCL_PREPROC_NARG(__VA_ARGS__), scl_any)))) func_ptr_on_super(_tmp ## __LINE__, (methodIdentifier))))(_tmp ## __LINE__, ##__VA_ARGS__); \
-						}) \
-						_Pragma("clang diagnostic pop")
+							typeof((instance)) _tmp = (instance); \
+							((rtype(*)(typeof((instance)) __VA_OPT__(, _SCL_TYPES(__VA_ARGS__)))) _scl_get_vtable_function(_tmp, (methodIdentifier)))(_tmp, ##__VA_ARGS__); \
+						})
 
 _scl_no_return void	_scl_runtime_error(int code, const scl_int8* msg, ...);
 _scl_no_return void	_scl_runtime_catch(scl_any ex);
@@ -586,15 +544,15 @@ static inline void _scl_assert(scl_int b, const scl_int8* msg, ...) {
 						(_type*) (tmp ## __LINE__->data); \
 					})
 
-#define _scl_static_cstring(_data, _len) ({ \
+#define _scl_static_cstring(_data) ({ \
 						static _scl_symbol_hidden struct { \
 							memory_layout_t layout; \
-							scl_int8 data[(_len) + 1]; \
+							scl_int8 data[sizeof((_data))]; \
 						} CONCAT(_str_data, __LINE__) __asm__("l_scl_string_data" _scl_macro_to_string(__COUNTER__)) = { \
 							.layout = { \
 								.array_elem_size = sizeof(scl_int8), \
 								.flags = MEM_FLAG_ARRAY, \
-								.size = _len, \
+								.size = sizeof((_data)) - 1, \
 							}, \
 							.data = (_data), \
 						}; \
@@ -650,7 +608,7 @@ scl_int				_scl_is_instance(scl_any ptr);
 scl_any				_scl_mark_static(memory_layout_t* layout);
 #endif
 scl_int				_scl_is_instance_of(scl_any ptr, ID_t type_id);
-scl_any				_scl_get_vtable_function(scl_int onSuper, scl_any instance, const scl_int8* methodIdentifier);
+scl_any				_scl_get_vtable_function(scl_any instance, const scl_int8* methodIdentifier);
 scl_any				_scl_checked_cast(scl_any instance, ID_t target_type, const scl_int8* target_type_name);
 scl_int8*			_scl_typename_or_else(scl_any instance, const scl_int8* else_);
 ID_t				_scl_typeid_or_else(scl_any instance, ID_t else_);

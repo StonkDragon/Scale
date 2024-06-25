@@ -603,11 +603,13 @@ namespace sclc
 
     FPResult findFileInIncludePath(std::string file);
     FPResult Tokenizer::tryImports() {
+        FPResult res;
         for (ssize_t i = 0; i < (ssize_t) tokens.size(); i++) {
             if (tokens[i].type != tok_identifier) continue;
             if (tokens[i].value != "import") continue;
 
             ssize_t start = i;
+            SourceLocation beg = tokens[i].location;
 
             i++;
             if (i >= (long) tokens.size()) {
@@ -615,7 +617,8 @@ namespace sclc
                 r.message = "Expected module name after import";
                 r.location = tokens[i - 1].location;
                 r.success = false;
-                return r;
+                res.errors.push_back(r);
+                continue;
             }
             std::string moduleName = tokens[i].value;
             while (i + 1 < (long long) tokens.size() && tokens[i + 1].type == tok_dot) {
@@ -627,7 +630,8 @@ namespace sclc
                 r.message = "Expected module name after import";
                 r.location = tokens[i - 1].location;
                 r.success = false;
-                return r;
+                res.errors.push_back(r);
+                continue;
             }
             bool found = false;
             for (auto config : Main::options::indexDrgFiles) {
@@ -643,13 +647,9 @@ namespace sclc
                 for (size_t j = 0; j < list->size(); j++) {
                     FPResult find = findFileInIncludePath(list->getString(j)->getValue());
                     if (!find.success) {
-                        FPResult r;
-                        r.value = tokens[i].value;
-                        r.location = tokens[i].location;
-                        r.type = tokens[i].type;
-                        r.success = false;
-                        r.message = find.message;
-                        return r;
+                        find.location = beg;
+                        res.errors.push_back(find);
+                        goto cont;
                     }
                     auto file = find.location.file;
                     file = std::filesystem::absolute(file).string();
@@ -663,23 +663,24 @@ namespace sclc
             tokens.erase(tokens.begin() + start, tokens.begin() + i + 1);
             i = start - 1;
 
-            if (found) continue;
-
-            std::string file = replaceCharWithChar(moduleName, '.', PATH_SEPARATOR[0]);
-            file += ".scale";
-            FPResult r = findFileInIncludePath(file);
-            if (!r.success) {
-                r.location = tokens[i].location;
-                return r;
+            if (!found) {
+                std::string file = replaceCharWithChar(moduleName, '.', PATH_SEPARATOR[0]);
+                file += ".scale";
+                FPResult r = findFileInIncludePath(file);
+                if (!r.success) {
+                    r.location = beg;
+                    res.errors.push_back(r);
+                    goto cont;
+                }
+                file = std::filesystem::absolute(r.location.file).string();
+                if (!contains(Main::options::files, file)) {
+                    Main::options::files.push_back(file);
+                }
             }
-            file = std::filesystem::absolute(r.location.file).string();
-            if (!contains(Main::options::files, file)) {
-                Main::options::files.push_back(file);
-            }
+        cont:;
         }
-        FPResult r;
-        r.success = true;
-        return r;
+        res.success = res.errors.empty();
+        return res;
     }
 
     FPResult findFileInIncludePath(std::string file) {
@@ -687,7 +688,6 @@ namespace sclc
             FPResult r;
             r.success = false;
             r.message = "Empty file name!";
-            r.location = SourceLocation("", 0, 0);
             return r;
         }
         for (std::string& path : Main::options::includePaths) {
@@ -704,7 +704,6 @@ namespace sclc
         FPResult r;
         r.success = false;
         r.message = "Could not find " + file + " on include path!";
-        r.location = SourceLocation(file, 0, 0);
         return r;
     }
 }

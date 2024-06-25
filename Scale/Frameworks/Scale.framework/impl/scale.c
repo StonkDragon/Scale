@@ -186,7 +186,7 @@ void Thread$run(scl_Thread self) {
 	_scl_set_thread_name(self->name->data);
 
 	Process$lock(Var_Thread$threads);
-	virtual_call(Var_Thread$threads, "push(LThread;)V;", self);
+	virtual_call(Var_Thread$threads, "push(LThread;)V;", void, self);
 	Process$unlock(Var_Thread$threads);
 	
 	TRY {
@@ -196,7 +196,7 @@ void Thread$run(scl_Thread self) {
 	}
 
 	Process$lock(Var_Thread$threads);
-	virtual_call(Var_Thread$threads, "remove(LThread;)V;", self);
+	virtual_call(Var_Thread$threads, "remove(LThread;)V;", void, self);
 	Process$unlock(Var_Thread$threads);
 	
 	_currentThread = nil;
@@ -207,7 +207,7 @@ void Thread$start0(scl_Thread self) {
 	SCL_BACKTRACE("Thread:start0(): none");
 	if (self->function == nil) {
 		scl_IllegalStateException e = ALLOC(IllegalStateException);
-		virtual_call(e, "init(s;)V;", str_of_exact("Cannot call start on main thread!"));
+		virtual_call(e, "init(s;)V;", void, str_of_exact("Cannot call start on main thread!"));
 		_scl_throw(e);
 	}
 	self->nativeThread = _scl_thread_start(&Thread$run, self);
@@ -217,7 +217,7 @@ void Thread$stop0(scl_Thread self) {
 	SCL_BACKTRACE("Thread:stop0(): none");
 	if (self->function == nil) {
 		scl_IllegalStateException e = ALLOC(IllegalStateException);
-		virtual_call(e, "init(s;)V;", str_of_exact("Cannot call join on main thread!"));
+		virtual_call(e, "init(s;)V;", void, str_of_exact("Cannot call join on main thread!"));
 		_scl_throw(e);
 	}
 	_scl_thread_finish(self->nativeThread);
@@ -227,7 +227,7 @@ void Thread$detach0(scl_Thread self) {
 	SCL_BACKTRACE("Thread:detach0(): none");
 	if (self->function == nil) {
 		scl_IllegalStateException e = ALLOC(IllegalStateException);
-		virtual_call(e, "init(s;)V;", str_of_exact("Cannot detach main thread!"));
+		virtual_call(e, "init(s;)V;", void, str_of_exact("Cannot detach main thread!"));
 		_scl_throw(e);
 	}
 	_scl_thread_detach(self->nativeThread);
@@ -339,7 +339,7 @@ scl_int8* s_strcpy(scl_int8* dest, scl_int8* src) {
 
 scl_str builtinToString(scl_any obj) {
 	if (_scl_is_instance(obj)) {
-		return (scl_str) virtual_call(obj, "toString()s;");
+		return virtual_call(obj, "toString()s;", scl_str);
 	}
 	if (_scl_is_array((scl_any*) obj)) {
 		return _scl_array_to_string((scl_any*) obj);
@@ -361,7 +361,7 @@ scl_str _scl_array_to_string(scl_any* arr) {
 	scl_str s = str_of_exact("[");
 	for (scl_int i = 0; i < size; i++) {
 		if (i) {
-			s = (scl_str) virtual_call(s, "append(s;)s;", str_of_exact(", "));
+			s = virtual_call(s, "append(s;)s;", scl_str, str_of_exact(", "));
 		}
 		scl_str tmp = nil;
 		scl_int value;
@@ -377,7 +377,7 @@ scl_str _scl_array_to_string(scl_any* arr) {
 				break;
 			case 8: {
 				if (_scl_is_instance(arr[i])) {
-					tmp = (scl_str) virtual_call(arr[i], "toString()s;");
+					tmp = virtual_call(arr[i], "toString()s;", scl_str);
 				} else {
 					tmp = builtinToString(arr[i]);
 				}
@@ -391,9 +391,9 @@ scl_str _scl_array_to_string(scl_any* arr) {
 			snprintf(str, 31, SCL_INT_FMT, value);
 			tmp = str_of_exact(str);
 		}
-		s = (scl_str) virtual_call(s, "append(s;)s;", tmp);
+		s = virtual_call(s, "append(s;)s;", scl_str, tmp);
 	}
-	return (scl_str) virtual_call(s, "append(s;)s;", str_of_exact("]"));
+	return virtual_call(s, "append(s;)s;", scl_str, str_of_exact("]"));
 }
 
 // _scl_constructor

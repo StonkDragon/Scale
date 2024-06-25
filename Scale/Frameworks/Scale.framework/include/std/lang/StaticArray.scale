@@ -48,7 +48,7 @@ layout StaticArray
 
     function fill(arr: [Type]): none
         if arr:size Size != then
-            "Array is not of correct size. Expected array of size " Size + InvalidArgumentException::new throw
+            "Array is not of correct size. Expected array of size " Size + ", but array of size " + arr:size + " was provided!" + InvalidArgumentException::new throw
         fi
         for i in 0 to Size do
             arr[i] => self[i]
@@ -59,7 +59,7 @@ layout StaticArray
         self StaticArrayIterator<Type, Size>::new return
     end
 
-    function copyInto(arr: [Type]): Self
+    function copyInto(arr: [Type]): StaticArray<Type, Size>
         arr self:fill
         self return
     end

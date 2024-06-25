@@ -1,3 +1,0 @@
-interface Hashable
-    function hashCode(): int
-end

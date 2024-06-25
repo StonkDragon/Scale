@@ -160,8 +160,8 @@ namespace sclc {
             append("scl_int %s_ind = 0;\n", iterator_name.c_str());
         }
         std::string iteratingType = sclTypeToCType(result, type);
-        append("scl_int(*hasNext_%s)(%s) = func_ptr_on(%s, \"hasNext()i;\");\n", iterator_name.c_str(), iteratingType.c_str(), iterator_name.c_str());
-        append("%s(*next_%s)(%s) = func_ptr_on(%s, \"next\");\n", cType.c_str(), iterator_name.c_str(), iteratingType.c_str(), iterator_name.c_str());
+        append("scl_int(*hasNext_%s)(%s) = _scl_get_vtable_function(%s, \"hasNext()i;\");\n", iterator_name.c_str(), iteratingType.c_str(), iterator_name.c_str());
+        append("%s(*next_%s)(%s) = _scl_get_vtable_function(%s, \"next\");\n", cType.c_str(), iterator_name.c_str(), iteratingType.c_str(), iterator_name.c_str());
         append("while (hasNext_%s(%s)) {\n", iterator_name.c_str(), iterator_name.c_str());
         scopeDepth++;
         append("%s Var_%s = next_%s(%s);\n", cType.c_str(), iter_var_tok.value.c_str(), iterator_name.c_str(), iterator_name.c_str());

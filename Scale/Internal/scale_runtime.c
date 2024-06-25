@@ -262,7 +262,7 @@ void _scl_finalize(scl_any ptr) {
 	ptr = _scl_get_memory_layout(ptr);
 	if (ptr && (((memory_layout_t*) ptr)->flags & MEM_FLAG_INSTANCE)) {
 		scl_any obj = (scl_any) (ptr + sizeof(memory_layout_t));
-		virtual_call(obj, "finalize()V;");
+		virtual_call(obj, "finalize()V;", void);
 	}
 	((memory_layout_t*) ptr)->size = 0;
 	((memory_layout_t*) ptr)->flags = 0;
@@ -345,7 +345,7 @@ _scl_no_return void _scl_runtime_error(int code, const scl_int8* msg, ...) {
 	va_end(args);
 
 	scl_RuntimeError ex = ALLOC(RuntimeError);
-	virtual_call(ex, "init(s;)V;", _scl_create_string(str));
+	virtual_call(ex, "init(s;)V;", void, _scl_create_string(str));
 	
 	_scl_throw(ex);
 }
@@ -400,7 +400,7 @@ _scl_symbol_hidden static void _scl_signal_handler(scl_int sig_num) {
 	with_errno = errno;
 
 	scl_SignalError sigErr = ALLOC(SignalError);
-	virtual_call(sigErr, "init(s;)V;", _scl_create_string(signalString));
+	virtual_call(sigErr, "init(s;)V;", void, _scl_create_string(signalString));
 
 	handling_signal = 0;
 	with_errno = 0;
@@ -430,7 +430,7 @@ void _scl_assert(scl_int b, const scl_int8* msg, ...) {
 		scl_AssertError e = ALLOC(AssertError);
 		va_list list;
 		va_start(list, msg);
-		virtual_call(e, "init(s;)V;", str_of_exact(strformat("Assertion failed: %s", vstrformat(msg, list))));
+		virtual_call(e, "init(s;)V;", void, str_of_exact(strformat("Assertion failed: %s", vstrformat(msg, list))));
 		va_end(list);
 		_scl_throw(e);
 	}
@@ -438,7 +438,7 @@ void _scl_assert(scl_int b, const scl_int8* msg, ...) {
 
 void builtinUnreachable(void) {
 	scl_UnreachableError e = ALLOC(UnreachableError);
-	virtual_call(e, "init(s;)V;", str_of_exact("Unreachable"));
+	virtual_call(e, "init(s;)V;", void, str_of_exact("Unreachable"));
 	_scl_throw(e);
 }
 
@@ -504,13 +504,8 @@ scl_any _scl_copy_fields(scl_any dest, scl_any src, scl_int size) {
 
 _scl_symbol_hidden static scl_int _scl_search_method_index(const struct _scl_methodinfo* const methods, ID_t id, ID_t sig);
 
-static inline _scl_lambda _scl_get_method_on_type(scl_any type, ID_t method, ID_t signature, int onSuper) {
-	const struct TypeInfo* ti;
-	if (likely(!onSuper)) {
-		ti = ((Struct*) type)->type;
-	} else {
-		ti = ((Struct*) type)->type->super;
-	}
+static inline _scl_lambda _scl_get_method_on_type(scl_any type, ID_t method, ID_t signature) {
+	const struct TypeInfo* ti = ((Struct*) type)->type;
 	const struct _scl_methodinfo* mi = ti->vtable_info;
 	const _scl_lambda* vtable = ti->vtable;
 
@@ -539,7 +534,7 @@ _scl_symbol_hidden static void split_at(const scl_int8* str, size_t len, size_t 
 	right[len - index] = '\0';
 }
 
-scl_any _scl_get_vtable_function(scl_int onSuper, scl_any instance, const scl_int8* methodIdentifier) {
+scl_any _scl_get_vtable_function(scl_any instance, const scl_int8* methodIdentifier) {
 	if (unlikely(!_scl_is_instance(instance))) {
 		_scl_runtime_error(EX_CAST_ERROR, "Tried getting method on non-struct type (%p)", instance);
 	}
@@ -560,7 +555,7 @@ scl_any _scl_get_vtable_function(scl_int onSuper, scl_any instance, const scl_in
 	}
 	ID_t methodNameHash = type_id(methodName);
 
-	_scl_lambda m = _scl_get_method_on_type(instance, methodNameHash, signatureHash, onSuper);
+	_scl_lambda m = _scl_get_method_on_type(instance, methodNameHash, signatureHash);
 	if (unlikely(m == nil)) {
 		if (unlikely(((Struct*) instance)->type == nil)) {
 			_scl_runtime_error(EX_BAD_PTR, "instance->type is nil");
@@ -661,7 +656,7 @@ scl_any _scl_checked_cast(scl_any instance, ID_t target_type, const scl_int8* ta
 
 		scl_CastError e = ALLOC(CastError);
 		if (instance == nil) {
-			virtual_call(e, "init(s;)V;", str_of_exact(strformat("Cannot cast nil to type '%s'", target_type_name)));
+			virtual_call(e, "init(s;)V;", void, str_of_exact(strformat("Cannot cast nil to type '%s'", target_type_name)));
 			_scl_throw(e);
 		}
 
@@ -669,9 +664,9 @@ scl_any _scl_checked_cast(scl_any instance, ID_t target_type, const scl_int8* ta
 
 		scl_bool is_instance = layout && (layout->flags & MEM_FLAG_INSTANCE);
 		if (is_instance) {
-			virtual_call(e, "init(s;)V;", str_of_exact(strformat("Cannot cast instance of struct '%s' to type '%s'\n", ((Struct*) instance)->type->type_name, target_type_name)));
+			virtual_call(e, "init(s;)V;", void, str_of_exact(strformat("Cannot cast instance of struct '%s' to type '%s'\n", ((Struct*) instance)->type->type_name, target_type_name)));
 		} else {
-			virtual_call(e, "init(s;)V;", str_of_exact(strformat("Cannot cast non-object to type '%s'\n", target_type_name)));
+			virtual_call(e, "init(s;)V;", void, str_of_exact(strformat("Cannot cast non-object to type '%s'\n", target_type_name)));
 		}
 		_scl_throw(e);
 	}
@@ -764,7 +759,7 @@ void _scl_array_check_bounds_or_throw_unchecked(scl_any* arr, scl_int index) {
 	scl_int size = _scl_array_size_unchecked(arr);
 	if (index < 0 || index >= size) {
 		scl_IndexOutOfBoundsException e = ALLOC(IndexOutOfBoundsException);
-		virtual_call(e, "init(s;)V;", _scl_create_string(strformat("Index " SCL_INT_FMT " out of bounds for array of size " SCL_INT_FMT, index, size)));
+		virtual_call(e, "init(s;)V;", void, _scl_create_string(strformat("Index " SCL_INT_FMT " out of bounds for array of size " SCL_INT_FMT, index, size)));
 		_scl_throw(e);
 	}
 }

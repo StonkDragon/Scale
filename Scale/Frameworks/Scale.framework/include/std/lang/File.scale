@@ -1,5 +1,3 @@
-import std.util.Closeable
-
 typealias __c_file "FILE*"
 
 cdecl "_scl_get_stdin"
@@ -19,7 +17,7 @@ final struct EndOfFileException: Exception
   end
 end
 
-final struct File is Closeable
+final struct File
   private decl _name: str
   private decl _file: __c_file
   private decl _can_close: bool

@@ -14,8 +14,6 @@ namespace sclc {
     std::string typeToRTSigIdent(std::string type);
     std::string argsToRTSignatureIdent(Function* f);
 
-    bool isSelfType(std::string type);
-
     std::vector<std::string> parseReifiedParams(std::vector<FPResult>& errors, size_t& i, std::vector<Token>& tokens) {
         std::vector<std::string> params;
         if (tokens[i].type != tok_identifier || tokens[i].value != "<") {
@@ -237,16 +235,6 @@ namespace sclc {
                 result.success = false;
                 errors.push_back(result);
                 i++;
-                return func;
-            }
-            if (isSelfType(func->return_type) && func->args.empty()) {
-                FPResult result;
-                result.message = "A function with 'self' return type must have at least one argument!";
-                result.value = tokens[i].value;
-                result.location = tokens[i].location;
-                result.type = tokens[i].type;
-                result.success = false;
-                errors.push_back(result);
                 return func;
             }
         } else {
@@ -482,16 +470,6 @@ namespace sclc {
                 result.success = false;
                 errors.push_back(result);
                 i++;
-                return method;
-            }
-            if (isSelfType(method->return_type) && method->args.empty()) {
-                FPResult result;
-                result.message = "A method with 'self' return type must have at least one argument!";
-                result.value = tokens[i].value;
-                result.location = tokens[i].location;
-                result.type = tokens[i].type;
-                result.success = false;
-                errors.push_back(result);
                 return method;
             }
             method->addArgument(Variable("self", memberByValue ? "@" + memberName : memberName));
@@ -1429,28 +1407,33 @@ namespace sclc {
                         continue;
                     }
 
-                    std::vector<Token> toks;
-                    for (auto&& tok : ti.templ.tokens) {
-                        if (tok.type != tok_identifier) {
-                            toks.push_back(tok);
-                        } else if (tok == ti.templ.name && tok.location == ti.templ.name.location) {
-                            toks.push_back(Token(tok_identifier, id, tok.location));
-                        } else {
-                            bool found = false;
-                            for (auto&& x : ti.expansions) {
-                                if (x.first == tok.value) {
-                                    for (auto&& t : x.second) {
-                                        toks.push_back(t);
+                    auto expand = [&]() {
+                        std::vector<Token> toks;
+                        for (auto&& tok : ti.templ.tokens) {
+                            if (tok.type != tok_identifier) {
+                                toks.push_back(tok);
+                            } else if (tok == ti.templ.name && tok.location == ti.templ.name.location) {
+                                toks.push_back(Token(tok_identifier, id, tok.location));
+                            } else {
+                                bool found = false;
+                                for (auto&& x : ti.expansions) {
+                                    if (x.first == tok.value) {
+                                        for (auto&& t : x.second) {
+                                            toks.push_back(t);
+                                        }
+                                        found = true;
+                                        break;
                                     }
-                                    found = true;
-                                    break;
+                                }
+                                if (!found) {
+                                    toks.push_back(tok);
                                 }
                             }
-                            if (!found) {
-                                toks.push_back(tok);
-                            }
                         }
-                    }
+                        return toks;
+                    };
+
+                    std::vector<Token> toks = expand();
                     tokens.reserve(tokens.size() + toks.size());
                     tokens.insert(tokens.end(), toks.begin(), toks.end());
                     initialized.push_back(id);
@@ -2145,11 +2128,11 @@ namespace sclc {
                 i++;
                 Enum e = Enum(namePrefix + name);
                 e.name_token = tokens[i - 1];
-                while (tokens[i].type != tok_end) {
+                while (i < tokens.size() && tokens[i].type != tok_end) {
                     long next = e.nextValue;
                     if (tokens[i].type == tok_bracket_open) {
                         i++;
-                        expect("number", tokens[i].type == tok_number);
+                        expect("number", tokens[i].type == tok_number || tokens[i].type == tok_true || tokens[i].type == tok_false || tokens[i].type == tok_nil);
                         next = parseNumber(tokens[i].value);
                         i++;
                         expect("]", tokens[i].type == tok_bracket_close);
@@ -2166,8 +2149,19 @@ namespace sclc {
                         i++;
                         continue;
                     }
+                    std::string mem = tokens[i].value;
+                    std::string type = e.name;
+                    if (i + 1 < tokens.size() && tokens[i + 1].type == tok_column) {
+                        i += 2;
+                        FPResult r = parseType(tokens, i);
+                        if (!r.success) {
+                            errors.push_back(r);
+                            continue;
+                        }
+                        type = r.value;
+                    }
                     try {
-                        e.addMember(tokens[i].value, next);
+                        e.addMember(mem, next, type);
                     } catch (const std::runtime_error& e) {
                         FPResult result;
                         result.message = e.what();

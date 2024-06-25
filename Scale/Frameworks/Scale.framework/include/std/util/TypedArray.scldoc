@@ -1,12 +1,6 @@
 @std.util.TypedArray
 @@{frameworkPath}/include/std/util/TypedArray.scale
 ## Util: TypedArray
-### final struct InvalidTypeException: Exception
-The struct `InvalidTypeException` represents an exception that is thrown when an invalid type is encountered.
-
-### static function InvalidTypeException::new(msg: str): InvalidTypeException
-Returns a new instance of `InvalidTypeException` with the message `msg`.
-
 ### final struct TypedArray<T>: Array
 The struct `TypedArray` represents an array that can only contain values of type `T`.
 

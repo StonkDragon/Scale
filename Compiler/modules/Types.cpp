@@ -83,16 +83,6 @@ namespace sclc {
         }
     }
 
-    bool isSelfType(std::string type) {
-        type = removeTypeModifiers(type);
-        if (type == "self") {
-            return true;
-        } else if (type.size() > 2 && type.front() == '[' && type.back() == ']') {
-            return isSelfType(type.substr(1, type.size() - 2));
-        }
-        return false;
-    }
-
     bool isPrimitiveIntegerType(std::string s, bool rem) {
         if (rem) s = removeTypeModifiers(s);
         return s == "int" ||
