@@ -15,8 +15,6 @@ extern "C" {
 typedef struct Struct {
 	// Typeinfo for this object
 	TypeInfo*		type;
-	// Mutex for this object
-	scl_any			mutex;
 } Struct;
 
 typedef struct Struct_Exception {
@@ -217,7 +215,7 @@ scl_any _scl_mark_static(memory_layout_t* layout) {
 }
 
 _scl_symbol_hidden static scl_int _scl_on_stack(scl_any ptr) {
-	struct GC_stack_base base;
+	struct GC_stack_base base = {0};
 	if (GC_get_stack_base(&base) != GC_SUCCESS) {
 		return 0;
 	}
@@ -274,6 +272,10 @@ scl_any _scl_alloc(scl_int size) {
 	size = ((size + 7) >> 3) << 3;
 	if (unlikely(size == 0)) size = 8;
 
+	if (unlikely(size > SCL_int32_MAX)) {
+		_scl_runtime_error(EX_INVALID_ARGUMENT, "Cannot allocate more than " _scl_macro_to_string(SCL_int32_MAX) " bytes of memory!");
+	}
+
 	scl_any ptr = GC_malloc(size + sizeof(memory_layout_t));
 	if (unlikely(ptr == nil)) {
 		raise(SIGSEGV);
@@ -298,6 +300,10 @@ scl_any _scl_realloc(scl_any ptr, scl_int size) {
 	size = ((size + 7) >> 3) << 3;
 	if (unlikely(size == 0)) size = 8;
 
+	if (unlikely(size > SCL_int32_MAX)) {
+		_scl_runtime_error(EX_INVALID_ARGUMENT, "Cannot allocate more than " _scl_macro_to_string(SCL_int32_MAX) " bytes of memory!");
+	}
+
 	ptr = GC_realloc(ptr - sizeof(memory_layout_t), size + sizeof(memory_layout_t));
 	if (unlikely(ptr == nil)) {
 		raise(SIGSEGV);
@@ -314,9 +320,6 @@ void _scl_free(scl_any ptr) {
 	scl_any base = GC_base(ptr);
 	if (likely(base)) {
 		_scl_finalize(ptr);
-		if (_scl_is_instance(ptr)) {
-			cxx_std_recursive_mutex_delete(&((Struct*) ptr)->mutex);
-		}
 		GC_free(base);
 	}
 }
@@ -411,20 +414,6 @@ void _scl_sleep(scl_int millis) {
 	sleep(millis);
 }
 
-void _scl_lock(scl_any obj) {
-	if (unlikely(!_scl_is_instance(obj))) {
-		return;
-	}
-	cxx_std_recursive_mutex_lock(&((Struct*) obj)->mutex);
-}
-
-void _scl_unlock(scl_any obj) {
-	if (unlikely(!_scl_is_instance(obj))) {
-		return;
-	}
-	cxx_std_recursive_mutex_unlock(&((Struct*) obj)->mutex);
-}
-
 void _scl_assert(scl_int b, const scl_int8* msg, ...) {
 	if (unlikely(!b)) {
 		scl_AssertError e = ALLOC(AssertError);
@@ -468,22 +457,25 @@ __pure2 _scl_symbol_hidden static scl_uint _scl_rotr(const scl_uint value, const
     return (value >> shift) | (value << ((sizeof(scl_uint) << 3) - shift));
 }
 
-scl_int _scl_identity_hash(scl_any _obj) {
-	if (unlikely(!_scl_is_instance(_obj))) {
-		return REINTERPRET_CAST(scl_int, _obj);
+scl_int _scl_identity_hash(scl_any obj) {
+	if (unlikely(!_scl_is_instance(obj))) {
+		return REINTERPRET_CAST(scl_int, obj);
 	}
-	Struct* obj = (Struct*) _obj;
-	cxx_std_recursive_mutex_lock(&obj->mutex);
 	scl_int size = _scl_sizeof(obj);
 	scl_int hash = REINTERPRET_CAST(scl_int, obj) % 17;
 	for (scl_int i = 0; i < size; i++) {
 		hash = _scl_rotl(hash, 5) ^ ((scl_int8*) obj)[i];
 	}
-	cxx_std_recursive_mutex_unlock(&obj->mutex);
 	return hash;
 }
 
 scl_any _scl_atomic_clone(scl_any ptr) {
+	if (_scl_is_instance(ptr)) {
+		TypeInfo* x = ((Struct*) ptr)->type;
+		scl_any clone = _scl_alloc_struct(x);
+		memmove(clone, ptr, x->size);
+		return clone;
+	}
 	scl_int size = _scl_sizeof(ptr);
 	scl_any clone = _scl_alloc(size);
 
@@ -580,8 +572,9 @@ scl_any _scl_alloc_struct(const TypeInfo* statics) {
 }
 
 scl_int _scl_is_instance(scl_any ptr) {
+	if (ptr == nil) return 0;
 	memory_layout_t* layout = _scl_get_memory_layout(ptr);
-	return layout && (layout->flags & MEM_FLAG_INSTANCE);
+	return (layout != nil) && ((layout->flags & MEM_FLAG_INSTANCE) != 0);
 }
 
 scl_int _scl_is_instance_of(scl_any ptr, ID_t type_id) {
@@ -691,6 +684,9 @@ scl_any _scl_new_array_by_size(scl_int num_elems, scl_int elem_size) {
 	if (unlikely(num_elems < 0)) {
 		_scl_runtime_error(EX_INVALID_ARGUMENT, "Array size must not be less than 0");
 	}
+	if (unlikely(elem_size > 0xFFFFFF)) {
+		_scl_runtime_error(EX_INVALID_ARGUMENT, "Cannot create array where element size exceeds 16777215 bytes!");
+	}
 	scl_int size = num_elems * elem_size;
 	scl_any arr = _scl_alloc(size);
 	memory_layout_t* layout = _scl_get_memory_layout(arr);
@@ -714,6 +710,7 @@ scl_any _scl_migrate_foreign_array(const void* const arr, scl_int num_elems, scl
 }
 
 scl_int _scl_is_array(scl_any* arr) {
+	if (arr == nil) return 0;
 	memory_layout_t* layout = _scl_get_memory_layout(arr);
 	return layout && (layout->flags & MEM_FLAG_ARRAY);
 }
@@ -803,10 +800,6 @@ scl_any* _scl_array_resize(scl_int new_size, scl_any* arr) {
 
 void _scl_trace_remove(struct _scl_backtrace* bt) {
 	bt->marker = 0;
-}
-
-void _scl_unlock_ptr(void* lock_ptr) {
-	cxx_std_recursive_mutex_unlock(&(*(Struct**) lock_ptr)->mutex);
 }
 
 void _scl_delete_ptr(void* ptr) {

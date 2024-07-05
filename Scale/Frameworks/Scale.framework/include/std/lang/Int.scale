@@ -1,18 +1,11 @@
-typealias int64? "scl_int64"
-typealias int32? "scl_int32"
-typealias int16? "scl_int16"
-typealias int8? "scl_int8"
-typealias uint64? "scl_uint64"
-typealias uint32? "scl_uint32"
-typealias uint16? "scl_uint16"
-typealias uint8? "scl_uint8"
-typealias float32? "scl_float32"
 typealias lambda "_scl_lambda"
 
 cdecl "atoll"
 private expect foreign unsafe function __c_atoll(:[int8]): int64
 cdecl "sprintf"
 private expect foreign unsafe function __c_sprintf(:[int8], :[int8], :varargs): int
+cdecl "printf"
+private expect foreign unsafe function __c_printf(:[int8], :varargs): int
 
 macro! IntStruct(type) {
   final static sealed struct $type
@@ -28,7 +21,7 @@ macro! IntStruct(type) {
     ) => decl maxValue: const $type
 
     function toString(x: $type): str
-      new<int8>[2] => decl out: [int8]
+      new<int8>[32] => decl out: [int8]
       unsafe
         if sizeof $type 1 == then
           out c"%c" varargs x __c_sprintf drop
@@ -36,15 +29,15 @@ macro! IntStruct(type) {
           out c"%ld" varargs x __c_sprintf drop
         fi
       end
-      out str::new return
+      out:resizeToFit str::new return
     end
 
     function toHexString(x: $type): str
-      new<int8>[5] => decl out: [int8]
+      new<int8>[32] => decl out: [int8]
       unsafe
         out "0x%0" sizeof $type 2 * + "lx" +:view varargs x __c_sprintf drop
       end
-      out str::new return
+      out:resizeToFit str::new return
     end
 
     function parse(s: str): $type
@@ -64,7 +57,7 @@ macro! UIntStruct(type) {
     (-1) => decl maxValue: const $type
 
     function toString(x: $type): str
-      new<int8>[2] => decl out: [int8]
+      new<int8>[32] => decl out: [int8]
       unsafe
         if sizeof $type 1 == then
           out c"%c" varargs x __c_sprintf drop
@@ -72,15 +65,15 @@ macro! UIntStruct(type) {
           out c"%lu" varargs x __c_sprintf drop
         fi
       end
-      out str::new return
+      out:resizeToFit str::new return
     end
 
     function toHexString(x: $type): str
-      new<int8>[5] => decl out: [int8]
+      new<int8>[32] => decl out: [int8]
       unsafe
         out "0x%0" sizeof $type 2 * + "lx" +:view varargs x __c_sprintf drop
       end
-      out str::new return
+      out:resizeToFit str::new return
     end
 
     function parse(s: str): $type
@@ -130,7 +123,7 @@ UIntStruct! uint
 delmacro! IntStruct
 delmacro! UIntStruct
 
-struct Int
+final sealed struct Int
   decl value: readonly int
 
   static function valueOf(x: int): Int

@@ -19,11 +19,5 @@ Returns a new instance of `SclObject` that is a clone of `self`.
 ### function SclObject:hashCode(): int
 Returns the hash code of `self`.
 
-### function SclObject:lock(): none
-Locks `self` on the current thread, blocking if another thread has already locked `self`.
-
-### function SclObject:unlock(): none
-Unlocks `self` on the current thread.
-
 ### static function SclObject::new(): SclObject
 Returns a new instance of `SclObject`.

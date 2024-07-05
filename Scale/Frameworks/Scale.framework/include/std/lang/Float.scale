@@ -157,7 +157,7 @@ final static sealed struct float32
     end
 end
 
-struct Float
+final sealed struct Float
     decl value: readonly float
 
     static function valueOf(x: float): Float

@@ -18,6 +18,8 @@ namespace sclc {
             append("_scl_top(scl_int) = !_scl_is_instance(_scl_top(scl_any));\n");
         } else if (type.size() > 2 && type.front() == '[' && type.back() == ']') {
             append("_scl_top(scl_int) = _scl_is_array(_scl_top(scl_any));\n");
+        } else if (hasLayout(result, type)) {
+            append("_scl_top(scl_int) = _scl_sizeof(_scl_top(scl_any)) >= sizeof(struct Layout_%s);", type.c_str());
         } else {
             const Struct& s = getStructByName(result, type);
             Interface* iface = getInterfaceByName(result, type);

@@ -151,7 +151,7 @@ namespace sclc {
         append("_scl_push(scl_any, ({\n");
         scopeDepth++;
         const std::string sym = generateSymbolForFunction(f);
-        append("%s fn_$lambda%d$%s(%s) __asm(%s);\n", sclTypeToCType(result, f->return_type).c_str(), lambdaCount - 1, function->name.c_str(), arguments.c_str(), sym.c_str());
+        append("%s fn_$lambda%d$%s(%s) __asm__(%s);\n", sclTypeToCType(result, f->return_type).c_str(), lambdaCount - 1, function->name.c_str(), arguments.c_str(), sym.c_str());
         if (f->captures.size()) {
             append("static tls struct {\n");
             for (size_t i = 0; i < f->captures.size(); i++) {
@@ -159,7 +159,7 @@ namespace sclc {
                 f->modifiers.push_back(f->captures[i].type);
                 f->modifiers.push_back(f->captures[i].name);
             }
-            append("} caps __asm(%s\".caps\");\n", sym.c_str());
+            append("} caps __asm__(%s\".caps\");\n", sym.c_str());
             for (size_t i = 0; i < f->captures.size(); i++) {
                 append("caps.%s_ = Var_%s;\n", f->captures[i].name.c_str(), f->captures[i].name.c_str());
             }
@@ -171,7 +171,7 @@ namespace sclc {
                 f->modifiers.push_back(f->ref_captures[i].type);
                 f->modifiers.push_back(f->ref_captures[i].name);
             }
-            append("} refs __asm(%s\".refs\");\n", sym.c_str());
+            append("} refs __asm__(%s\".refs\");\n", sym.c_str());
             for (size_t i = 0; i < f->ref_captures.size(); i++) {
                 append("refs.%s_ = &(Var_%s);\n", f->ref_captures[i].name.c_str(), f->ref_captures[i].name.c_str());
             }

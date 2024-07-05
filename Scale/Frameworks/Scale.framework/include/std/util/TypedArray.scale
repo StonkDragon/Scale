@@ -2,7 +2,7 @@ import std.util.Array
 import std.util.ReadOnlyArray
 
 template<T>
-sealed struct TypedArrayIterator is Iterator
+final sealed struct TypedArrayIterator is Iterator
   private decl array: TypedArray<T>
   private decl pos: int
 
@@ -76,6 +76,24 @@ final sealed struct TypedArray: Array
 
         value => self.values[self.count]
         self.count 1 + => self.count
+    end
+
+    overrides const function toString() s: str
+        if self.count 0 == then
+            "{}" => s
+        else
+            "{" => s
+            0 => decl i
+            foreach elem in self do
+                if i then
+                    s ", " + => s
+                fi
+                s elem:toString + => s
+                i++ => i
+            done
+            s "}" + => s
+        fi
+        return
     end
 
     overrides function indexOf(val: T): int

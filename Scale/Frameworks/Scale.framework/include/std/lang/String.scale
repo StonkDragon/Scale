@@ -315,6 +315,10 @@ final sealed struct str is Iterable
   end
 
   static function format(fmt: str, args: varargs): str
+    fmt args str::vformat return
+  end
+
+  static function vformat(fmt: str, args: [any]): str
     decl out: str
     
     0 => decl current: int

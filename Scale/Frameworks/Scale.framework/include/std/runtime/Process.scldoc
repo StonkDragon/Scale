@@ -16,8 +16,8 @@ Returns true if the garbage collector is enabled.
 ### static function Process::isOnMainThread(): bool
 Returns true if the current thread is the main thread.
 
-### static function Process::lock(obj: SclObject): none
+### static function Process::lock(obj: Lock): none
 Locks `obj` on the current thread, blocking if another thread has already locked `obj`.
 
-### static function Process::unlock(obj: SclObject): none
+### static function Process::unlock(obj: Lock): none
 Unlocks `obj` on the current thread.

@@ -497,8 +497,7 @@ namespace sclc {
 
     std::string typeToRTSig(std::string type) {
         if (type.size() && type.front() == '@') {
-            type = removeTypeModifiers(type.substr(1, type.size() - 1));
-            return "P" + typeToRTSig(type);
+            return "P" + typeToRTSig(type.substr(1));
         }
         type = removeTypeModifiers(type);
         if (type == "any") return "a;";
@@ -523,16 +522,12 @@ namespace sclc {
         if (type == "uint32") return "u32;";
         if (type == "uint64") return "u64;";
         if (type == "?") return "?;";
-        // if (currentStruct.templates.find(type) != currentStruct.templates.end()) {
-        //     return typeToRTSig(currentStruct.templates[type].value);
-        // }
         return "L" + type + ";";
     }
 
     std::string typeToSymbol(std::string type) {
         if (type.size() && type.front() == '@') {
-            type = removeTypeModifiers(type.substr(1, type.size() - 1));
-            return "P" + typeToSymbol(type);
+            return "P" + typeToSymbol(type.substr(1));
         }
         type = removeTypeModifiers(type);
         if (type == "any") return "a";
@@ -556,12 +551,6 @@ namespace sclc {
         if (type == "uint16") return capitalize(typeToSymbol(type.substr(1)));
         if (type == "uint32") return capitalize(typeToSymbol(type.substr(1)));
         if (type == "uint64") return capitalize(typeToSymbol(type.substr(1)));
-        // if (currentStruct.templates.find(type) != currentStruct.templates.end()) {
-        //     if (currentStruct.templates[type].value == type) {
-        //         return "T" + std::to_string(type.length()) + type;
-        //     }
-        //     return typeToSymbol(currentStruct.templates[type].value);
-        // }
         return std::to_string(type.length()) + type;
     }
 
@@ -584,11 +573,14 @@ namespace sclc {
     }
 
     std::string typeToRTSigIdent(std::string type) {
+        if (type.front() == '@') {
+            return "P" + typeToRTSigIdent(type.substr(1));
+        }
         type = removeTypeModifiers(type);
         if (type == "any") return "a$";
         if (type == "int" || type == "bool") return "i$";
         if (type == "float") return "f$";
-        if (type == "float") return "f32$";
+        if (type == "float32") return "f32$";
         if (type == "str") return "s$";
         if (type == "none") return "V$";
         if (type == "[int8]") return "cs$";
@@ -608,12 +600,6 @@ namespace sclc {
         if (type == "uint32") return "u32$";
         if (type == "uint64") return "u64$";
         if (type == "?") return "Q$";
-        // if (currentStruct.templates.find(type) != currentStruct.templates.end()) {
-        //     if (currentStruct.templates[type].value == type) {
-        //         return "T" + type + "$";
-        //     }
-        //     return typeToRTSigIdent(currentStruct.templates[type].value);
-        // }
         return "L" + type + "$";
     }
 
@@ -623,7 +609,7 @@ namespace sclc {
             return cache[f];
         }
 
-        std::string args = "$$";
+        std::string args;
         for (const Variable& v : f->args) {
             std::string type = removeTypeModifiers(v.type);
             if (v.name == "self" && f->isMethod) {
@@ -631,7 +617,6 @@ namespace sclc {
             }
             args += typeToRTSigIdent(type);
         }
-        args += "$$";
         args += typeToRTSigIdent(f->return_type);
         return cache[f] = args;
     }

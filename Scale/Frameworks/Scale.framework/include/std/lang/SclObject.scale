@@ -15,14 +15,6 @@ struct SclObject
 
     expect foreign cdecl "_scl_identity_hash" function hashCode(): int
 
-    sealed function lock(): none
-        self Process::lock
-    end
-
-    sealed function unlock(): none
-        self Process::unlock
-    end
-
     function init(): none end
 
     function finalize(): none end

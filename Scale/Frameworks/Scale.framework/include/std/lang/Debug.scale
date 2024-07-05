@@ -60,7 +60,7 @@ final sealed struct InvalidSignalException: Exception
   end
 end
 
-sealed open struct NullPointerException: Exception
+final sealed open struct NullPointerException: Exception
 
 sealed struct Error: Exception
   function init(msg: str): none

@@ -13,7 +13,7 @@ function foo(f: Foo): none
 
     f switch
         # This binds the contained value to the variable `i`
-        case SomeValue(i: int)
+        case SomeValue(i: str)
             i puts
         esac
 

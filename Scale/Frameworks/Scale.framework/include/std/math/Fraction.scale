@@ -1,4 +1,4 @@
-final struct Fraction
+final sealed struct Fraction
     decl numerator: int
     decl denominator: int
 
@@ -13,98 +13,74 @@ final struct Fraction
     end
 
     function toFloat(): float
-        self:lock
         numerator as float denominator as float /
-        self:unlock
         return
     end
 
     function +(other: Fraction): Fraction
-        self:lock
         self.denominator other.numerator *
         self.numerator other.denominator *
         +
         self.denominator other.denominator *
         Fraction::new
-        self:unlock
         return
     end
 
     function -(other: Fraction): Fraction
-        self:lock
         self.denominator other.numerator *
         self.numerator other.denominator *
         -
         self.denominator other.denominator *
         Fraction::new
-        self:unlock
         return
     end
 
     function ++(): Fraction
-        self:lock
         self.numerator self.denominator + => self.numerator
         self
-        self:unlock
         return
     end
 
     function --(): Fraction
-        self:lock
         self.numerator self.denominator - => self.numerator
         self
-        self:unlock
         return
     end
 
     function *(other: Fraction): Fraction
-        self:lock
         self.numerator other.numerator *
         self.denominator other.denominator *
         Fraction::new
-        self:unlock
         return
     end
 
     function inverse(): Fraction
-        self:lock
         self.denominator self.numerator Fraction::new
-        self:unlock
         return
     end
 
     function /(other: Fraction): Fraction
-        self:lock
         other self:inverse *
-        self:unlock
         return
     end
 
     function isNan(): bool
-        self:lock
         self.numerator 0 == self.denominator 0 == &&
-        self:unlock
         return
     end
 
     function isInfinite(): bool
-        self:lock
         self.denominator 0 ==
-        self:unlock
         return
     end
 
     function isFinite(): bool
-        self:lock
         self:isInfinite !
-        self:unlock
         return
     end
 
     function isNotNan(): bool
-        self:lock
         self:isNan !
-        self:unlock
         return
     end
 

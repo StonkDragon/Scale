@@ -120,6 +120,20 @@ The following format specifiers are supported:
 - `"%p"`: pointer
 - `"%b"`: boolean
 
+### static function str::vformat(fmt: str, args: [any]): str
+Formats the string `fmt` with the given arguments.
+The format string `fmt` is a string that may contain format specifiers.
+Format specifiers are replaced by the values in `args`.
+The format specifiers are introduced by a `%` character.
+The following format specifiers are supported:
+- `"%s"`: string
+- `"%i"`: integer
+- `"%f"`: float
+- `"%c"`: character
+- `"%@"`: object
+- `"%p"`: pointer
+- `"%b"`: boolean
+
 ### static function str::=>(data: [int8]): str
 Allows assigning C strings to `str` variables.
 

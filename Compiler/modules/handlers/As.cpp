@@ -22,6 +22,7 @@ namespace sclc {
             return;
         }
         const Struct& s = getStructByName(result, type.value);
+        bool doesCheckedCast = false;
         if (hasLayout(result, type.value)) {
             append("_scl_assert(_scl_sizeof(_scl_top(scl_any)) >= sizeof(struct Layout_%s), \"Layout '%%s' requires more memory than the pointer has available (required: \" SCL_INT_FMT \" found: \" SCL_INT_FMT \")\", \"%s\", sizeof(struct Layout_%s), _scl_sizeof(_scl_top(scl_any)));", type.value.c_str(), type.value.c_str(), type.value.c_str());
             typePop;
@@ -30,10 +31,11 @@ namespace sclc {
         } else if (s != Struct::Null && !s.isStatic()) {
             std::string destType = removeTypeModifiers(type.value);
             append("_scl_checked_cast(_scl_top(scl_any), 0x%lxUL, \"%s\");\n", id(destType.c_str()), destType.c_str());
+            doesCheckedCast = true;
         }
 
         if (!typeCanBeNil(type.value) && !typealiasCanBeNil(result, type.value)) {
-            if (typeCanBeNil(typeStackTop)) {
+            if (!doesCheckedCast && typeCanBeNil(typeStackTop)) {
                 append("_scl_assert(_scl_top(scl_int), \"Nil cannot be cast to non-nil type '%%s'!\", \"%s\");\n", type.value.c_str());
             }
         } else {

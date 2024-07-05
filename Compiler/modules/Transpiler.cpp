@@ -178,7 +178,7 @@ namespace sclc {
                         append("%s fn_%s(%s)", return_type.c_str(), function->name.c_str(), arguments.c_str());
                     }
                 }
-                append2(" __asm(%s);\n", symbol.c_str());
+                append2(" __asm__(%s);\n", symbol.c_str());
                 if (UNLIKELY(function->has_export)) {
                     if (UNLIKELY(function->member_type.size() && hasMethod(result, function->name, function->member_type))) {
                         FPResult res;
@@ -206,7 +206,7 @@ namespace sclc {
                 } else {
                     append("%s mt_%s$%s(%s)", return_type.c_str(), function->member_type.c_str(), function->name.c_str(), arguments.c_str());
                 }
-                append2(" __asm(%s);\n", symbol.c_str());
+                append2(" __asm__(%s);\n", symbol.c_str());
             }
         }
 
@@ -221,7 +221,7 @@ namespace sclc {
         for (Variable& s : result.globals) {
             append("extern %s Var_%s", sclTypeToCType(result, s.type).c_str(), s.name.c_str());
             if (s.isExtern) {
-                append2("__asm(_scl_macro_to_string(__USER_LABEL_PREFIX__) \"%s\")", s.name.c_str());
+                append2("__asm__(_scl_macro_to_string(__USER_LABEL_PREFIX__) \"%s\")", s.name.c_str());
             }
             append2(";\n");
         }
@@ -244,11 +244,13 @@ namespace sclc {
         append("\n");
         append("/* STRUCT TYPES */\n");
         for (Struct& c : result.structs) {
-            if (c.isStatic() || c.name == "str") continue;
+            if (c.isStatic()) continue;
+            if (c.name == "str") continue;
             append("typedef struct Struct_%s* scl_%s;\n", c.name.c_str(), c.name.c_str());
         }
         append("\n");
         for (Layout& c : result.layouts) {
+            if (c.name == "str") continue;
             append("typedef struct Layout_%s* scl_%s;\n", c.name.c_str(), c.name.c_str());
         }
         append("\n");
@@ -266,7 +268,6 @@ namespace sclc {
             if (c.isStatic()) return;
             append("struct Struct_%s {\n", c.name.c_str());
             append("  const TypeInfo* $type;\n");
-            append("  scl_any $mutex;\n");
             
             for (const Variable& s : c.members) {
                 if (s.isVirtual) continue;
@@ -505,7 +506,7 @@ namespace sclc {
                     append("    %s %s_;\n", sclTypeToCType(result, cap.type).c_str(), cap.name.c_str());
                     vars.push_back(Variable(cap.name, cap.type));
                 }
-                append("  } cap%d __asm(%s\".caps\");\n", n_captures, generateSymbolForFunction(function).c_str());
+                append("  } cap%d __asm__(%s\".caps\");\n", n_captures, generateSymbolForFunction(function).c_str());
                 for (Variable cap : function->captures) {
                     append("  %s Var_%s = (cap%d.%s_);\n", sclTypeToCType(result, cap.type).c_str(), cap.name.c_str(), n_captures, cap.name.c_str());
                 }
@@ -517,7 +518,7 @@ namespace sclc {
                     append("    %s* %s_;\n", sclTypeToCType(result, cap.type).c_str(), cap.name.c_str());
                     vars.push_back(Variable(cap.name, cap.type));
                 }
-                append("  } cap%d __asm(%s\".refs\");\n", n_captures, generateSymbolForFunction(function).c_str());
+                append("  } cap%d __asm__(%s\".refs\");\n", n_captures, generateSymbolForFunction(function).c_str());
                 for (Variable cap : function->ref_captures) {
                     append("  #define Var_%s (*cap%d.%s_)\n", cap.name.c_str(), n_captures, cap.name.c_str());
                 }
@@ -597,13 +598,6 @@ namespace sclc {
         
         if (function->has_unsafe) {
             isInUnsafe++;
-        }
-        if (function->has_restrict) {
-            if (function->isMethod) {
-                append("cxx_std_recursive_mutex_lock(&(Var_self->$mutex));\n");
-            } else {
-                append("cxx_std_recursive_mutex_lock(&(function_lock$%s));\n", function->name.c_str());
-            }
         }
 
         if (UNLIKELY(function->isCVarArgs() && function->varArgsParam().name.size())) {
@@ -771,9 +765,7 @@ namespace sclc {
             }
 
             if (function->has_lambda) {
-                append("%s fn_%s(%s) __asm(%s);\n", return_type.c_str(), function->name.c_str(), arguments.c_str(), generateSymbolForFunction(function).c_str());
-            } else if (UNLIKELY(!function->isMethod && function->has_restrict)) {
-                append("static volatile scl_any function_lock$%s = NULL;\n", function->name.c_str());
+                append("%s fn_%s(%s) __asm__(%s);\n", return_type.c_str(), function->name.c_str(), arguments.c_str(), generateSymbolForFunction(function).c_str());
             }
 
             if (function->has_inline && !isMainFunction) {
@@ -800,7 +792,7 @@ namespace sclc {
                 if (function->name_without_overload == "init" && currentStruct.super.size()) {
                     Method* parentInit = getMethodByName(result, "init", currentStruct.super);
                     if (parentInit && parentInit->args.size() == 1) {
-                        append("  mt_%s$%s((%s) ", currentStruct.super.c_str(), parentInit->name.c_str(), sclTypeToCType(result, currentStruct.super).c_str());
+                        append("  mt_%s$%s((%s) ", parentInit->member_type.c_str(), parentInit->name.c_str(), sclTypeToCType(result, parentInit->member_type).c_str());
                         if (UNLIKELY(function->has_async)) {
                             append2("_scl_args->_");
                         }

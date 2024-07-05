@@ -1,6 +1,5 @@
-
 template<Type, Size>
-struct StaticArrayIterator is Iterator
+final sealed struct StaticArrayIterator is Iterator
     private decl arr: StaticArray<Type, Size>
     private decl pos: int
 

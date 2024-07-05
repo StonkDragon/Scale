@@ -275,7 +275,7 @@ namespace sclc
                 const std::string& file = s.name_token.location.file;
                 if (!strstarts(s.name, "$T") && !Main::options::noLinkScale && pathstarts(file, scaleFolder + DIR_SEP "Frameworks" DIR_SEP "Scale.framework") && !Main::options::noMain) {
                     if (!pathcontains(file, DIR_SEP "compiler" DIR_SEP) && !pathcontains(file, DIR_SEP "macros" DIR_SEP) && !pathcontains(file, DIR_SEP "__")) {
-                        append("extern expect const TypeInfo _scl_ti_%s __asm(\"__T%s\");\n", s.name.c_str(), s.name.c_str());
+                        append("extern expect const TypeInfo _scl_ti_%s __asm__(\"__T%s\");\n", s.name.c_str(), s.name.c_str());
                         return;
                     }
                 }
@@ -311,7 +311,7 @@ namespace sclc
                 scopeDepth--;
                 append("};\n");
 
-                append("const TypeInfo _scl_ti_%s __asm(\"__T%s\") = {\n", s.name.c_str(), s.name.c_str());
+                append("const TypeInfo _scl_ti_%s __asm__(\"__T%s\") = {\n", s.name.c_str(), s.name.c_str());
                 scopeDepth++;
                 append(".type = 0x%lxUL,\n", id(s.name.c_str()));
                 append(".type_name = \"%s\",\n", retemplate(s.name).c_str());

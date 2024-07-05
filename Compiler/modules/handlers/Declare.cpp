@@ -34,16 +34,17 @@ namespace sclc {
         Variable v(name, type);
         vars.push_back(v);
         const Struct& s = getStructByName(result, type);
+        const Layout& l = getLayout(result, type);
         Method* m = nullptr;
         if (!v.canBeNil) {
-            if (s != Struct::Null) {
+            if (s != Struct::Null || !l.name.empty()) {
                 m = getMethodByName(result, "init", type);
                 bool hasDefaultConstructor = false;
                 if (m->args.size() == 1) {
                     hasDefaultConstructor = true;
                 } else {
                     for (Function* over_ : m->overloads) {
-                    Method* overload = (Method*) over_;
+                        Method* overload = (Method*) over_;
                         if (overload->args.size() == 1) {
                             hasDefaultConstructor = true;
                             m = overload;
@@ -69,7 +70,12 @@ namespace sclc {
                 append("_scl_push(%s, Var_%s);\n", type.c_str(), v.name.c_str());
                 typeStack.push_back(removeTypeModifiers(v.type));
                 methodCall(m, fp, result, warns, errors, body, i);
-            } else if (hasTypealias(result, type) || hasLayout(result, type)) {
+            } else if (!l.name.empty() && m != nullptr) {
+                append("%s Var_%s = _scl_alloc(sizeof(struct Layout_%s));\n", type.c_str(), v.name.c_str(), l.name.c_str());
+                append("_scl_push(%s, Var_%s);\n", type.c_str(), v.name.c_str());
+                typeStack.push_back(removeTypeModifiers(v.type));
+                methodCall(m, fp, result, warns, errors, body, i);
+            } else if (hasTypealias(result, type)) {
                 append("%s Var_%s;\n", type.c_str(), v.name.c_str());
             } else {
                 append("%s Var_%s = 0;\n", type.c_str(), v.name.c_str());

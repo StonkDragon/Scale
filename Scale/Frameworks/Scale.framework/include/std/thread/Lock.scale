@@ -1,0 +1,13 @@
+struct Lock
+    private decl mutex: any
+
+    sealed function lock(): none self Process::lock end
+    sealed function unlock(): none self Process::unlock end
+
+    function finalize(): none
+        ref self.mutex __c_std_recursive_mutex_delete
+    end
+
+    cdecl "cxx_std_recursive_mutex_delete"
+    private static expect foreign function __c_std_recursive_mutex_delete(:[any]): none
+end

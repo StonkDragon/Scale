@@ -14,11 +14,9 @@ namespace sclc {
                 errors.push_back(err);
                 return;
             }
-            std::string returnType = typeStackTop.substr(typeStackTop.find_first_of(")") + 2);
+            std::string returnType = lambdaReturnType(typeStackTop);
+            size_t argAmount = lambdaArgCount(typeStackTop);
             std::string op = body[i].value;
-
-            std::string args = typeStackTop.substr(typeStackTop.find_first_of("(") + 1, typeStackTop.find_first_of(")") - typeStackTop.find_first_of("(") - 1);
-            size_t argAmount = std::stoi(args);
             
             std::string argTypes = "";
             std::string argGet = "";
@@ -117,11 +115,10 @@ namespace sclc {
         if (!s.isStatic() && !hasMethod(result, body[i].value, removeTypeModifiers(type))) {
             std::string help = "";
             if (s.hasMember(body[i].value)) {
-                help = ". Maybe you meant to use '.' instead of ':' here";
-
                 const Variable& v = s.getMember(body[i].value);
                 std::string type = v.type;
                 if (!strstarts(removeTypeModifiers(type), "lambda(")) {
+                    help = ". Maybe you meant to use '.' instead of ':' here";
                     goto notLambdaType;
                 }
 
@@ -180,38 +177,20 @@ namespace sclc {
             errors.push_back(err);
             return;
         }
-        if (s.name == "any" || s.name == "int") {
-            Function* anyMethod = getFunctionByName(result, s.name + "$" + body[i].value);
-            if (!anyMethod) {
-                if (s.name == "any") {
-                    anyMethod = getFunctionByName(result, "int$" + body[i].value);
-                } else {
-                    anyMethod = getFunctionByName(result, "any$" + body[i].value);
+        Method* objMethod = nullptr;
+        if (s.name == "any") {
+            objMethod = !Main::options::noScaleFramework ? getMethodByName(result, body[i].value, "SclObject") : nullptr;
+            if (objMethod) {
+                append("if (_scl_is_instance(_scl_top(scl_any))) {\n");
+                scopeDepth++;
+                methodCall(objMethod, fp, result, warns, errors, body, i, true, false);
+                if (objMethod->return_type != "none" && objMethod->return_type != "nothing") {
+                    typeStack.pop_back();
                 }
+                scopeDepth--;
+                append("} else {\n");
+                scopeDepth++;
             }
-            if (anyMethod) {
-                Method* objMethod = !Main::options::noScaleFramework ? getMethodByName(result, body[i].value, "SclObject") : nullptr;
-                if (objMethod) {
-                    append("if (_scl_is_instance(_scl_top(scl_any))) {\n");
-                    scopeDepth++;
-                    methodCall(objMethod, fp, result, warns, errors, body, i, true, false);
-                    if (objMethod->return_type != "none" && objMethod->return_type != "nothing") {
-                        typeStack.pop_back();
-                    }
-                    scopeDepth--;
-                    append("} else {\n");
-                    scopeDepth++;
-                }
-                functionCall(anyMethod, fp, result, warns, errors, body, i);
-                if (objMethod) {
-                    scopeDepth--;
-                    append("}\n");
-                }
-            } else {
-                transpilerError("Unknown static function '" + body[i].value + "' on type '" + type + "'", i);
-                errors.push_back(err);
-            }
-            return;
         }
         if (s.isStatic()) {
             Function* f = getFunctionByName(result, removeTypeModifiers(type) + "$" + body[i].value);
@@ -221,6 +200,12 @@ namespace sclc {
                 return;
             }
             functionCall(f, fp, result, warns, errors, body, i);
+            if (s.name == "any") {
+                if (objMethod) {
+                    scopeDepth--;
+                    append("}\n");
+                }
+            }
         } else {
             if (typeCanBeNil(type)) {
                 {

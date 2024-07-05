@@ -4,7 +4,7 @@ final sealed struct IllegalStateException: Exception
     end
 end
 
-sealed struct ReadOnlyArray: Array
+final sealed struct ReadOnlyArray: Array
     function sort(): none
         "Attempted to sort readonly array!"
         IllegalStateException::new throw
@@ -41,7 +41,6 @@ sealed struct ReadOnlyArray: Array
     end
 
     static function fromArray(arr: Array) out: ReadOnlyArray
-        arr:lock
         arr.capacity ReadOnlyArray::new => out
         unsafe
             c!
@@ -50,7 +49,6 @@ sealed struct ReadOnlyArray: Array
                 }
             end
         end
-        arr:unlock
         return
     end
 

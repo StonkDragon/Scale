@@ -18,7 +18,7 @@ final sealed struct MapEntry
 end
 
 template<T>
-sealed struct Map is Iterable
+final sealed struct Map is Iterable
   private decl data: TypedArray<MapEntry<T>>
 
   function init(size: int): none
@@ -82,7 +82,7 @@ sealed struct Map is Iterable
 end
 
 template<T>
-sealed struct MapIterator is Iterator
+final sealed struct MapIterator is Iterator
   private decl data: ArrayIterator
 
   function init(data: Array): none

@@ -656,8 +656,8 @@ namespace sclc {
         void* (*alloc)(size_t);
         char* (*str$view)(void* str);
 
-        static void* getKey(SclConfig* conf, void* key) __asm(TO_STRING(__USER_LABEL_PREFIX__) "Config$getKey");
-        static long long hasKey(SclConfig* conf, void* key) __asm(TO_STRING(__USER_LABEL_PREFIX__) "Config$hasKey");
+        static void* getKey(SclConfig* conf, void* key) __asm__(TO_STRING(__USER_LABEL_PREFIX__) "Config$getKey");
+        static long long hasKey(SclConfig* conf, void* key) __asm__(TO_STRING(__USER_LABEL_PREFIX__) "Config$hasKey");
     };
 
     struct SclParser {
@@ -667,9 +667,9 @@ namespace sclc {
         void* (*alloc)(size_t) = nullptr;
         SclConfig* config;
 
-        static CToken* peek(SclParser* parser) __asm(TO_STRING(__USER_LABEL_PREFIX__) "Parser$peek");
-        static CToken* consume(SclParser* parser) __asm(TO_STRING(__USER_LABEL_PREFIX__) "Parser$consume");
-        static SclConfig* getConfig(SclParser* parser) __asm(TO_STRING(__USER_LABEL_PREFIX__) "Parser$getConfig");
+        static CToken* peek(SclParser* parser) __asm__(TO_STRING(__USER_LABEL_PREFIX__) "Parser$peek");
+        static CToken* consume(SclParser* parser) __asm__(TO_STRING(__USER_LABEL_PREFIX__) "Parser$consume");
+        static SclConfig* getConfig(SclParser* parser) __asm__(TO_STRING(__USER_LABEL_PREFIX__) "Parser$getConfig");
     };
 
 #ifdef _WIN32
@@ -1539,24 +1539,47 @@ namespace sclc {
                         nextAttributes.clear();
                     }
                 } else if (!currentLayout.name.empty()) {
-                    Token& func = tokens[i + 1];
-                    std::string name = func.value;
-                    currentFunction = parseMethod(name, func, currentLayout.name, errors, i, tokens);
-                    currentFunction->deprecated = currentDeprecation;
-                    currentFunction->addModifier("nonvirtual");
-                    currentDeprecation.clear();
-                    for (std::string& s : nextAttributes) {
-                        currentFunction->addModifier(s);
+                    if (contains<std::string>(nextAttributes, "static")) {
+                        std::string name = tokens[i + 1].value;
+                        Token& func = tokens[i + 1];
+                        currentFunction = parseFunction(name, func, errors, i, tokens);
+                        currentFunction->name = currentLayout.name + "$" + currentFunction->name;
+                        currentFunction->name_without_overload = currentLayout.name + "$" + currentFunction->name_without_overload;
+                        currentFunction->deprecated = currentDeprecation;
+                        currentDeprecation.clear();
+                        currentFunction->member_type = currentLayout.name;
+                        for (std::string& s : nextAttributes) {
+                            currentFunction->addModifier(s);
+                        }
+                        Function* f = findFunctionByName(currentFunction->name);
+                        if (f) {
+                            currentFunction->name = currentFunction->name + "$$ol" + argsToRTSignatureIdent(currentFunction);
+                        }
+                        if (currentFunction->has_expect || currentFunction->has_operator) {
+                            functions.push_back(currentFunction);
+                            currentFunction = nullptr;
+                        }
+                        nextAttributes.clear();
+                    } else {
+                        Token& func = tokens[i + 1];
+                        std::string name = func.value;
+                        currentFunction = parseMethod(name, func, currentLayout.name, errors, i, tokens);
+                        currentFunction->deprecated = currentDeprecation;
+                        currentFunction->addModifier("nonvirtual");
+                        currentDeprecation.clear();
+                        for (std::string& s : nextAttributes) {
+                            currentFunction->addModifier(s);
+                        }
+                        Function* f = findMethodByName(currentFunction->name, currentFunction->member_type);
+                        if (f) {
+                            currentFunction->name = currentFunction->name + "$$ol" + argsToRTSignatureIdent(currentFunction);
+                        }
+                        if (currentFunction->has_expect || currentFunction->has_operator) {
+                            functions.push_back(currentFunction);
+                            currentFunction = nullptr;
+                        }
+                        nextAttributes.clear();
                     }
-                    Function* f = findMethodByName(currentFunction->name, currentFunction->member_type);
-                    if (f) {
-                        currentFunction->name = currentFunction->name + "$$ol" + argsToRTSignatureIdent(currentFunction);
-                    }
-                    if (currentFunction->has_expect || currentFunction->has_operator) {
-                        functions.push_back(currentFunction);
-                        currentFunction = nullptr;
-                    }
-                    nextAttributes.clear();
                 } else if (currentInterface != nullptr) {
                     if (contains<std::string>(nextAttributes, "default")) {
                         Token& func = tokens[i + 1];
@@ -2857,9 +2880,6 @@ namespace sclc {
         auto hasTypeAlias = [&](std::string name) -> bool {
             return result.typealiases.find(name) != result.typealiases.end();
         };
-        auto isPointer = [](std::string s) -> bool {
-            return (s.size() > 2 && s.front() == '[' && s.back() == ']');
-        };
         auto createToStringMethod = [&](Struct& s) -> Method* {
             Token t(tok_identifier, "toString", s.name_token.location);
             Method* toString = new Method(s.name, std::string("toString"), t);
@@ -2886,23 +2906,19 @@ namespace sclc {
                     toString->addToken(Token(tok_identifier, "self", s.name_token.location));
                     toString->addToken(Token(tok_dot, ".", s.name_token.location));
                     toString->addToken(Token(tok_identifier, member.name, s.name_token.location));
-                    bool canBeNil = typeCanBeNil(member.type);
+                    bool canBeNil = (member.type.size() > 1 && member.type.back() == '?');
                     std::string type = removeTypeModifiers(member.type);
-                    if (canBeNil || isPointer(type) || hasEnum(result, type)) {
-                        if (type == "float") {
-                            toString->addToken(Token(tok_identifier, "float", s.name_token.location));
-                            toString->addToken(Token(tok_double_column, "::", s.name_token.location));
-                            toString->addToken(Token(tok_identifier, "toString", s.name_token.location));
-                        } else {
-                            toString->addToken(Token(tok_identifier, "builtinToString", s.name_token.location));
-                        }
-                    } else if (hasTypeAlias(type) || strstarts(type, "lambda(") || type == "lambda") {
+                    if (hasTypeAlias(type) || strstarts(type, "lambda(") || type == "lambda") {
                         toString->addToken(Token(tok_identifier, "any", s.name_token.location));
                         toString->addToken(Token(tok_double_column, "::", s.name_token.location));
                         toString->addToken(Token(tok_identifier, "toHexString", s.name_token.location));
                     } else {
-                        toString->addToken(Token(tok_column, ":", s.name_token.location));
-                        toString->addToken(Token(tok_identifier, "toString", s.name_token.location));
+                        if (canBeNil) {
+                            toString->addToken(Token(tok_identifier, "builtinToString", s.name_token.location));
+                        } else {
+                            toString->addToken(Token(tok_column, ":", s.name_token.location));
+                            toString->addToken(Token(tok_identifier, "toString", s.name_token.location));
+                        }
                     }
                 };
 
@@ -2962,23 +2978,19 @@ namespace sclc {
                     toString->addToken(Token(tok_identifier, "self", s.name_token.location));
                     toString->addToken(Token(tok_dot, ".", s.name_token.location));
                     toString->addToken(Token(tok_identifier, member.name, s.name_token.location));
-                    bool canBeNil = typeCanBeNil(member.type);
+                    bool canBeNil = (member.type.size() > 1 && member.type.back() == '?');
                     std::string type = removeTypeModifiers(member.type);
-                    if (canBeNil || isPointer(type) || hasEnum(result, type)) {
-                        if (type == "float") {
-                            toString->addToken(Token(tok_identifier, "float", s.name_token.location));
-                            toString->addToken(Token(tok_double_column, "::", s.name_token.location));
-                            toString->addToken(Token(tok_identifier, "toString", s.name_token.location));
-                        } else {
-                            toString->addToken(Token(tok_identifier, "builtinToString", s.name_token.location));
-                        }
-                    } else if (hasTypeAlias(type) || strstarts(type, "lambda(") || type == "lambda") {
+                    if (hasTypeAlias(type) || strstarts(type, "lambda(") || type == "lambda") {
                         toString->addToken(Token(tok_identifier, "any", s.name_token.location));
                         toString->addToken(Token(tok_double_column, "::", s.name_token.location));
                         toString->addToken(Token(tok_identifier, "toHexString", s.name_token.location));
                     } else {
-                        toString->addToken(Token(tok_column, ":", s.name_token.location));
-                        toString->addToken(Token(tok_identifier, "toString", s.name_token.location));
+                        if (canBeNil) {
+                            toString->addToken(Token(tok_identifier, "builtinToString", s.name_token.location));
+                        } else {
+                            toString->addToken(Token(tok_column, ":", s.name_token.location));
+                            toString->addToken(Token(tok_identifier, "toString", s.name_token.location));
+                        }
                     }
                 };
 
@@ -3065,6 +3077,14 @@ namespace sclc {
             for (auto& toImplement : s.toImplementFunctions) {
                 if (!hasImplementedToString && toImplement == "toString") {
                     result.functions.push_back(createToStringMethod(s));
+                }
+            }
+
+            if (s.isFinal()) {
+                for (auto&& f : result.functions) {
+                    if (!f->isMethod || f->has_nonvirtual || f->member_type != s.name) continue;
+
+                    f->addModifier("nonvirtual");
                 }
             }
         }

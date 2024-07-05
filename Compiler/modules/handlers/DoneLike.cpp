@@ -25,13 +25,6 @@ namespace sclc {
         scopeDepth--;
         if (wasCatch()) {
             append("} else {\n");
-            if (function->has_restrict) {
-                if (function->isMethod) {
-                    append("  _scl_unlock((scl_SclObject) Var_self);\n");
-                } else {
-                    append("  _scl_unlock(function_lock$%s);\n", function->name.c_str());
-                }
-            }
             append("  fn_throw((scl_Exception) _scl_exception_handler.exception);\n");
             append("}\n");
             scopeDepth--;

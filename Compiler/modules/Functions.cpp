@@ -837,9 +837,9 @@ namespace sclc {
             }
         }
         if (f->isMethod) {
-            append("%s mt_%s$%s(%s) __asm(%s);\n", sclTypeToCType(result, f->return_type).c_str(), f->member_type.c_str(), f->name.c_str(), arguments.c_str(), generateSymbolForFunction(f).c_str());
+            append("%s mt_%s$%s(%s) __asm__(%s);\n", sclTypeToCType(result, f->return_type).c_str(), f->member_type.c_str(), f->name.c_str(), arguments.c_str(), generateSymbolForFunction(f).c_str());
         } else if (!f->has_reified) {
-            append("%s fn_%s(%s) __asm(%s);\n", sclTypeToCType(result, f->return_type).c_str(), f->name.c_str(), arguments.c_str(), generateSymbolForFunction(f).c_str());
+            append("%s fn_%s(%s) __asm__(%s);\n", sclTypeToCType(result, f->return_type).c_str(), f->name.c_str(), arguments.c_str(), generateSymbolForFunction(f).c_str());
         }
         return f;
     }
@@ -1158,15 +1158,6 @@ namespace sclc {
         std::string type = typeStackTop;
         for (size_t m = 0; m < self->args.size(); m++) {
             typePop;
-        }
-        if (self->name == "throw" || self->name == "builtinUnreachable") {
-            if (currentFunction->has_restrict) {
-                if (currentFunction->isMethod) {
-                    append("_scl_unlock(Var_self);\n");
-                } else {
-                    append("_scl_unlock(function_lock$%s);\n", currentFunction->name.c_str());
-                }
-            }
         }
         bool closeThePush = false;
         if (self->return_type.size() && self->return_type.front() == '@' && !self->has_async) {

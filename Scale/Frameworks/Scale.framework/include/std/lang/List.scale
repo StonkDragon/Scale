@@ -7,6 +7,16 @@ static struct List
     cdecl "_scl_array_size"
     expect foreign reified function size<[T]>(arr: [T]): int
 
+    function resizeToFit(arr: [int8]): [int8]
+        decl i: int
+        for i in 0 to arr:size do
+            if arr[i] ! then
+                break
+            fi
+        done
+        i 1 + arr:resize return
+    end
+
     reified function filter<[T], >(arr: [T], f: lambda(T): bool): [T]
         new<T>[arr:size] => decl result: [T]
         0 => decl acc: int

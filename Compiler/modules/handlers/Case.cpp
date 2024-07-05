@@ -20,7 +20,8 @@ namespace sclc {
             const Struct& s = getStructByName(result, switchTypes.back());
             if (s.super == "Union") {
                 size_t index = 2;
-                if (!s.hasMember(body[i].value)) {
+                const Variable& v = s.getMember(body[i].value);
+                if (v.name.empty()) {
                     transpilerError("Unknown member '" + body[i].value + "' in union '" + s.name + "'", i);
                     errors.push_back(err);
                     return;
@@ -47,11 +48,16 @@ namespace sclc {
                         transpilerError("Expected ':', but got '" + body[i].value + "'", i);
                         errors.push_back(err);
                     }
+                    size_t start = i;
                     safeInc();
                     FPResult res = parseType(body, i);
                     if (!res.success) {
                         errors.push_back(res);
                         return;
+                    }
+                    if (!typesCompatible(result, v.type, res.value, true) && removeTypeModifiers(v.type) != "any") {
+                        transpilerError("Type '" + v.type + "' cannot be converted to '" + res.value + "'", start);
+                        errors.push_back(err);
                     }
                     const Struct& requested = getStructByName(result, res.value);
                     if (requested != Struct::Null && !requested.isStatic()) {

@@ -2,8 +2,12 @@
 
 typedef struct Struct {
 	TypeInfo*		type;
-	scl_any			mutex;
 } Struct;
+
+typedef struct Struct_Lock {
+	TypeInfo*		type;
+	scl_any			mutex;
+}* scl_Lock;
 
 typedef struct Struct_SclObject {
 	Struct rtFields;
@@ -79,7 +83,6 @@ struct Struct_str {
 
 typedef struct Struct_Thread {
 	const TypeInfo* $type;
-	scl_any $mutex;
 	_scl_lambda function;
 	scl_any nativeThread;
 	scl_str name;
@@ -147,14 +150,14 @@ scl_bool Process$gcEnabled(void) {
 	return !GC_is_disabled();
 }
 
-void Process$lock(scl_any obj) {
-	if (_scl_expect(!obj, 0)) return;
-	cxx_std_recursive_mutex_lock(&((Struct*) obj)->mutex);
+void Process$lock(scl_any lock) {
+	if (_scl_expect(!lock, 0)) return;
+	cxx_std_recursive_mutex_lock(&(((scl_Lock) lock)->mutex));
 }
 
-void Process$unlock(scl_any obj) {
-	if (_scl_expect(!obj, 0)) return;
-	cxx_std_recursive_mutex_unlock(&((Struct*) obj)->mutex);
+void Process$unlock(scl_any lock) {
+	if (_scl_expect(!lock, 0)) return;
+	cxx_std_recursive_mutex_unlock(&(((scl_Lock) lock)->mutex));
 }
 
 scl_str intToString(scl_int val) {
@@ -344,9 +347,7 @@ scl_str builtinToString(scl_any obj) {
 	if (_scl_is_array((scl_any*) obj)) {
 		return _scl_array_to_string((scl_any*) obj);
 	}
-	scl_int8* data = (scl_int8*) _scl_alloc(32);
-	snprintf(data, 31, SCL_INT_FMT, (scl_int) obj);
-	return str_of_exact(data);
+	return str_of_exact(strformat(SCL_INT_FMT, (scl_int) obj));
 }
 
 scl_str _scl_array_to_string(scl_any* arr) {
@@ -359,9 +360,10 @@ scl_str _scl_array_to_string(scl_any* arr) {
 	scl_int size = _scl_array_size(arr);
 	scl_int element_size = _scl_array_elem_size(arr);
 	scl_str s = str_of_exact("[");
+	scl_str str$append(scl_str self, scl_str other) __asm__(_scl_macro_to_string(__USER_LABEL_PREFIX__) "_M3str6appendEE");
 	for (scl_int i = 0; i < size; i++) {
 		if (i) {
-			s = virtual_call(s, "append(s;)s;", scl_str, str_of_exact(", "));
+			s = str$append(s, str_of_exact(", "));
 		}
 		scl_str tmp = nil;
 		scl_int value;
@@ -391,12 +393,7 @@ scl_str _scl_array_to_string(scl_any* arr) {
 			snprintf(str, 31, SCL_INT_FMT, value);
 			tmp = str_of_exact(str);
 		}
-		s = virtual_call(s, "append(s;)s;", scl_str, tmp);
+		s = str$append(s, tmp);
 	}
-	return virtual_call(s, "append(s;)s;", scl_str, str_of_exact("]"));
+	return str$append(s, str_of_exact("]"));
 }
-
-// _scl_constructor
-// void _scale_framework_init(void) {
-// 	_scl_setup();
-// }

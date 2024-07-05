@@ -87,7 +87,7 @@ final sealed struct ReverseRange is Iterable
   end
 end
 
-sealed struct RangeIterator is Iterator
+final sealed struct RangeIterator is Iterator
   private decl cur: int
   private decl last: int
 
@@ -107,7 +107,7 @@ sealed struct RangeIterator is Iterator
   end
 end
 
-sealed struct ReverseRangeIterator is Iterator
+final sealed struct ReverseRangeIterator is Iterator
   private decl cur: int
   private decl last: int
 
@@ -126,7 +126,7 @@ sealed struct ReverseRangeIterator is Iterator
   end
 end
 
-struct UnboundRange is Iterable
+final sealed struct UnboundRange is Iterable
   function iterate(): UnboundRangeIterator
     UnboundRangeIterator::new return
   end
@@ -136,7 +136,7 @@ struct UnboundRange is Iterable
   end
 end
 
-struct UnboundRangeIterator is Iterator
+final sealed struct UnboundRangeIterator is Iterator
   private decl i: int
 
   function init(): none
@@ -154,7 +154,7 @@ struct UnboundRangeIterator is Iterator
   end
 end
 
-struct PartialRange is Iterable
+final sealed struct PartialRange is Iterable
   private decl hasUpperBound: bool
   private decl bound: int
 

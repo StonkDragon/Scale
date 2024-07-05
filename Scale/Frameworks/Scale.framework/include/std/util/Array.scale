@@ -4,8 +4,9 @@ import std.util.InvalidArgumentException
 import std.util.IndexOutOfBoundsException
 import std.util.TypedArray
 import std.util.ReadOnlyArray
+import std.thread.Lock
 
-sealed struct Array is Iterable
+sealed struct Array: Lock is Iterable
   decl values:      readonly [any]
   decl count:       readonly int
   decl capacity:    readonly int

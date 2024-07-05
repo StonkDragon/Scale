@@ -51,7 +51,7 @@ final static sealed struct any
     end
 end
 
-struct Any
+final sealed struct Any
     decl value: readonly any
 
     static function valueOf(x: any): Any

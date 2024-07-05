@@ -83,6 +83,7 @@
 #define _SCL_TYPES_61(X, ...) typeof(X), _SCL_TYPES_60(__VA_ARGS__)
 #define _SCL_TYPES_62(X, ...) typeof(X), _SCL_TYPES_61(__VA_ARGS__)
 #define _SCL_TYPES_63(X, ...) typeof(X), _SCL_TYPES_62(__VA_ARGS__)
+#define _SCL_TYPES_64(X, ...) typeof(X), _SCL_TYPES_63(__VA_ARGS__)
 
 #define _SCL_TYPES__(n, ...) _SCL_TYPES_ ## n (__VA_ARGS__)
 #define _SCL_TYPES_(n, ...) _SCL_TYPES__(n, __VA_ARGS__)

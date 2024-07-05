@@ -12,7 +12,7 @@ end
 
 final sealed open struct MutexError: Error
 
-final sealed struct Thread
+final sealed struct Thread: Lock
     private static (TypedArray<Thread>::new) => decl threads: const Array
     private static decl nextID: int
 
@@ -21,6 +21,7 @@ final sealed struct Thread
             "Main Thread" => name
             nil => func
             nil => tid
+            nil => mutex
         }
     ) => decl mainThread: const Thread
 

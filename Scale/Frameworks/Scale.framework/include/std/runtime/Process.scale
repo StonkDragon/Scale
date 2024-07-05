@@ -14,6 +14,6 @@ static final sealed struct Process
         return
     end
 
-    expect foreign function lock(obj: SclObject): none
-    expect foreign function unlock(obj: SclObject): none
+    expect foreign function lock(obj: Lock): none
+    expect foreign function unlock(obj: Lock): none
 end

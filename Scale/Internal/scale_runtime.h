@@ -5,6 +5,7 @@
 extern "C" {
 #endif
 
+#include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
@@ -94,7 +95,7 @@ extern "C" {
 
 // Creates a new string from a C string
 // The given C string is not copied
-#define str_of_exact(_cstr)	_scl_create_string((_cstr))
+#define str_of_exact		_scl_create_string
 
 #define cstr_of(_str)		((_str)->data)
 
@@ -305,7 +306,7 @@ typedef scl_uint ID_t;
 })
 #else
 #define ALLOC(_type)	({ \
-	extern const TypeInfo _scl_ti_ ## _type __asm("__T" #_type); \
+	extern const TypeInfo _scl_ti_ ## _type __asm__("__T" #_type); \
 	(scl_ ## _type) _scl_alloc_struct(&_scl_ti_ ## _type); \
 })
 #endif
@@ -328,10 +329,16 @@ struct _scl_backtrace {
 	const scl_int8* func_name;
 };
 
+#if __has_attribute(packed)
+#define _scl_packed __attribute__((packed))
+#else
+#define _scl_packed
+#endif
+
 typedef struct {
-	scl_uint flags;
-	scl_int size;
-	scl_int array_elem_size;
+	scl_int32 size _scl_packed;
+	scl_uint8 flags _scl_packed;
+	scl_int32 array_elem_size:24 _scl_packed;
 } memory_layout_t;
 
 #define MEM_FLAG_INSTANCE	0b00000001
@@ -363,10 +370,9 @@ typedef struct TypeInfo {
 
 struct scale_string {
 	const TypeInfo*						$type;
-	scl_any								$mutex;
 	scl_int8*							data;
 	scl_int								length;
-	scl_int								hash;
+	scl_uint								hash;
 };
 
 #define CONCAT(a, b) CONCAT_(a, b)
@@ -392,6 +398,8 @@ struct scale_string {
 #define _scl_await(rtype) (_scl_top(rtype) = _scl_run_await(_scl_top(scl_any)))
 #define _scl_await_void() _scl_run_await(_scl_pop(scl_any))
 
+#define SYMBOL(name) __asm__(_scl_macro_to_string(__USER_LABEL_PREFIX__) name)
+
 #define 			EXCEPTION_HANDLER_MARKER \
 					0xF0E1D2C3B4A59687ULL
 
@@ -413,11 +421,6 @@ struct scale_string {
 #endif
 
 void				_scl_trace_remove(struct _scl_backtrace*);
-
-#define				SCL_FUNCTION_LOCK(_obj) \
-						const volatile scl_any __scl_lock_obj __attribute__((cleanup(_scl_unlock_ptr))) = _obj; _scl_lock(__scl_lock_obj)
-
-void				_scl_unlock_ptr(void* lock_ptr);
 
 #define				SCL_AUTO_DELETE \
 						__attribute__((cleanup(_scl_delete_ptr)))
@@ -454,12 +457,12 @@ static inline void _scl_assert(scl_int b, const scl_int8* msg, ...) {
 #endif
 
 #define _scl_create_string(_data) ({ \
-						const scl_int8* _data_ = (scl_int8*) (_data); \
-						scl_str self = ALLOC(str); \
-						self->length = strlen((_data_)); \
-						self->data = (scl_int8*) _scl_migrate_foreign_array(_data_, self->length, sizeof(scl_int8)); \
-						self->hash = type_id((_data_)); \
-						self; \
+						const scl_int8* data = (_data); \
+						scl_str str = ALLOC(str); \
+						str->length = strlen(data); \
+						str->data = (scl_int8*) _scl_migrate_foreign_array(data, strlen(data) + 1, sizeof(scl_int8)); \
+						str->hash = type_id(data); \
+						str; \
 					})
 
 #define _scl_uninitialized_constant_ctype(_type) ({ \
@@ -503,11 +506,11 @@ static inline void _scl_assert(scl_int b, const scl_int8* msg, ...) {
 						struct { \
 							memory_layout_t layout; \
 							typeof(*_t) data; \
-						}* tmp ## __LINE__ = _scl_scope_alloc(sizeof(*tmp ## __LINE__)); \
-						tmp ## __LINE__->layout.size = sizeof(tmp ## __LINE__->data); \
-						tmp ## __LINE__->layout.flags = MEM_FLAG_INSTANCE; \
-						tmp ## __LINE__->data.$type = _scl_ti_ ## _type; \
-						&(tmp ## __LINE__->data); \
+						}* tmp = _scl_scope_alloc(sizeof(*tmp)); \
+						tmp->layout.size = sizeof(tmp->data); \
+						tmp->layout.flags = MEM_FLAG_INSTANCE; \
+						tmp->data.$type = _scl_ti_ ## _type; \
+						&(tmp->data); \
 					})
 #else
 #define _scl_stack_alloc(_type) ({ \
@@ -516,11 +519,11 @@ static inline void _scl_assert(scl_int b, const scl_int8* msg, ...) {
 						struct { \
 							memory_layout_t layout; \
 							typeof(*_t) data; \
-						}* tmp ## __LINE__ = _scl_scope_alloc(sizeof(*tmp ## __LINE__)); \
-						tmp ## __LINE__->layout.size = sizeof(tmp ## __LINE__->data); \
-						tmp ## __LINE__->layout.flags = MEM_FLAG_INSTANCE; \
-						tmp ## __LINE__->data.$type = &_scl_ti_ ## _type; \
-						&(tmp ## __LINE__->data); \
+						}* tmp = _scl_scope_alloc(sizeof(*tmp)); \
+						tmp->layout.size = sizeof(tmp->data); \
+						tmp->layout.flags = MEM_FLAG_INSTANCE; \
+						tmp->data.$type = &_scl_ti_ ## _type; \
+						&(tmp->data); \
 					})
 #endif
 
@@ -528,27 +531,27 @@ static inline void _scl_assert(scl_int b, const scl_int8* msg, ...) {
 						struct { \
 							memory_layout_t layout; \
 							_type data; \
-						}* tmp ## __LINE__ = _scl_scope_alloc(sizeof(*tmp ## __LINE__)); \
-						tmp ## __LINE__->layout.size = sizeof(tmp ## __LINE__->data); \
-						tmp ## __LINE__->layout.flags = MEM_FLAG_INSTANCE; \
-						&(tmp ## __LINE__->data); \
+						}* tmp = _scl_scope_alloc(sizeof(*tmp)); \
+						tmp->layout.size = sizeof(tmp->data); \
+						tmp->layout.flags = MEM_FLAG_INSTANCE; \
+						&(tmp->data); \
 					})
 #define _scl_stack_alloc_array(_type, _size) ({ \
 						struct { \
 							memory_layout_t layout; \
 							_type data[(_size)]; \
-						}* tmp ## __LINE__ = _scl_scope_alloc(sizeof(*tmp ## __LINE__)); \
-						tmp ## __LINE__->layout.size = (_size); \
-						tmp ## __LINE__->layout.array_elem_size = sizeof(_type); \
-						tmp ## __LINE__->layout.flags = MEM_FLAG_ARRAY; \
-						(_type*) (tmp ## __LINE__->data); \
+						}* tmp = _scl_scope_alloc(sizeof(*tmp)); \
+						tmp->layout.size = (_size); \
+						tmp->layout.array_elem_size = sizeof(_type); \
+						tmp->layout.flags = MEM_FLAG_ARRAY; \
+						(_type*) (tmp->data); \
 					})
 
 #define _scl_static_cstring(_data) ({ \
 						static _scl_symbol_hidden struct { \
 							memory_layout_t layout; \
 							scl_int8 data[sizeof((_data))]; \
-						} CONCAT(_str_data, __LINE__) __asm__("l_scl_string_data" _scl_macro_to_string(__COUNTER__)) = { \
+						} str_data __asm__("l_scl_string_data" _scl_macro_to_string(__COUNTER__)) = { \
 							.layout = { \
 								.array_elem_size = sizeof(scl_int8), \
 								.flags = MEM_FLAG_ARRAY, \
@@ -556,41 +559,40 @@ static inline void _scl_assert(scl_int b, const scl_int8* msg, ...) {
 							}, \
 							.data = (_data), \
 						}; \
-						_scl_mark_static(&((CONCAT(_str_data, __LINE__)).layout)); \
-						(scl_int8*) ((CONCAT(_str_data, __LINE__)).data); \
+						_scl_mark_static(&((str_data).layout)); \
+						(scl_int8*) ((str_data).data); \
 					})
 
-#define _scl_static_string(_data, _hash, _len) ({ \
+#define _scl_static_string(_data, _hash) ({ \
 						extern const TypeInfo _scl_ti_str __asm("__Tstr"); \
 						static _scl_symbol_hidden struct { \
 							memory_layout_t layout; \
-							scl_int8 data[(_len) + 1]; \
-						} CONCAT(_str_data, __LINE__) __asm__("l_scl_string_data" _scl_macro_to_string(__COUNTER__)) = { \
+							scl_int8 data[sizeof((_data))]; \
+						} str_data __asm__("l_scl_string_data" _scl_macro_to_string(__COUNTER__)) = { \
 							.layout = { \
 								.array_elem_size = sizeof(scl_int8), \
 								.flags = MEM_FLAG_ARRAY, \
-								.size = _len, \
+								.size = sizeof((_data)) - 1, \
 							}, \
 							.data = (_data), \
 						}; \
 						static _scl_symbol_hidden struct { \
 							memory_layout_t layout; \
 							struct scale_string data; \
-						} CONCAT(_str, __LINE__) __asm__("l_scl_string" _scl_macro_to_string(__COUNTER__)) = { \
+						} str __asm__("l_scl_string" _scl_macro_to_string(__COUNTER__)) = { \
 							.layout = { \
-								.array_elem_size = 0, \
-								.flags = MEM_FLAG_INSTANCE, \
 								.size = sizeof(struct scale_string), \
+								.flags = MEM_FLAG_INSTANCE, \
 							}, \
 							.data = { \
 								.$type = &_scl_ti_str, \
+								.data = &((str_data).data), \
+								.length = sizeof((_data)) - 1, \
 								.hash = _hash, \
-								.data = &((CONCAT(_str_data, __LINE__)).data), \
-								.length = _len, \
 							}, \
 						}; \
-						_scl_mark_static(&((CONCAT(_str_data, __LINE__)).layout)); \
-						&(((typeof(CONCAT(_str, __LINE__))*) _scl_mark_static(&(CONCAT(_str, __LINE__).layout)))->data); \
+						_scl_mark_static(&((str_data).layout)); \
+						&(((typeof(str)*) _scl_mark_static(&(str.layout)))->data); \
 					})
 
 scl_any				_scl_realloc(scl_any ptr, scl_int size);
@@ -613,8 +615,6 @@ scl_any				_scl_checked_cast(scl_any instance, ID_t target_type, const scl_int8*
 scl_int8*			_scl_typename_or_else(scl_any instance, const scl_int8* else_);
 ID_t				_scl_typeid_or_else(scl_any instance, ID_t else_);
 scl_any				_scl_cvarargs_to_array(va_list args, scl_int count);
-void				_scl_lock(scl_any obj);
-void				_scl_unlock(scl_any obj);
 scl_any				_scl_copy_fields(scl_any dest, scl_any src, scl_int size);
 char*				vstrformat(const char* fmt, va_list args);
 char*				strformat(const char* fmt, ...);
@@ -659,16 +659,16 @@ static inline void _scl_reset_local_buffer(scl_int* ptr) {
 	*ptr = 0;
 }
 
-#define _scl_push(_type, _value)			(*(_type*) _local_stack_ptr = (_value), _local_stack_ptr++)
+#define _scl_push(_type, _value)			((*(_type*) _local_stack_ptr = (_value)), _local_stack_ptr++)
 #define _scl_push_value(_type, _flags, _value) ({ \
 												struct { \
 													memory_layout_t layout; \
 													_type data; \
-												}* tmp ## __LINE__ = _scl_scope_alloc(sizeof(*tmp ## __LINE__)); \
-												tmp ## __LINE__->data = (_value); \
-												tmp ## __LINE__->layout.size = sizeof(_type); \
-												tmp ## __LINE__->layout.flags = (_flags); \
-												_scl_push(_type*, &tmp ## __LINE__->data); \
+												}* tmp = _scl_scope_alloc(sizeof(*tmp)); \
+												tmp->data = (_value); \
+												tmp->layout.size = sizeof(_type); \
+												tmp->layout.flags = (_flags); \
+												_scl_push(_type*, &tmp->data); \
 											})
 #define _scl_pop(_type)						(_local_stack_ptr--, *(_type*) _local_stack_ptr)
 #define _scl_positive_offset(offset, _type)	(*(_type*) (_local_stack_ptr + offset))
@@ -681,15 +681,15 @@ static inline void _scl_reset_local_buffer(scl_int* ptr) {
 											((_other) (*(_type*) (_local_stack_ptr + offset)))
 
 #define _scl_swap() ({ \
-		scl_int tmp ## __LINE__ = _local_stack_ptr[-1]; \
+		scl_int tmp = _local_stack_ptr[-1]; \
 		_local_stack_ptr[-1] = _local_stack_ptr[-2]; \
-		_local_stack_ptr[-2] = tmp ## __LINE__; \
+		_local_stack_ptr[-2] = tmp; \
 	})
 
 #define _scl_over() ({ \
-		scl_int tmp ## __LINE__ = _local_stack_ptr[-1]; \
+		scl_int tmp = _local_stack_ptr[-1]; \
 		_local_stack_ptr[-1] = _local_stack_ptr[-3]; \
-		_local_stack_ptr[-3] = tmp ## __LINE__; \
+		_local_stack_ptr[-3] = tmp; \
 	})
 
 #define _scl_sdup2() ({ \
@@ -697,23 +697,23 @@ static inline void _scl_reset_local_buffer(scl_int* ptr) {
 	})
 
 #define _scl_swap2() ({ \
-		scl_int tmp ## __LINE__ = _local_stack_ptr[-2]; \
+		scl_int tmp = _local_stack_ptr[-2]; \
 		_local_stack_ptr[-2] = _local_stack_ptr[-3]; \
-		_local_stack_ptr[-3] = tmp ## __LINE__; \
+		_local_stack_ptr[-3] = tmp; \
 	})
 
 #define _scl_rot() ({ \
-		scl_int tmp ## __LINE__ = _local_stack_ptr[-3]; \
+		scl_int tmp = _local_stack_ptr[-3]; \
 		_local_stack_ptr[-3] = _local_stack_ptr[-2]; \
 		_local_stack_ptr[-2] = _local_stack_ptr[-1]; \
-		_local_stack_ptr[-1] = tmp ## __LINE__; \
+		_local_stack_ptr[-1] = tmp; \
 	})
 
 #define _scl_unrot() ({ \
-		scl_int tmp ## __LINE__ = _local_stack_ptr[-1]; \
+		scl_int tmp = _local_stack_ptr[-1]; \
 		_local_stack_ptr[-1] = _local_stack_ptr[-2]; \
 		_local_stack_ptr[-2] = _local_stack_ptr[-3]; \
-		_local_stack_ptr[-3] = tmp ## __LINE__; \
+		_local_stack_ptr[-3] = tmp; \
 	})
 
 #define _scl_add(a, b)					(a) + (b)

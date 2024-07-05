@@ -21,6 +21,7 @@
 %include include/std/math/Fraction.scldoc
 %include include/std/runtime/GarbageCollector.scldoc
 %include include/std/runtime/Process.scldoc
+%include include/std/thread/Lock.scldoc
 %include include/std/thread/Thread.scldoc
 %include include/std/util/Array.scldoc
 %include include/std/util/IndexOutOfBoundsException.scldoc

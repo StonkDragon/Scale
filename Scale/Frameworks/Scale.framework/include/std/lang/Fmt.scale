@@ -13,55 +13,12 @@ final static sealed struct ConsoleColor
 end
 
 final static sealed struct FmtIO
-  cdecl "putchar" private expect foreign function putchar(char: int8): none
-
-  private function printStrNoNewline(s: str): none
-    foreach c in s do
-      c FmtIO::putchar
-    done
-  end
+  cdecl "printf"
+  private expect foreign unsafe function __c_printf(:[int8], :varargs): int
 
   function puts(fmt: str, args: varargs): none
-    0 => decl current: int
-    args:size => decl size: int
-    for i in 0 to fmt:size do
-      fmt[i] => decl c: int8
-      if c '%' == then
-        i++ => i
-        fmt[i] => c
-        if c '%' == then
-          '%' FmtIO::putchar
-          continue
-        fi
-        if current size >= then
-          "Not enough arguments for format string" InvalidArgumentException::new throw
-        fi
-        args[current] => decl arg: any
-        current++ => current
-        if c 'i' == then
-          arg int::toString FmtIO::printStrNoNewline
-        elif c 's' == then
-          arg as str FmtIO::printStrNoNewline
-        elif c '@' == then
-          if arg then
-            arg as SclObject:toString FmtIO::printStrNoNewline
-          else
-            "(nil)" FmtIO::printStrNoNewline
-          fi
-        elif c 'f' == then
-          arg float::fromBits:toString FmtIO::printStrNoNewline
-        elif c 'p' == then
-          arg int::toHexString FmtIO::printStrNoNewline
-        elif c 'b' == then
-          arg bool::toString FmtIO::printStrNoNewline
-        elif c 'c' == then
-          arg FmtIO::putchar
-        else
-          "Invalid format specifier at position #" i + InvalidArgumentException::new throw
-        fi
-      else
-        c FmtIO::putchar
-      fi
-    done
+    unsafe
+      c"%s" varargs (fmt args str::vformat:view) __c_printf drop
+    end
   end
 end
