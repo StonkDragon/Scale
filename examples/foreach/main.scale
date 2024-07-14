@@ -8,6 +8,8 @@ function main(): none
     # split the string into an array of strings
     " " "A B C D E F":split => decl arr: [str]
 
+    arr puts
+
     # Loop over every element of the array and print it
     foreach val in arr do
         val puts

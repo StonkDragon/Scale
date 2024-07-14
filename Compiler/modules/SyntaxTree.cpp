@@ -113,9 +113,7 @@ namespace sclc {
                     if (type == "varargs" && name.size()) {
                         func->addArgument(Variable(name + "$size", "const int"));
                     }
-                    func->addArgument(Variable(name, type).also([fromTemplate](Variable& v) {
-                        v.typeFromTemplate = fromTemplate;
-                    }));
+                    func->addArgument(Variable(name, type));
                 } else if (tokens[i].type == tok_curly_open) {
                     std::vector<std::string> multi;
                     multi.reserve(10);
@@ -172,9 +170,7 @@ namespace sclc {
                         continue;
                     }
                     for (std::string& s : multi) {
-                        func->addArgument(Variable(s, type).also([fromTemplate](Variable& v) {
-                            v.typeFromTemplate = fromTemplate;
-                        }));
+                        func->addArgument(Variable(s, type));
                     }
                 } else {
                     FPResult result;
@@ -219,11 +215,9 @@ namespace sclc {
                 std::string type = r.value;
                 std::string fromTemplate = r.message;
                 func->return_type = type;
-                func->templateArg = r.message;
                 if (namedReturn.size()) {
                     func->namedReturnValue = Variable(namedReturn, type).also([fromTemplate](Variable& v) {
                         v.canBeNil = typeCanBeNil(v.type);
-                        v.typeFromTemplate = fromTemplate;
                     });
                 }
             } else {
@@ -348,9 +342,7 @@ namespace sclc {
                     if (type == "varargs" && name.size()) {
                         method->addArgument(Variable(name + "$size", "const int"));
                     }
-                    method->addArgument(Variable(name, type).also([fromTemplate](Variable& v) {
-                        v.typeFromTemplate = fromTemplate;
-                    }));
+                    method->addArgument(Variable(name, type));
                 } else if (tokens[i].type == tok_curly_open) {
                     std::vector<std::string> multi;
                     i++;
@@ -406,9 +398,7 @@ namespace sclc {
                         continue;
                     }
                     for (std::string& s : multi) {
-                        method->addArgument(Variable(s, type).also([fromTemplate](Variable& v) {
-                            v.typeFromTemplate = fromTemplate;
-                        }));
+                        method->addArgument(Variable(s, type));
                     }
                 } else {
                     FPResult result;
@@ -455,11 +445,8 @@ namespace sclc {
                 std::string fromTemplate = r.message;
                 std::string type = r.value;
                 method->return_type = type;
-                method->templateArg = fromTemplate;
                 if (namedReturn.size()) {
-                    method->namedReturnValue = Variable(namedReturn, type).also([fromTemplate](Variable& v) {
-                        v.typeFromTemplate = fromTemplate;
-                    });
+                    method->namedReturnValue = Variable(namedReturn, type);
                 }
             } else {
                 FPResult result;
@@ -1322,8 +1309,8 @@ namespace sclc {
                        t.type == tok_enum ||
                        t.type == tok_union_def ||
                        t.type == tok_interface_def ||
-                       (t.type == tok_identifier && t.value == "layout") ||
-                       (t.type == tok_identifier && t.value == "unsafe");
+                       t.type == tok_unsafe ||
+                       (t.type == tok_identifier && t.value == "layout");
             };
 
             std::function<bool(const Token&)> scoper[] = {isScopeEnter, isScopeEnterInFunc};
@@ -2256,10 +2243,9 @@ namespace sclc {
                     (((ssize_t) i) - 1 >= 0 && tokens[i - 1].type != tok_bracket_open) &&
                     (((ssize_t) i) - 2 >= 0 && tokens[i - 2].type != tok_new)
                 ) isInLambda++;
-                if (token.type == tok_identifier && token.value == "unsafe") {
+                if (token.type == tok_unsafe) {
                     isInUnsafe++;
                 }
-                // if (!contains<Function*>(functions, currentFunction))
                 currentFunction->addToken(token);
             } else if (token.type == tok_paren_open) {
                 currentFunction = new Function("$init" + std::to_string(nInits), Token(tok_identifier, "$init" + std::to_string(nInits), token.location));
@@ -2552,7 +2538,6 @@ namespace sclc {
                     }
                     v = Variable(name, type, currentStructs.back()->name);
                     v.name_token = name_token;
-                    v.typeFromTemplate = fromTemplate;
                     v.isPrivate = (isPrivate || contains<std::string>(nextAttributes, "private"));
                     if (inlineArraySize != -1ULL) {
                         if (!typeIsConst(v.type)) {
@@ -2593,32 +2578,31 @@ namespace sclc {
             } else {
 
                 auto validAttribute = [](Token& t) -> bool {
-                    return t.type  == tok_string_literal ||
-                           t.value == "sinceVersion:" ||
-                           t.value == "replaceWith:" ||
-                           t.value == "deprecated!" ||
-                           t.value == "nonvirtual" ||
-                           t.value == "overload!" ||
-                           t.value == "construct" ||
-                           t.value == "overrides" ||
-                           t.value == "restrict" ||
-                           t.value == "operator" ||
-                           t.value == "foreign" ||
-                           t.value == "virtual" ||
-                           t.value == "default" ||
-                           t.value == "private" ||
-                           t.value == "reified" ||
-                           t.value == "static" ||
-                           t.value == "export" ||
-                           t.value == "expect" ||
-                           t.value == "sealed" ||
-                           t.value == "unsafe" ||
-                           t.value == "cdecl" ||
-                           t.value == "const" ||
-                           t.value == "final" ||
-                           t.value == "async" ||
-                           t.value == "open" ||
-                           t.value == "asm";
+                    return  t.type == tok_string_literal ||
+                            t.type == tok_unsafe ||
+                            t.type == tok_cdecl ||
+                            (t.type == tok_identifier && (
+                                t.value == "deprecated!" ||
+                                t.value == "nonvirtual" ||
+                                t.value == "construct" ||
+                                t.value == "overrides" ||
+                                t.value == "restrict" ||
+                                t.value == "operator" ||
+                                t.value == "foreign" ||
+                                t.value == "virtual" ||
+                                t.value == "default" ||
+                                t.value == "private" ||
+                                t.value == "reified" ||
+                                t.value == "static" ||
+                                t.value == "export" ||
+                                t.value == "expect" ||
+                                t.value == "sealed" ||
+                                t.value == "const" ||
+                                t.value == "final" ||
+                                t.value == "async" ||
+                                t.value == "open" ||
+                                t.value == "asm"
+                            ));
                 };
 
                 if ((currentStructs.size() || !currentLayout.name.empty()) && currentFunction == nullptr && (tokens[i].value == "get" || tokens[i].value == "set")) {

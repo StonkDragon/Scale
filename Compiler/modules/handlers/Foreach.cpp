@@ -108,7 +108,6 @@ namespace sclc {
                 append("_scl_checked_cast(Var_%s, 0x%lxUL, \"%s\");\n", iter_var_tok.value.c_str(), id(iterType.c_str()), iterType.c_str());
             }
             pushOther();
-            append("_scl_scope(128*sizeof(scl_int));\n");
             return;
         }
         
@@ -160,8 +159,8 @@ namespace sclc {
             append("scl_int %s_ind = 0;\n", iterator_name.c_str());
         }
         std::string iteratingType = sclTypeToCType(result, type);
-        append("scl_int(*hasNext_%s)(%s) = _scl_get_vtable_function(%s, \"hasNext()i;\");\n", iterator_name.c_str(), iteratingType.c_str(), iterator_name.c_str());
-        append("%s(*next_%s)(%s) = _scl_get_vtable_function(%s, \"next\");\n", cType.c_str(), iterator_name.c_str(), iteratingType.c_str(), iterator_name.c_str());
+        append("scl_int(*hasNext_%s)(%s) = (typeof(hasNext_%s)) _scl_get_vtable_function(%s, \"hasNext()i;\");\n", iterator_name.c_str(), iteratingType.c_str(), iterator_name.c_str(), iterator_name.c_str());
+        append("%s(*next_%s)(%s) = (typeof(next_%s)) _scl_get_vtable_function(%s, \"next\");\n", cType.c_str(), iterator_name.c_str(), iteratingType.c_str(), iterator_name.c_str(), iterator_name.c_str());
         append("while (hasNext_%s(%s)) {\n", iterator_name.c_str(), iterator_name.c_str());
         scopeDepth++;
         append("%s Var_%s = next_%s(%s);\n", cType.c_str(), iter_var_tok.value.c_str(), iterator_name.c_str(), iterator_name.c_str());
@@ -171,7 +170,6 @@ namespace sclc {
         if (index_var_tok.value.size()) {
             append("scl_int Var_%s = %s_ind++;\n", index_var_tok.value.c_str(), iterator_name.c_str());
         }
-        append("_scl_scope(128*sizeof(scl_int));\n");
     }
 } // namespace sclc
 

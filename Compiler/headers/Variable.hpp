@@ -36,15 +36,14 @@ namespace sclc
         std::string name;
         std::string type;
         std::string internalMutableFrom;
+        Token name_token;
         bool isConst;
         bool isInternalMut;
         bool isReadonly;
         bool isVirtual;
         bool isExtern;
-        Token name_token;
         bool isPrivate;
         bool canBeNil;
-        std::string typeFromTemplate;
         bool hasInitializer;
         Variable(std::string name, std::string type);
         Variable(std::string name, std::string type, std::string memberType);

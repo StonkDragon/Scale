@@ -203,7 +203,7 @@ namespace sclc {
                     }
                     append("%s* array = _scl_pop(%s*);\n", sclTypeToCType(result, elementType).c_str(), sclTypeToCType(result, elementType).c_str());
                 } else {
-                    append("scl_int* array = _scl_new_array_by_size(array_size, sizeof(%s));\n", sclTypeToCType(result, elementType).c_str());
+                    append("scl_int* array = (scl_int*) _scl_new_array_by_size(array_size, sizeof(%s));\n", sclTypeToCType(result, elementType).c_str());
                 }
                 append("for (scl_int i = 0; i < array_size; i++) {\n");
                 scopeDepth++;

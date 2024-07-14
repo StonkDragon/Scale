@@ -12,7 +12,6 @@ namespace sclc {
         append("} else {\n");
         scopeDepth++;
         varScopePush();
-        append("_scl_scope(128*sizeof(scl_int));\n");
     }
 } // namespace sclc
 

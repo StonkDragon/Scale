@@ -43,9 +43,10 @@ namespace sclc {
                 type = "any";
             }
         }
-        append("%s* tmp = _scl_new_array_by_size(%d, sizeof(%s));\n", sclTypeToCType(result, type).c_str(), n, sclTypeToCType(result, type).c_str());
+        std::string ctype = sclTypeToCType(result, type);
+        append("%s* tmp = (%s*) _scl_new_array_by_size(%d, sizeof(%s));\n", ctype.c_str(), ctype.c_str(), n, ctype.c_str());
         for (int i = 0; i < n; i++) {
-            append("tmp[%d] = *(%s*) &tmp%d;\n", i, sclTypeToCType(result, type).c_str(), i);
+            append("tmp[%d] = *(%s*) &tmp%d;\n", i, ctype.c_str(), i);
         }
         append("tmp;\n");
         typeStack.push_back("[" + type + "]");

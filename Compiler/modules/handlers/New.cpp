@@ -62,16 +62,17 @@ namespace sclc {
             }
             dimensions = 1;
             append("scl_int len = %zu;\n", nelems);
-            append("%s* arr = _scl_new_array_by_size(len, %s);\n", sclTypeToCType(result, typeString).c_str(), elemSize.c_str());
+            std::string ctype = sclTypeToCType(result, typeString);
+            append("%s* arr = (%s*) _scl_new_array_by_size(len, %s);\n", ctype.c_str(), ctype.c_str(), elemSize.c_str());
             append("for (scl_int index = 0; index < len; index++) {\n");
             scopeDepth++;
-            append("arr[len - index - 1] = _scl_pop(%s);\n", sclTypeToCType(result, typeString).c_str());
+            append("arr[len - index - 1] = _scl_pop(%s);\n", ctype.c_str());
             for (size_t i = 0; i < nelems; i++) {
                 typePop;
             }
             scopeDepth--;
             append("}\n");
-            append("_scl_push(%s*, arr);\n", sclTypeToCType(result, typeString).c_str());
+            append("_scl_push(%s*, arr);\n", ctype.c_str());
 
             scopeDepth--;
             append("}\n");

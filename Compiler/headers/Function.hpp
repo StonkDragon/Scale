@@ -29,8 +29,7 @@ namespace sclc
         bool isMethod;
         Deprecation deprecated;
         std::vector<Function*> overloads;
-        std::string templateArg;
-        
+
         long has_expect;
         long has_export;
         long has_private;
@@ -48,7 +47,6 @@ namespace sclc
         long has_setter;
         long has_foreign;
         long has_overrides;
-        long has_binary_inherited;
         long has_nonvirtual;
         long has_async;
         long has_reified;

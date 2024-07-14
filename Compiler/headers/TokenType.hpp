@@ -30,7 +30,6 @@ namespace sclc
         tok_until,                  // until
         tok_do,                     // do
         tok_done,                   // done
-        tok_extern,                 // extern
         tok_extern_c,               // c!
         tok_break,                  // break
         tok_continue,               // continue
@@ -61,6 +60,16 @@ namespace sclc
         tok_using,                  // using
         tok_lambda,                 // lambda
         tok_pragma,                 // pragma!
+        tok_await,                  // await
+        tok_typeof,                 // typeof
+        tok_typeid,                 // typeid
+        tok_nameof,                 // nameof
+        tok_sizeof,                 // sizeof
+        tok_try,                    // try
+        tok_catch,                  // catch
+        tok_unsafe,                 // unsafe
+        tok_assert,                 // assert
+        tok_varargs,                // varargs
 
         // operators
         tok_question_mark,          // ?

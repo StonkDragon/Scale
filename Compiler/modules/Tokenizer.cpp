@@ -405,7 +405,6 @@ namespace sclc
         TOKEN("else",       tok_else, line, filename);
         TOKEN("elif",       tok_elif, line, filename);
         TOKEN("elunless",   tok_elunless, line, filename);
-        TOKEN("expect",     tok_extern, line, filename);
         TOKEN("fi",         tok_fi, line, filename);
         TOKEN("function",   tok_function, line, filename);
         TOKEN("while",      tok_while, line, filename);
@@ -442,6 +441,16 @@ namespace sclc
         TOKEN("using",      tok_using, line, filename);
         TOKEN("pragma!",    tok_pragma, line, filename);
         TOKEN("lambda",     tok_lambda, line, filename);
+        TOKEN("await",      tok_await, line, filename);
+        TOKEN("typeof",     tok_typeof, line, filename);
+        TOKEN("typeid",     tok_typeid, line, filename);
+        TOKEN("nameof",     tok_nameof, line, filename);
+        TOKEN("sizeof",     tok_sizeof, line, filename);
+        TOKEN("try",        tok_try, line, filename);
+        TOKEN("catch",      tok_catch, line, filename);
+        TOKEN("unsafe",     tok_unsafe, line, filename);
+        TOKEN("assert",     tok_assert, line, filename);
+        TOKEN("varargs",    tok_varargs, line, filename);
 
         TOKEN("swap",       tok_stack_op, line, filename);
         TOKEN("dup",        tok_stack_op, line, filename);

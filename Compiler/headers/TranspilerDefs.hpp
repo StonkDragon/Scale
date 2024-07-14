@@ -105,27 +105,27 @@
             typeStack.pop_back(); \
         }                         \
     } while (0)
-#define safeInc()                                                                                                                                                                             \
-    do                                                                                                                                                                                        \
-    {                                                                                                                                                                                         \
-        if (++i >= body.size())                                                                                                                                                               \
-        {                                                                                                                                                                                     \
-            std::cerr << body.back().location.file << ":" << body.back().location.line << ":" << body.back().location.column << ":" << Color::RED << " Unexpected end of file!" << std::endl; \
-            std::cerr << __FILE__ << ":" << __LINE__ << ": " << __func__ << ": Error happened here" << std::endl;                                                                             \
-            std::raise(SIGSEGV);                                                                                                                                                              \
-        }                                                                                                                                                                                     \
+#define safeInc(...)                                                     \
+    do                                                                   \
+    {                                                                    \
+        if (++i >= body.size())                                          \
+        {                                                                \
+            transpilerError("Unexpected end of file!", body.size() - 1); \
+            errors.push_back(err);                                       \
+            return __VA_ARGS__;                                          \
+        }                                                                \
     } while (0)
 
-#define safeIncN(n)                                                                                                                                                                           \
-    do                                                                                                                                                                                        \
-    {                                                                                                                                                                                         \
-        if ((i + n) >= body.size())                                                                                                                                                           \
-        {                                                                                                                                                                                     \
-            std::cerr << body.back().location.file << ":" << body.back().location.line << ":" << body.back().location.column << ":" << Color::RED << " Unexpected end of file!" << std::endl; \
-            std::cerr << __FILE__ << ":" << __LINE__ << ": " << __func__ << ": Error happened here" << std::endl;                                                                             \
-            std::raise(SIGSEGV);                                                                                                                                                              \
-        }                                                                                                                                                                                     \
-        i += n;                                                                                                                                                                               \
+#define safeIncN(n, ...)                                                 \
+    do                                                                   \
+    {                                                                    \
+        if ((i + n) >= body.size())                                      \
+        {                                                                \
+            transpilerError("Unexpected end of file!", body.size() - 1); \
+            errors.push_back(err);                                       \
+            return __VA_ARGS__;                                          \
+        }                                                                \
+        i += n;                                                          \
     } while (0)
 
 #define THIS_INCREMENT_IS_CHECKED ++i;
@@ -134,7 +134,7 @@ namespace sclc
 {
     extern std::vector<std::string> cflags;
     extern std::vector<std::string> modes;
-    extern Function *currentFunction;
+    extern Function* currentFunction;
     extern Struct currentStruct;
     extern std::unordered_map<std::string, std::vector<Method *>> vtables;
     extern StructTreeNode *structTree;
@@ -152,6 +152,15 @@ namespace sclc
     extern std::string return_type;
     extern int lambdaCount;
 
+    handler(Await);
+    handler(Typeof);
+    handler(Typeid);
+    handler(Nameof);
+    handler(Sizeof);
+    handler(Try);
+    handler(Unsafe);
+    handler(Assert);
+    handler(Varargs);
     handler(Token);
     handler(Pragma);
     handler(Lambda);

@@ -10,6 +10,8 @@ cdecl "get_errno"
 expect foreign function errno(): int
 cdecl "get_errno_as_str"
 expect foreign function strerror(): str
+cdecl "abort"
+expect foreign function abort(): nothing
 
 function crash(): nothing
   abort

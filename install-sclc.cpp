@@ -242,7 +242,6 @@ int real_main(int argc, char const *argv[]) {
     auto scale_runtime = create_command({
         "clang",
         "-fvisibility=default",
-        "-O2",
         ("-std=" C_VERSION),
         "-I" + path + DIR_SEP "Internal",
         "-I" + path + DIR_SEP "Internal" DIR_SEP "include",
@@ -259,7 +258,6 @@ int real_main(int argc, char const *argv[]) {
     auto cxx_glue = create_command({
         "clang++",
         "-fvisibility=default",
-        "-O2",
         ("-std=" CXX_VERSION),
         "-I" + path + DIR_SEP "Internal",
         "-I" + path + DIR_SEP "Internal" DIR_SEP "include",
@@ -282,7 +280,6 @@ int real_main(int argc, char const *argv[]) {
         "-fuse-ld=lld",
         "-Wl,-lldmingw",
     #endif
-        "-O2",
     #if defined(__APPLE__)
         "-dynamiclib",
         "-current_version",
@@ -349,11 +346,20 @@ int real_main(int argc, char const *argv[]) {
 
     if (debug) {
         compile_command += "-O0 -g -DDEBUG ";
+        cxx_glue += "-O0 -g -DDEBUG ";
+        scale_runtime += "-O0 -g -DDEBUG ";
+        library += "-O0 -g -DDEBUG ";
     } else {
         #ifdef _WIN32
         compile_command += "-O0 "; // Windows is weird, compile fails when turning on optimizations (UB????)
+        cxx_glue += "-O0 "; // Windows is weird, compile fails when turning on optimizations (UB????)
+        scale_runtime += "-O0 "; // Windows is weird, compile fails when turning on optimizations (UB????)
+        library += "-O0 "; // Windows is weird, compile fails when turning on optimizations (UB????)
         #else
         compile_command += "-O2 ";
+        cxx_glue += "-O2 ";
+        scale_runtime += "-O2 ";
+        library += "-O2 ";
         #endif
     }
 

@@ -213,7 +213,7 @@ typedef float				scl_float;
 
 typedef scl_int				scl_bool;
 
-typedef struct scale_string* scl_str;
+typedef struct Struct_str* scl_str;
 
 #define SCL_int64_MAX		((1LL << (sizeof(scl_int64) * 8 - 1)) - 1)
 #define SCL_int64_MASK		((scl_int64) -1)
@@ -249,7 +249,8 @@ typedef unsigned int		scl_uint32;
 typedef unsigned short		scl_uint16;
 typedef unsigned char		scl_uint8;
 
-typedef void*(*_scl_lambda)(void);
+typedef void*(*_scl_function)(void);
+typedef void*(*(*_scl_lambda))(void*);
 
 typedef scl_uint ID_t;
 
@@ -341,8 +342,8 @@ typedef struct {
 	scl_int32 array_elem_size:24 _scl_packed;
 } memory_layout_t;
 
-#define MEM_FLAG_INSTANCE	0b00000001
-#define MEM_FLAG_ARRAY		0b00000010
+#define MEM_FLAG_INSTANCE	0b01
+#define MEM_FLAG_ARRAY		0b10
 
 struct _scl_methodinfo {
 	const ID_t							pure_name;
@@ -350,13 +351,13 @@ struct _scl_methodinfo {
 };
 
 typedef struct {
-	memory_layout_t layout;
-	_scl_lambda funcs[];
+	memory_layout_t						layout;
+	_scl_function						funcs[];
 } _scl_vtable;
 
 typedef struct {
-	memory_layout_t layout;
-	struct _scl_methodinfo infos[];
+	memory_layout_t						layout;
+	struct _scl_methodinfo				infos[];
 } _scl_methodinfo_t;
 
 typedef struct TypeInfo {
@@ -365,14 +366,14 @@ typedef struct TypeInfo {
 	const scl_int8*						type_name;
 	const size_t						size;
 	const struct _scl_methodinfo* const	vtable_info;
-	const _scl_lambda					vtable[];
+	const _scl_function					vtable[];
 } TypeInfo;
 
-struct scale_string {
+struct Struct_str {
 	const TypeInfo*						$type;
 	scl_int8*							data;
 	scl_int								length;
-	scl_uint								hash;
+	scl_uint							hash;
 };
 
 #define CONCAT(a, b) CONCAT_(a, b)
@@ -421,11 +422,6 @@ struct scale_string {
 #endif
 
 void				_scl_trace_remove(struct _scl_backtrace*);
-
-#define				SCL_AUTO_DELETE \
-						__attribute__((cleanup(_scl_delete_ptr)))
-
-void				_scl_delete_ptr(void* ptr);
 
 #include "preproc.h"
 
@@ -500,52 +496,66 @@ static inline void _scl_assert(scl_int b, const scl_int8* msg, ...) {
 					})
 
 #ifdef _WIN32
-#define _scl_stack_alloc(_type) ({ \
-						const TypeInfo* _scl_ti_ ## _type = (const TypeInfo*) GetProcAddress(GetModuleHandleA(NULL), "__T" #_type); \
-						scl_ ## _type _t; \
-						struct { \
+#define _scl_stack_alloc(_type) ( \
+						&((struct { \
 							memory_layout_t layout; \
-							typeof(*_t) data; \
-						}* tmp = _scl_scope_alloc(sizeof(*tmp)); \
-						tmp->layout.size = sizeof(tmp->data); \
-						tmp->layout.flags = MEM_FLAG_INSTANCE; \
-						tmp->data.$type = _scl_ti_ ## _type; \
-						&(tmp->data); \
-					})
+							struct Struct_ ## _type data; \
+						}) { \
+							.layout = { \
+								.size = sizeof(struct Struct_ ## _type), \
+								.flags = MEM_FLAG_INSTANCE, \
+							}, \
+							.data = { \
+								.$type = ({ \
+									const TypeInfo* _scl_ti_ ## _type = (const TypeInfo*) GetProcAddress(GetModuleHandleA(NULL), "__T" #_type); \
+									_scl_ti_ ## _type; \
+								}), \
+							} \
+						}).data \
+					)
 #else
-#define _scl_stack_alloc(_type) ({ \
-						extern const TypeInfo _scl_ti_ ## _type __asm__("__T" #_type); \
-						scl_ ## _type _t; \
-						struct { \
+#define _scl_stack_alloc(_type) ( \
+						&((struct { \
 							memory_layout_t layout; \
-							typeof(*_t) data; \
-						}* tmp = _scl_scope_alloc(sizeof(*tmp)); \
-						tmp->layout.size = sizeof(tmp->data); \
-						tmp->layout.flags = MEM_FLAG_INSTANCE; \
-						tmp->data.$type = &_scl_ti_ ## _type; \
-						&(tmp->data); \
-					})
+							struct Struct_ ## _type data; \
+						}) { \
+							.layout = { \
+								.size = sizeof(struct Struct_ ## _type), \
+								.flags = MEM_FLAG_INSTANCE, \
+							}, \
+							.data = { \
+								.$type = ({ \
+									extern const TypeInfo _scl_ti_ ## _type __asm__("__T" #_type); \
+									&_scl_ti_ ## _type; \
+								}), \
+							} \
+						}).data \
+					)
 #endif
 
-#define _scl_stack_alloc_ctype(_type) ({ \
-						struct { \
+#define _scl_stack_alloc_ctype(_type) ( \
+						&((struct { \
 							memory_layout_t layout; \
 							_type data; \
-						}* tmp = _scl_scope_alloc(sizeof(*tmp)); \
-						tmp->layout.size = sizeof(tmp->data); \
-						tmp->layout.flags = MEM_FLAG_INSTANCE; \
-						&(tmp->data); \
-					})
-#define _scl_stack_alloc_array(_type, _size) ({ \
-						struct { \
+						}) { \
+							.layout = { \
+								.size = sizeof(_type), \
+							} \
+						}).data \
+					)
+
+#define _scl_stack_alloc_array(_type, _size) ( \
+						((struct { \
 							memory_layout_t layout; \
 							_type data[(_size)]; \
-						}* tmp = _scl_scope_alloc(sizeof(*tmp)); \
-						tmp->layout.size = (_size); \
-						tmp->layout.array_elem_size = sizeof(_type); \
-						tmp->layout.flags = MEM_FLAG_ARRAY; \
-						(_type*) (tmp->data); \
-					})
+						}) = { \
+							.layout = { \
+								.size = (_size); \
+								.array_elem_size = sizeof(_type); \
+								.flags = MEM_FLAG_ARRAY; \
+							} \
+						}).data \
+					)
 
 #define _scl_static_cstring(_data) ({ \
 						static _scl_symbol_hidden struct { \
@@ -578,20 +588,20 @@ static inline void _scl_assert(scl_int b, const scl_int8* msg, ...) {
 						}; \
 						static _scl_symbol_hidden struct { \
 							memory_layout_t layout; \
-							struct scale_string data; \
+							struct Struct_str data; \
 						} str __asm__("l_scl_string" _scl_macro_to_string(__COUNTER__)) = { \
 							.layout = { \
-								.size = sizeof(struct scale_string), \
+								.size = sizeof(struct Struct_str), \
 								.flags = MEM_FLAG_INSTANCE, \
 							}, \
 							.data = { \
 								.$type = &_scl_ti_str, \
-								.data = &((str_data).data), \
+								.data = (str_data.data), \
 								.length = sizeof((_data)) - 1, \
 								.hash = _hash, \
 							}, \
 						}; \
-						_scl_mark_static(&((str_data).layout)); \
+						_scl_mark_static(&(str_data.layout)); \
 						&(((typeof(str)*) _scl_mark_static(&(str.layout)))->data); \
 					})
 
@@ -648,28 +658,24 @@ void				cxx_std_recursive_mutex_lock(scl_any* mutex);
 void				cxx_std_recursive_mutex_unlock(scl_any* mutex);
 // END C++ Concurrency API wrappers
 
-#define _scl_scope_alloc(_size)				({ \
-												scl_any tmp = &_local_scope_buffer[_local_scope_buffer_ptr]; \
-												_local_scope_buffer_ptr += _size; \
-												tmp; \
-											})
-#define _scl_scope(_size)					char _local_scope_buffer[(_size)]; scl_int _local_scope_buffer_ptr __attribute__((cleanup(_scl_reset_local_buffer))) = 0
-
-static inline void _scl_reset_local_buffer(scl_int* ptr) {
+static inline _scl_always_inline void _scl_reset_local_buffer(scl_int* ptr) {
 	*ptr = 0;
 }
 
 #define _scl_push(_type, _value)			((*(_type*) _local_stack_ptr = (_value)), _local_stack_ptr++)
-#define _scl_push_value(_type, _flags, _value) ({ \
-												struct { \
+#define _scl_push_value(_type, _flags, _value) _scl_push(_type*, \
+												&((struct { \
 													memory_layout_t layout; \
 													_type data; \
-												}* tmp = _scl_scope_alloc(sizeof(*tmp)); \
-												tmp->data = (_value); \
-												tmp->layout.size = sizeof(_type); \
-												tmp->layout.flags = (_flags); \
-												_scl_push(_type*, &tmp->data); \
-											})
+												}) { \
+													.layout = { \
+														.size = sizeof(_type), \
+														.flags = (_flags), \
+													}, \
+													.data = (_value) \
+												}).data \
+											)
+
 #define _scl_pop(_type)						(_local_stack_ptr--, *(_type*) _local_stack_ptr)
 #define _scl_positive_offset(offset, _type)	(*(_type*) (_local_stack_ptr + offset))
 #define _scl_top(_type)						(*(_type*) (_local_stack_ptr - 1))

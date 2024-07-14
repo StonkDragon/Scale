@@ -61,10 +61,6 @@ typedef struct Struct_UnreachableError {
 	scl_str* stackTrace;
 }* scl_UnreachableError;
 
-struct Struct_str {
-	struct scale_string s;
-};
-
 typedef struct Struct_InvalidArgumentException {
 	struct Struct_Exception self;
 }* scl_InvalidArgumentException;
@@ -262,9 +258,7 @@ void _scl_finalize(scl_any ptr) {
 		scl_any obj = (scl_any) (ptr + sizeof(memory_layout_t));
 		virtual_call(obj, "finalize()V;", void);
 	}
-	((memory_layout_t*) ptr)->size = 0;
-	((memory_layout_t*) ptr)->flags = 0;
-	((memory_layout_t*) ptr)->array_elem_size = 0;
+	memset(ptr, 0, sizeof(memory_layout_t));
 }
 
 scl_any _scl_alloc(scl_int size) {
@@ -273,7 +267,7 @@ scl_any _scl_alloc(scl_int size) {
 	if (unlikely(size == 0)) size = 8;
 
 	if (unlikely(size > SCL_int32_MAX)) {
-		_scl_runtime_error(EX_INVALID_ARGUMENT, "Cannot allocate more than " _scl_macro_to_string(SCL_int32_MAX) " bytes of memory!");
+		_scl_runtime_error(EX_INVALID_ARGUMENT, "Cannot allocate more than 2147483647 bytes of memory!");
 	}
 
 	scl_any ptr = GC_malloc(size + sizeof(memory_layout_t));
@@ -301,7 +295,7 @@ scl_any _scl_realloc(scl_any ptr, scl_int size) {
 	if (unlikely(size == 0)) size = 8;
 
 	if (unlikely(size > SCL_int32_MAX)) {
-		_scl_runtime_error(EX_INVALID_ARGUMENT, "Cannot allocate more than " _scl_macro_to_string(SCL_int32_MAX) " bytes of memory!");
+		_scl_runtime_error(EX_INVALID_ARGUMENT, "Cannot allocate more than 2147483647 bytes of memory!");
 	}
 
 	ptr = GC_realloc(ptr - sizeof(memory_layout_t), size + sizeof(memory_layout_t));
@@ -432,7 +426,7 @@ void builtinUnreachable(void) {
 }
 
 scl_int builtinIsInstanceOf(scl_any obj, scl_str type) {
-	return _scl_is_instance_of(obj, type->hash);
+	return _scl_is_instance_of(obj, type_id(type->data));
 }
 
 #if !defined(__pure2)
@@ -496,10 +490,10 @@ scl_any _scl_copy_fields(scl_any dest, scl_any src, scl_int size) {
 
 _scl_symbol_hidden static scl_int _scl_search_method_index(const struct _scl_methodinfo* const methods, ID_t id, ID_t sig);
 
-static inline _scl_lambda _scl_get_method_on_type(scl_any type, ID_t method, ID_t signature) {
+static inline _scl_function _scl_get_method_on_type(scl_any type, ID_t method, ID_t signature) {
 	const struct TypeInfo* ti = ((Struct*) type)->type;
 	const struct _scl_methodinfo* mi = ti->vtable_info;
-	const _scl_lambda* vtable = ti->vtable;
+	const _scl_function* vtable = ti->vtable;
 
 	scl_int index = _scl_search_method_index(mi, method, signature);
 	return index >= 0 ? vtable[index] : nil;
@@ -528,7 +522,7 @@ _scl_symbol_hidden static void split_at(const scl_int8* str, size_t len, size_t 
 
 scl_any _scl_get_vtable_function(scl_any instance, const scl_int8* methodIdentifier) {
 	if (unlikely(!_scl_is_instance(instance))) {
-		_scl_runtime_error(EX_CAST_ERROR, "Tried getting method on non-struct type (%p)", instance);
+		_scl_runtime_error(EX_CAST_ERROR, "Tried getting method '%s' on non-struct type (%p)", methodIdentifier, instance);
 	}
 
 	size_t methodLen = strlen(methodIdentifier);
@@ -547,7 +541,7 @@ scl_any _scl_get_vtable_function(scl_any instance, const scl_int8* methodIdentif
 	}
 	ID_t methodNameHash = type_id(methodName);
 
-	_scl_lambda m = _scl_get_method_on_type(instance, methodNameHash, signatureHash);
+	_scl_function m = _scl_get_method_on_type(instance, methodNameHash, signatureHash);
 	if (unlikely(m == nil)) {
 		if (unlikely(((Struct*) instance)->type == nil)) {
 			_scl_runtime_error(EX_BAD_PTR, "instance->type is nil");
@@ -697,14 +691,14 @@ scl_any _scl_new_array_by_size(scl_int num_elems, scl_int elem_size) {
 
 struct vtable {
 	memory_layout_t memory_layout;
-	_scl_lambda funcs[];
+	_scl_function funcs[];
 };
 
 scl_any _scl_migrate_foreign_array(const void* const arr, scl_int num_elems, scl_int elem_size) {
 	if (unlikely(num_elems < 0)) {
 		_scl_runtime_error(EX_INVALID_ARGUMENT, "Array size must not be less than 0");
 	}
-	scl_any* new_arr = _scl_new_array_by_size(num_elems, elem_size);
+	scl_any* new_arr = (scl_any*) _scl_new_array_by_size(num_elems, elem_size);
 	memmove(new_arr, arr, num_elems * elem_size);
 	return new_arr;
 }
@@ -800,10 +794,6 @@ scl_any* _scl_array_resize(scl_int new_size, scl_any* arr) {
 
 void _scl_trace_remove(struct _scl_backtrace* bt) {
 	bt->marker = 0;
-}
-
-void _scl_delete_ptr(void* ptr) {
-	_scl_free(*(scl_any*) ptr);
 }
 
 void _scl_throw(scl_any ex) {
@@ -949,9 +939,9 @@ struct async_func {
 _scl_symbol_hidden void _scl_async_runner(struct async_func* args) {
 	TRY {
 		args->ret = args->func(args->args);
-		free(args->args);
+		if (args->args) free(args->args);
 	} else {
-		free(args->args);
+		if (args->args) free(args->args);
 		_scl_runtime_catch(_scl_exception_handler.exception);
 	}
 }

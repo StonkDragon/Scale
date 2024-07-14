@@ -1,5 +1,3 @@
-typealias lambda "_scl_lambda"
-
 cdecl "atoll"
 private expect foreign unsafe function __c_atoll(:[int8]): int64
 cdecl "sprintf"

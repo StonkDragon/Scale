@@ -19,7 +19,6 @@ namespace sclc {
         this->internalMutableFrom = memberType;
         this->isInternalMut = memberType.size() != 0;
         this->isPrivate = false;
-        this->typeFromTemplate = "";
         this->isVirtual = false;
         this->isExtern = false;
         this->hasInitializer = false;

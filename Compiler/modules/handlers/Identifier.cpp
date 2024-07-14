@@ -5,6 +5,235 @@
 #include "../../headers/Functions.hpp"
 
 namespace sclc {
+
+    handler(Await) {
+        noUnused;
+        std::string type = typeStackTop;
+        if (!strstarts(type, "async<")) {
+            transpilerError("Expected async type, but got '" + type + "'", i);
+            errors.push_back(err);
+            return;
+        }
+        type = type.substr(6, type.size() - 7);
+        std::string removed = removeTypeModifiers(type);
+        typePop;
+        if (removed != "none" && removed != "nothing") {
+            if (type.front() == '@') type.erase(0, 1);
+            typeStack.push_back(type);
+            append("_scl_await(%s);\n", sclTypeToCType(result, type).c_str());
+        } else {
+            append("_scl_await_void();\n");
+        }
+    }
+    handler(Typeof) {
+        noUnused;
+        safeInc();
+            
+        const Variable& var = getVar(body[i].value);
+        if (var.name.size()) {
+            std::string type = var.type;
+            if (type.front() == '@') {
+                append("_scl_push(scl_str, _scl_create_string(_scl_typename_or_else((scl_any) &Var_%s, \"%s\")));\n", var.name.c_str(), retemplate(type.substr(1)).c_str());
+            } else {
+                append("_scl_push(scl_str, _scl_create_string(_scl_typename_or_else(*(scl_any*) &Var_%s, \"%s\")));\n", var.name.c_str(), retemplate(type).c_str());
+            }
+        } else if (hasFunction(result, body[i].value)) {
+            Function* f = getFunctionByName(result, body[i].value);
+            std::string lambdaType = "lambda(" + std::to_string(f->args.size()) + "):" + f->return_type;
+            append("_scl_push(scl_str, _scl_create_string(\"%s\"));\n", lambdaType.c_str());
+        } else if (body[i].type == tok_paren_open) {
+            append("{\n");
+            scopeDepth++;
+            size_t stack_start = typeStack.size();
+            handle(ParenOpen);
+            if (typeStack.size() <= stack_start) {
+                transpilerError("Expected expression evaluating to a value after 'typeof'", i);
+                errors.push_back(err);
+            }
+            const Struct& s = getStructByName(result, typeStackTop);
+            Enum e = getEnumByName(result, typeStackTop);
+            if (s != Struct::Null && !s.isStatic()) {
+                append("_scl_top(scl_str) = _scl_create_string(_scl_top(scl_SclObject)->$type->type_name);\n");
+            } else if (hasLayout(result, typeStackTop)) {
+                append("_scl_top(scl_str) = _scl_create_string(\"%s\");\n", retemplate(typeStackTop).c_str());
+            } else if (e.name.size()) {
+                append("_scl_top(scl_str) = _scl_create_string(((char*[]){\n");
+                scopeDepth++;
+                for (auto&& x : e.member_types) {
+                    append("[%ld] = \"%s\",\n", e.members[x.first], x.second.c_str());
+                }
+                scopeDepth--;
+                append("})[_scl_top(%s)]);\n", sclTypeToCType(result, typeStackTop).c_str());
+            } else {
+                append("_scl_top(scl_str) = _scl_create_string(_scl_typename_or_else(_scl_top(%s), \"%s\"));\n", sclTypeToCType(result, typeStackTop).c_str(), retemplate(typeStackTop).c_str());
+            }
+            scopeDepth--;
+            append("}\n");
+            typePop;
+        } else {
+            FPResult res = parseType(body, i);
+            if (!res.success) {
+                errors.push_back(res);
+                return;
+            }
+            append("_scl_push(scl_str, _scl_create_string(\"%s\"));\n", retemplate(res.value).c_str());
+        }
+        typeStack.push_back("str");
+    }
+    handler(Typeid) {
+        noUnused;
+        safeInc();
+        const Variable& var = getVar(body[i].value);
+        if (!var.name.empty()) {
+            std::string type = var.type;
+            if (type.front() == '@') {
+                append("_scl_push(scl_uint, _scl_typeid_or_else((scl_any) &Var_%s, 0x%016llxULL));\n", var.name.c_str(), id(retemplate(type).c_str()));
+            } else {
+                append("_scl_push(scl_uint, _scl_typeid_or_else(*(scl_any*) &Var_%s, 0x%016llxULL));\n", var.name.c_str(), id(retemplate(type).c_str()));
+            }
+        } else if (hasFunction(result, body[i].value)) {
+            Function* f = getFunctionByName(result, body[i].value);
+            std::string lambdaType = "lambda(" + std::to_string(f->args.size()) + "):" + f->return_type;
+            append("_scl_push(scl_int, 0x%016llx);\n", id(lambdaType.c_str()));
+        } else if (body[i].type == tok_paren_open) {
+            append("{\n");
+            scopeDepth++;
+            size_t stack_start = typeStack.size();
+            handle(ParenOpen);
+            if (typeStack.size() <= stack_start) {
+                transpilerError("Expected expression evaluating to a value after 'typeid'", i);
+                errors.push_back(err);
+            }
+            const Struct& s = getStructByName(result, typeStackTop);
+            Enum e = getEnumByName(result, typeStackTop);
+            if (s != Struct::Null && !s.isStatic()) {
+                append("_scl_top(scl_uint) = _scl_top(scl_SclObject)->$type->type;\n");
+            } else if (hasLayout(result, typeStackTop)) {
+                append("_scl_top(scl_uint) = 0x%016llxULL;\n", id(retemplate(typeStackTop).c_str()));
+            } else if (e.name.size()) {
+                append("_scl_top(scl_uint) = ((scl_uint*[]){\n");
+                scopeDepth++;
+                for (auto&& x : e.member_types) {
+                    append("[%ld] = 0x%026llxULL,\n", e.members[x.first], id(retemplate(x.second).c_str()));
+                }
+                scopeDepth--;
+                append("})[_scl_top(%s)];\n", sclTypeToCType(result, typeStackTop).c_str());
+            } else {
+                append("_scl_top(scl_uint) = _scl_typeid_or_else(_scl_top(%s), 0x%016llxULL);\n", sclTypeToCType(result, typeStackTop).c_str(), id(retemplate(typeStackTop).c_str()));
+            }
+            scopeDepth--;
+            append("}\n");
+            typePop;
+        } else {
+            FPResult res = parseType(body, i);
+            if (!res.success) {
+                errors.push_back(res);
+                return;
+            }
+            append("_scl_push(scl_uint, 0x%016llxULL);\n", id(retemplate(res.value).c_str()));
+        }
+        typeStack.push_back("uint");
+    }
+    handler(Nameof) {
+        noUnused;
+        safeInc();
+        if (hasVar(body[i].value)) {
+            append("_scl_push(scl_str, _scl_create_string(\"%s\"));\n", body[i].value.c_str());
+            typeStack.push_back("str");
+        } else {
+            transpilerError("Unknown Variable: '" + body[i].value + "'", i);
+            errors.push_back(err);
+            return;
+        }
+    }
+    handler(Sizeof) {
+        noUnused;
+        safeInc();
+        if (hasVar(body[i].value)) {
+            append("_scl_push(scl_int, sizeof(%s));\n", sclTypeToCType(result, getVar(body[i].value).type).c_str());
+        } else {
+            FPResult type = parseType(body, i);
+            if (!type.success) {
+                transpilerError("Unknown Type: '" + body[i].value + "'", i);
+                errors.push_back(err);
+                return;
+            }
+            const Struct& s = getStructByName(result, type.value);
+            if (s != Struct::Null && !s.isStatic()) {
+                append("_scl_push(scl_int, sizeof(struct Struct_%s));\n", type.value.c_str());
+            } else if (hasLayout(result, type.value)) {
+                append("_scl_push(scl_int, sizeof(struct Layout_%s));\n", type.value.c_str());
+            } else if (type.value == "none") {
+                append("_scl_push(scl_int, 0);\n");
+            } else {
+                append("_scl_push(scl_int, sizeof(%s));\n", sclTypeToCType(result, type.value).c_str());
+            }
+        }
+        typeStack.push_back("int");
+    }
+    handler(Try) {
+        noUnused;
+        append("{\n");
+        scopeDepth++;
+        append("TRY {\n");
+        scopeDepth++;
+        varScopePush();
+        pushTry();
+    }
+    handler(Unsafe) {
+        noUnused;
+        isInUnsafe++;
+        safeInc();
+        while (body[i].type != tok_end) {
+            handle(Token);
+            safeInc();
+        }
+        isInUnsafe--;
+    }
+    handler(Assert) {
+        noUnused;
+        const Token& assertToken = body[i];
+        safeInc();
+        if (body[i].type != tok_paren_open) {
+            transpilerError("Expected '(' after 'assert', but got '" + body[i].value + "'", i);
+            errors.push_back(err);
+            return;
+        }
+        append("{\n");
+        varScopePush();
+        scopeDepth++;
+        size_t stack_start = typeStack.size();
+        handle(ParenOpen);
+        if (stack_start >= typeStack.size()) {
+            transpilerError("Expected expression returning a value after 'assert'", i);
+            errors.push_back(err);
+            return;
+        }
+        if (i + 1 < body.size() && body[i + 1].type == tok_else) {
+            safeInc();
+            safeInc();
+            if (body[i].type != tok_paren_open) {
+                transpilerError("Expected '(' after 'else', but got '" + body[i].value + "'", i);
+                errors.push_back(err);
+                return;
+            }
+            append("if (!(_scl_pop(scl_int))) {\n");
+            typePop;
+            handle(ParenOpen);
+            append("}\n");
+        } else {
+            append("_scl_assert(_scl_pop(scl_int), \"Assertion at %s:%d:%d failed!\");\n", assertToken.location.file.c_str(), assertToken.location.line, assertToken.location.column);
+            typePop;
+        }
+        varScopePop();
+        scopeDepth--;
+        append("}\n");
+    }
+    handler(Varargs) {
+        noUnused;
+        typeStack.push_back("<varargs>");
+    }
+
     handler(Identifier) {
         noUnused;
         Struct s = getStructByName(result, body[i].value);
@@ -19,226 +248,7 @@ namespace sclc {
                 }
             }
         }
-        if (body[i].value == "?") {
-            handle(ReturnOnNil);
-        } else if (body[i].value == "exit") {
-            append("exit(_scl_pop(scl_int));\n");
-            typePop;
-        } else if (body[i].value == "abort") {
-            append("abort();\n");
-        } else if (body[i].value == "varargs") {
-            typeStack.push_back("<varargs>");
-        } else if (body[i].value == "await") {
-            std::string type = typeStackTop;
-            if (!strstarts(type, "async<")) {
-                transpilerError("Expected async type, but got '" + type + "'", i);
-                errors.push_back(err);
-                return;
-            }
-            type = type.substr(6, type.size() - 7);
-            std::string removed = removeTypeModifiers(type);
-            typePop;
-            if (removed != "none" && removed != "nothing") {
-                if (type.front() == '@') type.erase(0, 1);
-                typeStack.push_back(type);
-                append("_scl_await(%s);\n", sclTypeToCType(result, type).c_str());
-            } else {
-                append("_scl_await_void();\n");
-            }
-        } else if (body[i].value == "typeof") {
-            safeInc();
-            
-            const Variable& var = getVar(body[i].value);
-            if (var.name.size()) {
-                std::string type = var.type;
-                if (type.front() == '@') {
-                    append("_scl_push(scl_str, _scl_create_string(_scl_typename_or_else((scl_any) &Var_%s, \"%s\")));\n", var.name.c_str(), retemplate(type.substr(1)).c_str());
-                } else {
-                    append("_scl_push(scl_str, _scl_create_string(_scl_typename_or_else(*(scl_any*) &Var_%s, \"%s\")));\n", var.name.c_str(), retemplate(type).c_str());
-                }
-            } else if (hasFunction(result, body[i].value)) {
-                Function* f = getFunctionByName(result, body[i].value);
-                std::string lambdaType = "lambda(" + std::to_string(f->args.size()) + "):" + f->return_type;
-                append("_scl_push(scl_str, _scl_create_string(\"%s\"));\n", lambdaType.c_str());
-            } else if (body[i].type == tok_paren_open) {
-                append("{\n");
-                scopeDepth++;
-                size_t stack_start = typeStack.size();
-                handle(ParenOpen);
-                if (typeStack.size() <= stack_start) {
-                    transpilerError("Expected expression evaluating to a value after 'typeof'", i);
-                    errors.push_back(err);
-                }
-                const Struct& s = getStructByName(result, typeStackTop);
-                Enum e = getEnumByName(result, typeStackTop);
-                if (s != Struct::Null && !s.isStatic()) {
-                    append("_scl_top(scl_str) = _scl_create_string(_scl_top(scl_SclObject)->$type->type_name);\n");
-                } else if (hasLayout(result, typeStackTop)) {
-                    append("_scl_top(scl_str) = _scl_create_string(\"%s\");\n", retemplate(typeStackTop).c_str());
-                } else if (e.name.size()) {
-                    append("_scl_top(scl_str) = _scl_create_string(((char*[]){\n");
-                    scopeDepth++;
-                    for (auto&& x : e.member_types) {
-                        append("[%ld] = \"%s\",\n", e.members[x.first], x.second.c_str());
-                    }
-                    scopeDepth--;
-                    append("})[_scl_top(%s)]);\n", sclTypeToCType(result, typeStackTop).c_str());
-                } else {
-                    append("_scl_top(scl_str) = _scl_create_string(_scl_typename_or_else(_scl_top(%s), \"%s\"));\n", sclTypeToCType(result, typeStackTop).c_str(), retemplate(typeStackTop).c_str());
-                }
-                scopeDepth--;
-                append("}\n");
-                typePop;
-            } else {
-                FPResult res = parseType(body, i);
-                if (!res.success) {
-                    errors.push_back(res);
-                    return;
-                }
-                append("_scl_push(scl_str, _scl_create_string(\"%s\"));\n", retemplate(res.value).c_str());
-            }
-            typeStack.push_back("str");
-        } else if (body[i].value == "typeid") {
-            safeInc();
-            // auto templates = currentStruct.templates;
-            const Variable& var = getVar(body[i].value);
-            if (!var.name.empty()) {
-                std::string type = var.type;
-                if (type.front() == '@') {
-                    append("_scl_push(scl_uint, _scl_typeid_or_else((scl_any) &Var_%s, 0x%016llxULL));\n", var.name.c_str(), id(retemplate(type).c_str()));
-                } else {
-                    append("_scl_push(scl_uint, _scl_typeid_or_else(*(scl_any*) &Var_%s, 0x%016llxULL));\n", var.name.c_str(), id(retemplate(type).c_str()));
-                }
-            } else if (hasFunction(result, body[i].value)) {
-                Function* f = getFunctionByName(result, body[i].value);
-                std::string lambdaType = "lambda(" + std::to_string(f->args.size()) + "):" + f->return_type;
-                append("_scl_push(scl_int, 0x%016llx);\n", id(lambdaType.c_str()));
-            } else if (body[i].type == tok_paren_open) {
-                append("{\n");
-                scopeDepth++;
-                size_t stack_start = typeStack.size();
-                handle(ParenOpen);
-                if (typeStack.size() <= stack_start) {
-                    transpilerError("Expected expression evaluating to a value after 'typeid'", i);
-                    errors.push_back(err);
-                }
-                const Struct& s = getStructByName(result, typeStackTop);
-                Enum e = getEnumByName(result, typeStackTop);
-                if (s != Struct::Null && !s.isStatic()) {
-                    append("_scl_top(scl_uint) = _scl_top(scl_SclObject)->$type->type;\n");
-                } else if (hasLayout(result, typeStackTop)) {
-                    append("_scl_top(scl_uint) = 0x%016llxULL;\n", id(retemplate(typeStackTop).c_str()));
-                } else if (e.name.size()) {
-                    append("_scl_top(scl_uint) = ((scl_uint*[]){\n");
-                    scopeDepth++;
-                    for (auto&& x : e.member_types) {
-                        append("[%ld] = 0x%026llxULL,\n", e.members[x.first], id(retemplate(x.second).c_str()));
-                    }
-                    scopeDepth--;
-                    append("})[_scl_top(%s)];\n", sclTypeToCType(result, typeStackTop).c_str());
-                } else {
-                    append("_scl_top(scl_uint) = _scl_typeid_or_else(_scl_top(%s), 0x%016llxULL);\n", sclTypeToCType(result, typeStackTop).c_str(), id(retemplate(typeStackTop).c_str()));
-                }
-                scopeDepth--;
-                append("}\n");
-                typePop;
-            } else {
-                FPResult res = parseType(body, i);
-                if (!res.success) {
-                    errors.push_back(res);
-                    return;
-                }
-                append("_scl_push(scl_uint, 0x%016llxULL);\n", id(retemplate(res.value).c_str()));
-            }
-            typeStack.push_back("uint");
-        } else if (body[i].value == "nameof") {
-            safeInc();
-            if (hasVar(body[i].value)) {
-                append("_scl_push(scl_str, _scl_create_string(\"%s\"));\n", body[i].value.c_str());
-                typeStack.push_back("str");
-            } else {
-                transpilerError("Unknown Variable: '" + body[i].value + "'", i);
-                errors.push_back(err);
-                return;
-            }
-        } else if (body[i].value == "sizeof") {
-            safeInc();
-            if (hasVar(body[i].value)) {
-                append("_scl_push(scl_int, sizeof(%s));\n", sclTypeToCType(result, getVar(body[i].value).type).c_str());
-            } else {
-                FPResult type = parseType(body, i);
-                if (!type.success) {
-                    transpilerError("Unknown Type: '" + body[i].value + "'", i);
-                    errors.push_back(err);
-                    return;
-                }
-                const Struct& s = getStructByName(result, type.value);
-                if (s != Struct::Null && !s.isStatic()) {
-                    append("_scl_push(scl_int, sizeof(struct Struct_%s));\n", type.value.c_str());
-                } else if (hasLayout(result, type.value)) {
-                    append("_scl_push(scl_int, sizeof(struct Layout_%s));\n", type.value.c_str());
-                } else if (type.value == "none") {
-                    append("_scl_push(scl_int, 0);\n");
-                } else {
-                    append("_scl_push(scl_int, sizeof(%s));\n", sclTypeToCType(result, type.value).c_str());
-                }
-            }
-            typeStack.push_back("int");
-        } else if (body[i].value == "try") {
-            append("{\n");
-            scopeDepth++;
-            append("TRY {\n");
-            scopeDepth++;
-            varScopePush();
-            pushTry();
-        } else if (body[i].value == "catch") {
-            handle(Catch);
-        } else if (body[i].value == "unsafe") {
-            isInUnsafe++;
-            safeInc();
-            while (body[i].type != tok_end) {
-                handle(Token);
-                safeInc();
-            }
-            isInUnsafe--;
-        } else if (body[i].value == "assert") {
-            const Token& assertToken = body[i];
-            safeInc();
-            if (body[i].type != tok_paren_open) {
-                transpilerError("Expected '(' after 'assert', but got '" + body[i].value + "'", i);
-                errors.push_back(err);
-                return;
-            }
-            append("{\n");
-            varScopePush();
-            scopeDepth++;
-            size_t stack_start = typeStack.size();
-            handle(ParenOpen);
-            if (stack_start >= typeStack.size()) {
-                transpilerError("Expected expression returning a value after 'assert'", i);
-                errors.push_back(err);
-                return;
-            }
-            if (i + 1 < body.size() && body[i + 1].type == tok_else) {
-                safeInc();
-                safeInc();
-                if (body[i].type != tok_paren_open) {
-                    transpilerError("Expected '(' after 'else', but got '" + body[i].value + "'", i);
-                    errors.push_back(err);
-                    return;
-                }
-                append("if (!(_scl_pop(scl_int))) {\n");
-                typePop;
-                handle(ParenOpen);
-                append("}\n");
-            } else {
-                append("_scl_assert(_scl_pop(scl_int), \"Assertion at %s:%d:%d failed!\");\n", assertToken.location.file.c_str(), assertToken.location.line, assertToken.location.column);
-                typePop;
-            }
-            varScopePop();
-            scopeDepth--;
-            append("}\n");
-        } else if (hasVar(body[i].value)) {
+        if (hasVar(body[i].value)) {
         normalVar:
             Variable v = getVar(body[i].value);
             makePath(result, v, false, body, i, errors, false, function, warns, fp, [&](auto path, auto lastType) {

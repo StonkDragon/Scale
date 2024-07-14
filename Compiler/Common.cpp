@@ -503,6 +503,8 @@ namespace sclc
                     r.value += ":none";
                 }
             }
+        } else if (body[i].type == tok_varargs) {
+            r.value = type_mods + body[i].value;
         } else if (body[i].type == tok_identifier) {
             r.value = type_mods + body[i].value;
             if (body[i].value == "async") {
@@ -815,12 +817,6 @@ namespace sclc
         return f->member_type == self->internalMutableFrom || strstarts(self->name, f->member_type + "$");
     }
 
-    bool sclIsProhibitedInit(std::string s) {
-        // Kept because i am too lazy to refactor
-        (void) s;
-        return false;
-    }
-
     bool typeCanBeNil(std::string s, bool rem) {
         return isPrimitiveType(s, rem) || (s.size() > 1 && s.back() == '?');
     }
@@ -882,7 +878,7 @@ namespace sclc
         scopeDepth++;
         while (i < body.size() && body[i].type != tok_bracket_close) {
             handle(Token);
-            safeInc();
+            safeInc("");
         }
         append("_scl_pop(%s);\n", sclTypeToCType(result, typeStackTop).c_str());
         scopeDepth--;

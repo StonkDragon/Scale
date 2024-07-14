@@ -326,7 +326,7 @@ namespace sclc
                 append(".vtable = {\n");
                 scopeDepth++;
                 for (auto&& m : vtable->second) {
-                    append("(const _scl_lambda) mt_%s$%s,\n", m->member_type.c_str(), m->name.c_str());
+                    append("(const _scl_function) mt_%s$%s,\n", m->member_type.c_str(), m->name.c_str());
                 }
                 append("0\n");
                 scopeDepth--;

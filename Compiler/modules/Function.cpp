@@ -36,7 +36,6 @@ Function::Function(std::string name, bool isMethod, Token name_token) : namedRet
     this->has_setter = 0;
     this->has_foreign = 0;
     this->has_overrides = 0;
-    this->has_binary_inherited = 0;
     this->has_nonvirtual = 0;
     this->has_async = 0;
     this->has_reified = 0;
@@ -71,7 +70,6 @@ void Function::addModifier(std::string modifier) {
     else if (has_setter == 0 && modifier == "@setter") has_setter = modifiers.size();
     else if (has_foreign == 0 && modifier == "foreign") has_foreign = modifiers.size();
     else if (has_overrides == 0 && modifier == "overrides") has_overrides = modifiers.size();
-    else if (has_binary_inherited == 0 && modifier == "<binary-inherited>") has_binary_inherited = modifiers.size();
     else if (has_nonvirtual == 0 && modifier == "nonvirtual") has_nonvirtual = modifiers.size();
     else if (has_async == 0 && modifier == "async") has_async = modifiers.size();
     else if (has_const == 0 && modifier == "const") has_const = modifiers.size();
@@ -152,7 +150,6 @@ Function* Function::clone() {
         f->addArgument(v);
     }
     f->namedReturnValue = namedReturnValue;
-    f->templateArg = templateArg;
     f->container = container;
     f->overloads.insert(f->overloads.end(), overloads.begin(), overloads.end());
     overloads.push_back(f);
@@ -180,7 +177,6 @@ Method* Method::cloneAs(std::string memberType) {
         m->addArgument(v);
     }
     m->namedReturnValue = namedReturnValue;
-    m->templateArg = templateArg;
     m->container = container;
     return m;
 }

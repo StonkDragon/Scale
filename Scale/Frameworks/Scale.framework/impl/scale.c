@@ -77,12 +77,9 @@ typedef struct Struct_UnreachableError {
 	scl_str errno_str;
 }* scl_UnreachableError;
 
-struct Struct_str {
-	struct scale_string s;
-};
-
 typedef struct Struct_Thread {
 	const TypeInfo* $type;
+	scl_any mutex;
 	_scl_lambda function;
 	scl_any nativeThread;
 	scl_str name;
@@ -128,7 +125,7 @@ scl_str* Process$stackTrace(void) {
 
 	scl_int trace_frames = count_trace_frames(stack_bottom, stack_top, iteration_direction);
 
-	scl_str* arr = _scl_new_array_by_size(trace_frames - 1, sizeof(scl_str));
+	scl_str* arr = (scl_str*) _scl_new_array_by_size(trace_frames - 1, sizeof(scl_str));
 
 	scl_int i = 0;
 	while (stack_top != stack_bottom) {
@@ -193,7 +190,7 @@ void Thread$run(scl_Thread self) {
 	Process$unlock(Var_Thread$threads);
 	
 	TRY {
-		self->function();
+		(*self->function)(self->function);
 	} else {
 		_scl_runtime_catch(_scl_exception_handler.exception);
 	}

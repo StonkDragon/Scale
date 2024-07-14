@@ -38,7 +38,6 @@ namespace sclc {
         varScopePush();
         pushRepeat();
         safeInc();
-        append("_scl_scope(128*sizeof(scl_int));\n");
     }
 } // namespace sclc
 

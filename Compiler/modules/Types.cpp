@@ -414,7 +414,7 @@ namespace sclc {
         if (!(getStructByName(result, t) == Struct::Null)) {
             if (valueType) {
                 if (t == "str") {
-                    return "struct scale_string";
+                    return "struct Struct_str";
                 }
                 return "struct Struct_" + t;
             }

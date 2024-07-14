@@ -145,7 +145,6 @@ namespace sclc {
                 type == tok_while ||
                 type == tok_do ||
                 type == tok_done ||
-                type == tok_extern ||
                 type == tok_extern_c ||
                 type == tok_break ||
                 type == tok_continue ||

@@ -13,7 +13,6 @@ namespace sclc {
         safeInc();
         append("{\n");
         scopeDepth++;
-        append("_scl_scope(128*sizeof(scl_int));\n");
         append("scl_uint64* begin_stack_size = _local_stack_ptr;\n");
         while (body[i].type != tok_paren_close) {
             if (body[i].type == tok_comma) {

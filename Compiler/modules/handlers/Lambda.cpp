@@ -18,6 +18,7 @@ namespace sclc {
         f->addModifier("<lambda>");
         f->addModifier(generateSymbolForFunction(function).substr(44));
         f->return_type = "none";
+        f->args.push_back(Variable("$data", "any"));
         safeInc();
         if (body[i].type == tok_bracket_open) {
             while (body[i].type != tok_bracket_close) {
@@ -146,37 +147,33 @@ namespace sclc {
             }
         }
 
-        std::string lambdaType = "lambda(" + std::to_string(f->args.size()) + "):" + f->return_type;
+        std::string lambdaType = "lambda(" + std::to_string(f->args.size() - 1) + "):" + f->return_type;
 
         append("_scl_push(scl_any, ({\n");
         scopeDepth++;
         const std::string sym = generateSymbolForFunction(f);
         append("%s fn_$lambda%d$%s(%s) __asm__(%s);\n", sclTypeToCType(result, f->return_type).c_str(), lambdaCount - 1, function->name.c_str(), arguments.c_str(), sym.c_str());
-        if (f->captures.size()) {
-            append("static tls struct {\n");
-            for (size_t i = 0; i < f->captures.size(); i++) {
-                append("  %s %s_;\n", sclTypeToCType(result, f->captures[i].type).c_str(), f->captures[i].name.c_str());
-                f->modifiers.push_back(f->captures[i].type);
-                f->modifiers.push_back(f->captures[i].name);
-            }
-            append("} caps __asm__(%s\".caps\");\n", sym.c_str());
-            for (size_t i = 0; i < f->captures.size(); i++) {
-                append("caps.%s_ = Var_%s;\n", f->captures[i].name.c_str(), f->captures[i].name.c_str());
-            }
+        append("struct lm%d$%s {\n", lambdaCount - 1, function->name.c_str());
+        append("  scl_any func;\n");
+        for (size_t i = 0; i < f->captures.size(); i++) {
+            append("  %s cap_%s;\n", sclTypeToCType(result, f->captures[i].type).c_str(), f->captures[i].name.c_str());
+            f->modifiers.push_back(f->captures[i].type);
+            f->modifiers.push_back(f->captures[i].name);
         }
-        if (f->ref_captures.size()) {
-            append("static tls struct {\n");
-            for (size_t i = 0; i < f->ref_captures.size(); i++) {
-                append("  %s* %s_;\n", sclTypeToCType(result, f->ref_captures[i].type).c_str(), f->ref_captures[i].name.c_str());
-                f->modifiers.push_back(f->ref_captures[i].type);
-                f->modifiers.push_back(f->ref_captures[i].name);
-            }
-            append("} refs __asm__(%s\".refs\");\n", sym.c_str());
-            for (size_t i = 0; i < f->ref_captures.size(); i++) {
-                append("refs.%s_ = &(Var_%s);\n", f->ref_captures[i].name.c_str(), f->ref_captures[i].name.c_str());
-            }
+        for (size_t i = 0; i < f->ref_captures.size(); i++) {
+            append("  %s* ref_%s;\n", sclTypeToCType(result, f->ref_captures[i].type).c_str(), f->ref_captures[i].name.c_str());
+            f->modifiers.push_back(f->ref_captures[i].type);
+            f->modifiers.push_back(f->ref_captures[i].name);
         }
-        append("fn_$lambda%d$%s;\n", lambdaCount - 1, function->name.c_str());
+        append("}* tmp = (typeof(tmp)) _scl_alloc(sizeof(*tmp));\n");
+        for (size_t i = 0; i < f->captures.size(); i++) {
+            append("tmp->cap_%s = Var_%s;\n", f->captures[i].name.c_str(), f->captures[i].name.c_str());
+        }
+        for (size_t i = 0; i < f->ref_captures.size(); i++) {
+            append("tmp->ref_%s = &(Var_%s);\n", f->ref_captures[i].name.c_str(), f->ref_captures[i].name.c_str());
+        }
+        append("tmp->func = fn_$lambda%d$%s;\n", lambdaCount - 1, function->name.c_str());
+        append("(scl_any) tmp;\n");
         scopeDepth--;
         append("}));\n");
 

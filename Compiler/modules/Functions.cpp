@@ -208,15 +208,11 @@ namespace sclc {
 
     std::string generateSymbolForFunction(Function* f) {
         if (f->has_asm) {
-            std::string label = f->getModifier(f->has_asm + 1);
-
-            return format("\"%s\"", label.c_str());
+            return format("\"%s\"", f->getModifier(f->has_asm + 1).c_str());
         }
 
         if (f->has_cdecl) {
-            std::string cLabel = f->getModifier(f->has_cdecl + 1);
-
-            return format("_scl_macro_to_string(__USER_LABEL_PREFIX__) \"%s\"", cLabel.c_str());
+            return format("_scl_macro_to_string(__USER_LABEL_PREFIX__) \"%s\"", f->getModifier(f->has_cdecl + 1).c_str());
         }
 
         if (!f->isMethod && !Main::options::noMain && f->name == "main") {
@@ -847,14 +843,14 @@ namespace sclc {
     Function* reifiedPreamble(Function* self, std::ostream& fp, TPResult& result, std::vector<FPResult>& errors, std::vector<Token>& body, size_t& i) {
         std::vector<std::string> types;
         if (i + 1 < body.size() && body[i + 1].type == tok_double_column) {
-            safeInc();
-            safeInc();
+            safeInc(nullptr);
+            safeInc(nullptr);
             if (body[i].type != tok_identifier || body[i].value != "<") {
                 transpilerError("Expected '<' to specify argument types, but got '" + body[i].value + "'", i);
                 errors.push_back(err);
                 return nullptr;
             }
-            safeInc();
+            safeInc(nullptr);
             while (body[i].value != ">") {
                 FPResult type = parseType(body, i);
                 if (!type.success) {
@@ -862,14 +858,14 @@ namespace sclc {
                     return nullptr;
                 }
                 types.push_back(removeTypeModifiers(type.value));
-                safeInc();
+                safeInc(nullptr);
                 if (body[i].type != tok_comma && (body[i].value != ">" || body[i].type != tok_identifier)) {
                     transpilerError("Expected ',' or '>', but got '" + body[i].value + "'", i);
                     errors.push_back(err);
                     return nullptr;
                 }
                 if (body[i].type == tok_comma) {
-                    safeInc();
+                    safeInc(nullptr);
                 }
             }
             types.push_back(self->member_type);

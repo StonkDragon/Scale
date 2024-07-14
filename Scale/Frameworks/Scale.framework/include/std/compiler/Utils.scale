@@ -19,7 +19,6 @@ enum TokenType
     Until
     Do
     Done
-    Extern
     ExternC
     Break
     Continue
@@ -50,6 +49,17 @@ enum TokenType
     Using
     Lambda
     Pragma
+    Await
+    Typeof
+    Typeid
+    Nameof
+    Sizeof
+    Try
+    Catch
+    Unsafe
+    Assert
+    Varargs
+
     QuestionMark
     AddrOf
     ParenOpen
@@ -62,6 +72,7 @@ enum TokenType
     Column
     DoubleColumn
     Dot
+    
     Ticked
     Identifier
     Number

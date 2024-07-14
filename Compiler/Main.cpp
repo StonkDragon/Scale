@@ -98,7 +98,6 @@ namespace sclc
         std::cout << "  -compiler <comp>     Use comp as the compiler instead of " << std::string(COMPILER) << std::endl;
         std::cout << "  -feat <feature>      Enables the specified language feature" << std::endl;
         std::cout << "  -makelib             Compile as a library (implies -no-main)" << std::endl;
-        std::cout << "  -create-module       Create a Scale module" << std::endl;
         std::cout << "  -cflags              Print c compiler flags and exit" << std::endl;
         std::cout << "  -no-error-location   Do not print an overview of the file on error" << std::endl;
         std::cout << "  -verbose-linker      Tells the linker to run in verbose mode for debugging purposes" << std::endl;
@@ -1025,7 +1024,11 @@ namespace sclc
     #endif
         cflags.push_back("-" + optimizer);
         cflags.push_back("-DVERSION=\"" + std::string(VERSION) + "\"");
-        cflags.push_back("-std=" + std::string(C_VERSION));
+        if (strends(compiler, "++")) {
+            cflags.push_back("-std=gnu++17");
+        } else {
+            cflags.push_back("-std=" + std::string(C_VERSION));
+        }
         cflags.push_back("-fno-stack-protector");
 #if !defined(_WIN32)
         cflags.push_back("-fPIC");

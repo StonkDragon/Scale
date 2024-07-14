@@ -37,8 +37,18 @@ namespace sclc {
 
     typedef void(*HandlerType)(std::vector<Token>&, Function*, std::vector<FPResult>&, std::vector<FPResult>&, std::ostream&, TPResult&);
 
-    std::unordered_map<TokenType, HandlerType> handleRefs = {
-        std::pair(tok_question_mark, handlerRef(Identifier)),
+    const std::unordered_map<TokenType, HandlerType> handleRefs = {
+        std::pair(tok_await, handlerRef(Await)),
+        std::pair(tok_typeof, handlerRef(Typeof)),
+        std::pair(tok_typeid, handlerRef(Typeid)),
+        std::pair(tok_nameof, handlerRef(Nameof)),
+        std::pair(tok_sizeof, handlerRef(Sizeof)),
+        std::pair(tok_try, handlerRef(Try)),
+        std::pair(tok_catch, handlerRef(Catch)),
+        std::pair(tok_unsafe, handlerRef(Unsafe)),
+        std::pair(tok_assert, handlerRef(Assert)),
+        std::pair(tok_varargs, handlerRef(Varargs)),
+        std::pair(tok_question_mark, handlerRef(ReturnOnNil)),
         std::pair(tok_identifier, handlerRef(Identifier)),
         std::pair(tok_dot, handlerRef(Dot)),
         std::pair(tok_column, handlerRef(Column)),
@@ -265,7 +275,7 @@ namespace sclc {
         };
         
         auto writeStruct = [&](const Struct& c) {
-            if (c.isStatic()) return;
+            if (c.isStatic() || c.name == "str") return;
             append("struct Struct_%s {\n", c.name.c_str());
             append("  const TypeInfo* $type;\n");
             
@@ -463,7 +473,14 @@ namespace sclc {
     handler(Token) {
         noUnused;
 
-        handleRef(handleRefs[body[i].type]);
+        HandlerType t = nullptr;
+        try {
+            t = handleRefs.at(body[i].type);
+        } catch (const std::out_of_range& _) {
+            transpilerError("Unknown token '" + body[i].value + "'", i);
+            errors.push_back(err);
+        }
+        handleRef(t);
     }
 
     void Transpiler::filePreamble(const std::string& header_file) {
@@ -500,34 +517,26 @@ namespace sclc {
                 append("  %s Var_%s = _scl_args->_Var_%s;\n", sclTypeToCType(result, var.type).c_str(), var.name.c_str(), var.name.c_str());
             }
         } else if (UNLIKELY(function->has_lambda)) {
-            if (function->captures.size()) {
-                append("  extern tls struct {\n");
-                for (Variable cap : function->captures) {
-                    append("    %s %s_;\n", sclTypeToCType(result, cap.type).c_str(), cap.name.c_str());
-                    vars.push_back(Variable(cap.name, cap.type));
-                }
-                append("  } cap%d __asm__(%s\".caps\");\n", n_captures, generateSymbolForFunction(function).c_str());
-                for (Variable cap : function->captures) {
-                    append("  %s Var_%s = (cap%d.%s_);\n", sclTypeToCType(result, cap.type).c_str(), cap.name.c_str(), n_captures, cap.name.c_str());
-                }
-                n_captures++;
+            append("struct lm%d$%s {\n", function->lambdaIndex, function->container->name.c_str());
+            append("  scl_any func;\n");
+            for (size_t i = 0; i < function->captures.size(); i++) {
+                append("  %s cap_%s;\n", sclTypeToCType(result, function->captures[i].type).c_str(), function->captures[i].name.c_str());
             }
-            if (function->ref_captures.size()) {
-                append("  extern tls struct {\n");
-                for (Variable cap : function->ref_captures) {
-                    append("    %s* %s_;\n", sclTypeToCType(result, cap.type).c_str(), cap.name.c_str());
-                    vars.push_back(Variable(cap.name, cap.type));
-                }
-                append("  } cap%d __asm__(%s\".refs\");\n", n_captures, generateSymbolForFunction(function).c_str());
-                for (Variable cap : function->ref_captures) {
-                    append("  #define Var_%s (*cap%d.%s_)\n", cap.name.c_str(), n_captures, cap.name.c_str());
-                }
-                n_captures++;
+            for (size_t i = 0; i < function->ref_captures.size(); i++) {
+                append("  %s* ref_%s;\n", sclTypeToCType(result, function->ref_captures[i].type).c_str(), function->ref_captures[i].name.c_str());
+            }
+            append("};\n");
+            for (Variable cap : function->captures) {
+                append("  %s Var_%s = ((struct lm%d$%s*) Var_$data)->cap_%s;\n", sclTypeToCType(result, cap.type).c_str(), cap.name.c_str(), function->lambdaIndex, function->container->name.c_str(), cap.name.c_str());
+                vars.push_back(cap);
+            }
+            for (Variable cap : function->ref_captures) {
+                append("  #define Var_%s (*(((struct lm%d$%s*) Var_$data)->ref_%s))\n", cap.name.c_str(), function->lambdaIndex, function->container->name.c_str(), cap.name.c_str());
+                vars.push_back(cap);
             }
         }
         append("  scl_uint64 _local_stack[%zu * sizeof(scl_uint64)];\n", Main::options::stackSize);
         append("  scl_uint64* _local_stack_ptr = _local_stack;\n");
-        append("  _scl_scope(128*sizeof(scl_int));\n");
         
         scopeDepth++;
         std::vector<Token> body = function->getBody();
@@ -545,7 +554,7 @@ namespace sclc {
         }
         for (size_t i = 0; i < function->args.size(); i++) {
             const Variable& var = function->args[i];
-            if (var.type != "varargs") {
+            if (var.type != "varargs" && var.name != "$data") {
                 vars.push_back(var);
             }
         }
@@ -567,7 +576,7 @@ namespace sclc {
             } else {
                 append("scl_int8** ");
             }
-            append2("Var_%s = _scl_new_array_by_size(_scl_argc, sizeof(Var_%s));\n", function->args[0].name.c_str(), function->args[0].name.c_str());
+            append2("Var_%s = (typeof(Var_%s)) _scl_new_array_by_size(_scl_argc, sizeof(Var_%s));\n", function->args[0].name.c_str(), function->args[0].name.c_str(), function->args[0].name.c_str());
             append("for (scl_int i = 0; i < _scl_argc; i++) {\n");
             append("  Var_%s[i] = ", function->args[0].name.c_str());
             if (!Main::options::noScaleFramework) {
@@ -604,7 +613,7 @@ namespace sclc {
             append("va_list _cvarargs;\n");
             append("va_start(_cvarargs, Var_%s$size);\n", function->varArgsParam().name.c_str());
             append("scl_int _cvarargs_count = Var_%s$size;\n", function->varArgsParam().name.c_str());
-            append("scl_any* Var_%s SCL_AUTO_DELETE = (scl_any*) _scl_cvarargs_to_array(_cvarargs, _cvarargs_count);\n", function->varArgsParam().name.c_str());
+            append("scl_any* Var_%s = (scl_any*) _scl_cvarargs_to_array(_cvarargs, _cvarargs_count);\n", function->varArgsParam().name.c_str());
             append("va_end(_cvarargs);\n");
             vars.push_back(Variable(function->varArgsParam().name, "const [any]"));
         }
@@ -673,7 +682,7 @@ namespace sclc {
 
         for (size_t f = 0; f < result.functions.size(); f++) {
             Function* function = currentFunction = result.functions[f];
-            if (UNLIKELY(function->has_reified || function->has_expect || function->has_binary_inherited || getInterfaceByName(result, function->member_type))) {
+            if (UNLIKELY(function->has_reified || function->has_expect || getInterfaceByName(result, function->member_type))) {
                 continue;
             }
             if (UNLIKELY(function->return_type.empty())) {

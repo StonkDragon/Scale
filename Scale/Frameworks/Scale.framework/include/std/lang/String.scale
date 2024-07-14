@@ -16,25 +16,14 @@ cdecl "strtok"
 private expect foreign unsafe function __c_strtok(:any, :[int8]): [int8]?
 
 final sealed struct str is Iterable
-  private decl data: [int8]
-  private decl length: int
-  private decl hash: uint
+  decl data: readonly [int8]
+  decl length: readonly int
+  decl hash: readonly uint
 
-  function +(other: str): str
-    other self:prepend return
-  end
-
-  function +(number: int): str
-    number:toString self:prepend return
-  end
-
-  function +(number: float): str
-    number:toString self:prepend return
-  end
-
-  function +(cStr: [int8]): str
-    cStr str::new self:prepend return
-  end
+  function +(:str): str    self:prepend return end
+  function +(:[int8]): str self:prepend return end
+  function +(:int): str    :toString.data self:prepend return end
+  function +(:float): str  :toString.data self:prepend return end
 
   function clone(): str
     self.data str::new return
@@ -61,9 +50,7 @@ final sealed struct str is Iterable
   end
 
   function equals(other: any): bool
-    if other is str ! then
-      false return
-    fi
+    if other is str ! then false return fi
     self.hash other as str.hash == return
   end
 
@@ -180,15 +167,13 @@ final sealed struct str is Iterable
 
   function split(delim: str): [str]
     if delim:size 0 == then
-      self:view do 'map lambda(x: int8): str
-        x:toString return
-      end return
+      self.data do 'map int8::toString return
     fi
 
     new<str>[self:size] => decl arr: [str]
     decl next: int
 
-    self:view => decl tmp: str
+    self.data => decl tmp: str
     delim tmp:indexOf => decl index: int
 
     while index 0 >= do
@@ -215,7 +200,7 @@ final sealed struct str is Iterable
 
   function startsWith(string: str): bool
     unsafe
-      self.data string.data string:size __c_strncmp 0 == return
+      self.data string.data string.length __c_strncmp 0 == return
     end
   end
 
@@ -242,7 +227,7 @@ final sealed struct str is Iterable
       IndexOutOfBoundsException::new throw
     fi
 
-    (start to self:size) self:view:slice str::of return
+    (start to self.data:size) self.data:slice str::of return
   end
 
   function subString(range: Range): str
@@ -263,7 +248,7 @@ final sealed struct str is Iterable
       IndexOutOfBoundsException::new throw
     fi
 
-    range self:view:slice str::of return
+    range self.data:slice str::of return
   end
 
   function view(): [int8]
@@ -273,17 +258,14 @@ final sealed struct str is Iterable
   end
 
   function init(data: [int8]): none
-    unsafe
-      data __c_strdup => data
-      data __c_strlen => self.length
-    end
-    data => self.data
+    data str::makeNilTerminated => self.data
+    data:size 1 - => self.length
     data builtinHash => self.hash
   end
 
   function init(data: [int8], n: int): none
-    new<int8>[data:size n min 1 +] => self.data
-    self.data:size => self.length
+    data:size n <. => self.length
+    new<int8>[self.length 1 +] => self.data
     for i in 0 to self.length do
       data[i] => self.data[i]
     done
@@ -293,7 +275,7 @@ final sealed struct str is Iterable
   function init(): none
     c"" => self.data
     0 => self.length
-    self.data builtinHash => self.hash
+    0 => self.hash
   end
 
   function iterate(): StringIterator
@@ -365,31 +347,20 @@ final sealed struct str is Iterable
     out return
   end
 
-  static function =>(cStr: [int8]): str
-    cStr str::new return
-  end
+  static function =>(:[int8]): str str::new return end
 
-  static function of(cStr: [int8]): str
-    if cStr is [int8] then
-      cStr
-    else
-      unsafe
-        cStr __c_strlen => decl len: int
-        new<int8>[len 1 +] => decl data: [int8]
-        data cStr (len 1 +) __c_memcpy drop
-        data
-      end
-    fi => decl data: [int8]
+  static function of(data: [int8]): str
+    data str::makeNilTerminated => data
     data builtinHash => decl hash: int
     str {
-      (data:size) => length
+      (data:size 1 -) => length
       data => data
       hash => hash
     } return
   end
 
   static function filter(arr: str, f: lambda(int8): bool): str
-    new<int8>[arr:size] => decl result: [int8]
+    new<int8>[arr.length 1 +] => decl result: [int8]
     0 => decl acc: int
     foreach char in arr do
       if char f:accept then
@@ -401,7 +372,7 @@ final sealed struct str is Iterable
   end
 
   static function map(arr: str, f: lambda(int8): int8): str
-    new<int8>[arr:size] => decl result: [int8]
+    new<int8>[arr.length 1 +] => decl result: [int8]
     for i in 0 to arr:size do
       arr[i] f:accept => result[i]
     done
@@ -464,6 +435,23 @@ final sealed struct str is Iterable
     out secondCStr __c_strcat drop
 
     out return
+  end
+
+  private static function makeNilTerminated(what: [int8]): [int8]
+    if what is [int8] then
+      if what:last 0 == then
+        what return
+      else
+        unsafe
+          what:size => decl len: int
+          new<int8>[len 1 +] what len __c_memcpy return
+        end
+      fi
+    else
+      unsafe
+        what __c_strdup return
+      end
+    fi
   end
 end
 

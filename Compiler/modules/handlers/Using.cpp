@@ -27,7 +27,6 @@ namespace sclc {
         scopeDepth++;
         pushOther();
         varScopePush();
-        append("_scl_scope(128*sizeof(scl_int));\n");
         size_t stackSize = typeStack.size();
         while (body[i].type != tok_do) {
             handle(Token);
