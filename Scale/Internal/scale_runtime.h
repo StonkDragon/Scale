@@ -342,8 +342,9 @@ typedef struct {
 	scl_int32 array_elem_size:24 _scl_packed;
 } memory_layout_t;
 
-#define MEM_FLAG_INSTANCE	0b01
-#define MEM_FLAG_ARRAY		0b10
+#define MEM_FLAG_INSTANCE	0b00000001
+#define MEM_FLAG_ARRAY		0b00000010
+#define MEM_FLAG_STATIC		0b00000100
 
 struct _scl_methodinfo {
 	const ID_t							pure_name;
@@ -408,10 +409,15 @@ struct Struct_str {
 					0xF7E8D9C0B1A28384ULL
 
 #define 			TRY \
-						struct _scl_exception_handler _scl_exception_handler = { .marker = EXCEPTION_HANDLER_MARKER }; \
+						struct _scl_exception_handler _scl_exception_handler; \
+						_scl_exception_handler.marker = EXCEPTION_HANDLER_MARKER; \
+						_scl_exception_handler.finalizer = nil; \
 						if (setjmp(_scl_exception_handler.jmp) != 666)
 #define 			TRY_FINALLY(_then, _with) \
-						struct _scl_exception_handler _scl_exception_handler = { .marker = EXCEPTION_HANDLER_MARKER, .finalizer = _then, .finalization_data = _with }; \
+						struct _scl_exception_handler _scl_exception_handler; \
+						_scl_exception_handler.marker = EXCEPTION_HANDLER_MARKER; \
+						_scl_exception_handler.finalizer = _then; \
+						_scl_exception_handler.finalization_data = _with; \
 						if (setjmp(_scl_exception_handler.jmp) != 666)
 
 #ifndef SCL_EMBEDDED
@@ -432,25 +438,18 @@ void				_scl_trace_remove(struct _scl_backtrace*);
 							((rtype(*)(typeof((instance)) __VA_OPT__(, _SCL_TYPES(__VA_ARGS__)))) _scl_get_vtable_function(_tmp, (methodIdentifier)))(_tmp, ##__VA_ARGS__); \
 						})
 
+// call a lambda
+#define call_lambda(lambda, rtype, ...) ({ \
+	rtype (*(*CONCAT(tmp, __LINE__)))(scl_any __VA_OPT__(, _SCL_TYPES(__VA_ARGS__))) = (typeof(CONCAT(tmp, __LINE__))) (lambda); \
+	(*CONCAT(tmp, __LINE__))(CONCAT(tmp, __LINE__) __VA_OPT__(,) __VA_ARGS__); \
+})
+
 _scl_no_return void	_scl_runtime_error(int code, const scl_int8* msg, ...);
 _scl_no_return void	_scl_runtime_catch(scl_any ex);
 _scl_no_return void	_scl_throw(scl_any ex);
 
 _scl_constructor
 void				_scl_setup(void);
-
-#ifdef SCL_EMBEDDED
-static inline scl_any _scl_mark_static(scl_any x) { return x; }
-
-_scl_constructor
-void _scl_setup(void) {}
-
-static inline void _scl_assert(scl_int b, const scl_int8* msg, ...) {
-	if (unlikely(!b)) {
-		abort();
-	}
-}
-#endif
 
 #define _scl_create_string(_data) ({ \
 						const scl_int8* data = (_data); \
@@ -465,7 +464,7 @@ static inline void _scl_assert(scl_int b, const scl_int8* msg, ...) {
 						static _scl_symbol_hidden struct { \
 							memory_layout_t layout; \
 							_type data; \
-						} _constant __asm__("l_scl_inline_constant" _scl_macro_to_string(__COUNTER__)) = { \
+						} _constant __asm__("l_scl_const" _scl_macro_to_string(__COUNTER__)) = { \
 							.layout = { \
 								.array_elem_size = 0, \
 								.flags = MEM_FLAG_INSTANCE, \
@@ -482,7 +481,7 @@ static inline void _scl_assert(scl_int b, const scl_int8* msg, ...) {
 						static _scl_symbol_hidden struct { \
 							memory_layout_t layout; \
 							typeof(*_t) data; \
-						} _constant __asm__("l_scl_inline_constant" _scl_macro_to_string(__COUNTER__)) = { \
+						} _constant __asm__("l_scl_const" _scl_macro_to_string(__COUNTER__)) = { \
 							.layout = { \
 								.array_elem_size = 0, \
 								.flags = MEM_FLAG_INSTANCE, \
@@ -561,7 +560,7 @@ static inline void _scl_assert(scl_int b, const scl_int8* msg, ...) {
 						static _scl_symbol_hidden struct { \
 							memory_layout_t layout; \
 							scl_int8 data[sizeof((_data))]; \
-						} str_data __asm__("l_scl_string_data" _scl_macro_to_string(__COUNTER__)) = { \
+						} str_data __asm__("l_scl_cstr" _scl_macro_to_string(__COUNTER__)) = { \
 							.layout = { \
 								.array_elem_size = sizeof(scl_int8), \
 								.flags = MEM_FLAG_ARRAY, \
@@ -569,7 +568,7 @@ static inline void _scl_assert(scl_int b, const scl_int8* msg, ...) {
 							}, \
 							.data = (_data), \
 						}; \
-						_scl_mark_static(&((str_data).layout)); \
+						_scl_mark_static(&(str_data.layout)); \
 						(scl_int8*) ((str_data).data); \
 					})
 
@@ -578,7 +577,7 @@ static inline void _scl_assert(scl_int b, const scl_int8* msg, ...) {
 						static _scl_symbol_hidden struct { \
 							memory_layout_t layout; \
 							scl_int8 data[sizeof((_data))]; \
-						} str_data __asm__("l_scl_string_data" _scl_macro_to_string(__COUNTER__)) = { \
+						} str_data __asm__("l_scl_cstr" _scl_macro_to_string(__COUNTER__)) = { \
 							.layout = { \
 								.array_elem_size = sizeof(scl_int8), \
 								.flags = MEM_FLAG_ARRAY, \
@@ -589,7 +588,7 @@ static inline void _scl_assert(scl_int b, const scl_int8* msg, ...) {
 						static _scl_symbol_hidden struct { \
 							memory_layout_t layout; \
 							struct Struct_str data; \
-						} str __asm__("l_scl_string" _scl_macro_to_string(__COUNTER__)) = { \
+						} str __asm__("l_scl_str" _scl_macro_to_string(__COUNTER__)) = { \
 							.layout = { \
 								.size = sizeof(struct Struct_str), \
 								.flags = MEM_FLAG_INSTANCE, \
@@ -605,16 +604,26 @@ static inline void _scl_assert(scl_int b, const scl_int8* msg, ...) {
 						&(((typeof(str)*) _scl_mark_static(&(str.layout)))->data); \
 					})
 
+#if __has_attribute(warn_unused_result)
+#define _scl_nodiscard __attribute__((warn_unused_result))
+#else
+#define _scl_nodiscard
+#endif
+
+_scl_nodiscard
 scl_any				_scl_realloc(scl_any ptr, scl_int size);
+_scl_nodiscard
 scl_any				_scl_alloc(scl_int size);
 void				_scl_free(scl_any ptr);
 scl_int				_scl_sizeof(scl_any ptr);
+_scl_nodiscard
+scl_any				_scl_alloc_struct(const TypeInfo* statics);
+_scl_nodiscard
+scl_any				_scl_init_struct(scl_any ptr, const TypeInfo* statics, memory_layout_t* layout);
 
 ID_t				type_id(const scl_int8* data);
 
 scl_int				_scl_identity_hash(scl_any obj);
-scl_any				_scl_alloc_struct(const TypeInfo* statics);
-scl_any				_scl_init_struct(scl_any ptr, const TypeInfo* statics, memory_layout_t* layout);
 scl_int				_scl_is_instance(scl_any ptr);
 #ifndef SCL_EMBEDDED
 scl_any				_scl_mark_static(memory_layout_t* layout);
@@ -628,7 +637,6 @@ scl_any				_scl_cvarargs_to_array(va_list args, scl_int count);
 scl_any				_scl_copy_fields(scl_any dest, scl_any src, scl_int size);
 char*				vstrformat(const char* fmt, va_list args);
 char*				strformat(const char* fmt, ...);
-void				_scl_assert(scl_int b, const scl_int8* msg, ...);
 void				builtinUnreachable(void);
 scl_int				builtinIsInstanceOf(scl_any obj, scl_str type);
 scl_int8*			_scl_get_thread_name(void);
@@ -747,7 +755,7 @@ static inline _scl_always_inline void _scl_reset_local_buffer(scl_int* ptr) {
 #define _scl_at(a)						(*((a)))
 #define _scl_inc(a)						((a) + 1)
 #define _scl_dec(a)						((a) - 1)
-#define _scl_ann(a)						({ __auto_type _a = (a); _scl_assert(_a, "Expected non-nil value"); _a; })
+#define _scl_ann(a)						({ __auto_type _a = (a); _scl_assert_fast(_a, "Expected non-nil value"); _a; })
 #define _scl_elvis(a, b)				({ __auto_type _a = (a); _a ? _a : (b); })
 #if !defined(UNSAFE_ARRAY_ACCESS) && !defined(SCL_EMBEDDED)
 #define _scl_checked_index(a, i)		({ __auto_type _a = (a); __auto_type _i = (i); _scl_array_check_bounds_or_throw((scl_any*) _a, _i); _a[_i]; })
@@ -782,6 +790,44 @@ static inline scl_uint64 _scl_rol64(scl_uint64 a, scl_int b) { return (a << b) |
 		scl_int64: _scl_ror64, scl_uint64: _scl_ror64, \
 		scl_int: _scl_ror64, scl_uint: _scl_ror64 \
 	))((a), (b))
+
+#ifdef SCL_EMBEDDED
+static inline scl_any _scl_mark_static(scl_any x) { return x; }
+
+_scl_constructor
+void _scl_setup(void) {}
+
+#define _scl_assert_fast _scl_assert
+static inline scl_int _scl_assert(scl_int b, const scl_int8* msg, ...) {
+	if (unlikely(!b)) {
+		abort();
+	}
+	return b;
+}
+#else
+static inline scl_int _scl_assert_fast(scl_int b, const scl_int8* msg) {
+	if (unlikely(!b)) {
+		extern const TypeInfo _scl_ti_AssertError __asm__("__T" "AssertError");
+		scl_any e = _scl_alloc_struct(&_scl_ti_AssertError);
+		scl_str x = str_of_exact(msg);
+		void AssertError$init(scl_any, scl_str) __asm__(_scl_macro_to_string(__USER_LABEL_PREFIX__) "_M5Error4initEv");
+		AssertError$init(e, x);
+		_scl_throw(e);
+	}
+	return b;
+}
+static inline scl_int _scl_assert(scl_int b, const scl_int8* msg, ...) {
+	if (unlikely(!b)) {
+		va_list va;
+		va_start(va, msg);
+		char* m = vstrformat(msg, va);
+		va_end(va);
+		char* x = strformat("Assertion failed: %s", m);
+		_scl_assert_fast(0, x);
+	}
+	return b;
+}
+#endif
 
 #if defined(__cplusplus)
 }

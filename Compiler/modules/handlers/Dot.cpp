@@ -130,7 +130,7 @@ namespace sclc {
         typeStack.push_back(mem.type);
         if (deref) {
             std::string path = dot.value + "@" + body[i].value;
-            append("_scl_assert(_scl_top(scl_int), \"Tried dereferencing nil pointer '%%s'!\", \"%s\");", path.c_str());
+            append("_scl_assert_fast(_scl_top(scl_int), \"Tried dereferencing nil pointer '%s'!\");", path.c_str());
             append("_scl_top(scl_any) = *_scl_top(scl_any*);\n");
             std::string type = typeStackTop;
             typePop;

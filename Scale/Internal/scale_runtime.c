@@ -193,6 +193,8 @@ static scl_int static_ptrs_cap = 0;
 static scl_int static_ptrs_count = 0;
 
 scl_any _scl_mark_static(memory_layout_t* layout) {
+	if (layout->flags & MEM_FLAG_STATIC) return layout;
+	layout->flags |= MEM_FLAG_STATIC;
 	GC_alloc_lock();
 	for (scl_int i = 0; i < static_ptrs_count; i++) {
 		if (static_ptrs[i] == layout) {
@@ -231,7 +233,6 @@ _scl_symbol_hidden static memory_layout_t* _scl_get_memory_layout(scl_any ptr) {
 	if (_scl_on_stack(ptr)) {
 		return (memory_layout_t*) ptr;
 	}
-	if (unlikely(ptr == nil)) return nil;
 	GC_alloc_lock();
 	memory_layout_t* l = nil;
 	for (scl_int i = 0; i < static_ptrs_count; i++) {
@@ -261,6 +262,7 @@ void _scl_finalize(scl_any ptr) {
 	memset(ptr, 0, sizeof(memory_layout_t));
 }
 
+_scl_nodiscard _Nonnull
 scl_any _scl_alloc(scl_int size) {
 	scl_int orig_size = size;
 	size = ((size + 7) >> 3) << 3;
@@ -281,6 +283,7 @@ scl_any _scl_alloc(scl_int size) {
 	return ptr + sizeof(memory_layout_t);
 }
 
+_scl_nodiscard _Nonnull
 scl_any _scl_realloc(scl_any ptr, scl_int size) {
 	if (unlikely(size == 0)) {
 		_scl_free(ptr);
@@ -406,17 +409,6 @@ _scl_symbol_hidden static void _scl_signal_handler(scl_int sig_num) {
 
 void _scl_sleep(scl_int millis) {
 	sleep(millis);
-}
-
-void _scl_assert(scl_int b, const scl_int8* msg, ...) {
-	if (unlikely(!b)) {
-		scl_AssertError e = ALLOC(AssertError);
-		va_list list;
-		va_start(list, msg);
-		virtual_call(e, "init(s;)V;", void, str_of_exact(strformat("Assertion failed: %s", vstrformat(msg, list))));
-		va_end(list);
-		_scl_throw(e);
-	}
 }
 
 void builtinUnreachable(void) {
@@ -551,6 +543,7 @@ scl_any _scl_get_vtable_function(scl_any instance, const scl_int8* methodIdentif
 	return m;
 }
 
+_scl_nodiscard _Nonnull
 scl_any _scl_init_struct(scl_any ptr, const TypeInfo* statics, memory_layout_t* layout) {
 	if (unlikely(layout == nil || ptr == nil)) {
 		_scl_runtime_error(EX_BAD_PTR, "Tried to access nil pointer");
@@ -560,6 +553,7 @@ scl_any _scl_init_struct(scl_any ptr, const TypeInfo* statics, memory_layout_t* 
 	return ptr;
 }
 
+_scl_nodiscard _Nonnull
 scl_any _scl_alloc_struct(const TypeInfo* statics) {
 	scl_any p = _scl_alloc(statics->size);
 	return _scl_init_struct(p, statics, _scl_get_memory_layout(p));
@@ -797,10 +791,10 @@ void _scl_trace_remove(struct _scl_backtrace* bt) {
 }
 
 void _scl_throw(scl_any ex) {
-	scl_bool is_error = _scl_is_instance_of(ex, type_id("Error"));
-	if (is_error) {
-		_scl_runtime_catch(ex);
-	}
+	// scl_bool is_error = _scl_is_instance_of(ex, type_id("Error"));
+	// if (is_error) {
+	// 	_scl_runtime_catch(ex);
+	// }
 
 	scl_uint* stack_top = (scl_uint*) &stack_top;
 	struct GC_stack_base sb;
@@ -976,6 +970,7 @@ void _scl_setup(void) {
 	if (setupCalled) {
 		return;
 	}
+	_scl_set_thread_name("Main Thread");
 #if !defined(SCL_KNOWN_LITTLE_ENDIAN)
 	// Endian-ness detection
 	short word = 0x0001;

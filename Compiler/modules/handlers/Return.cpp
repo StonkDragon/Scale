@@ -74,7 +74,7 @@ namespace sclc {
                             errors.push_back(err);
                         }
                     }
-                    append("_scl_assert(*(scl_int*) &retVal, \"Tried returning nil from function returning not-nil type '%%s'!\", \"%s\");\n", function->return_type.c_str());
+                    append("_scl_assert_fast(REINTERPRET_CAST(scl_int, retVal), \"Tried returning nil from function returning not-nil type '%s'!\");\n", function->return_type.c_str());
                 }
             }
             append("retVal;\n");

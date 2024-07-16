@@ -2864,7 +2864,7 @@ namespace sclc {
         auto hasTypeAlias = [&](std::string name) -> bool {
             return result.typealiases.find(name) != result.typealiases.end();
         };
-        auto createToStringMethod = [&](Struct& s) -> Method* {
+        auto createToStringMethod = [&](const Struct& s) -> Method* {
             Token t(tok_identifier, "toString", s.name_token.location);
             Method* toString = new Method(s.name, std::string("toString"), t);
             std::string retemplate(std::string type);
@@ -2935,7 +2935,7 @@ namespace sclc {
             toString->force_add = true;
             return toString;
         };
-        auto createToStringMethodLayout = [&](Layout& s) -> Method* {
+        auto createToStringMethodLayout = [&](const Layout& s) -> Method* {
             Token t(tok_identifier, "toString", s.name_token.location);
             Method* toString = new Method(s.name, std::string("toString"), t);
             std::string retemplate(std::string type);
@@ -3007,7 +3007,7 @@ namespace sclc {
             toString->force_add = true;
             return toString;
         };
-        auto createToStringMethodEnum = [&](Enum& s) -> Method* {
+        auto createToStringMethodEnum = [&](const Enum& s) -> Method* {
             Token t(tok_identifier, "toString", s.name_token.location);
             Method* toString = new Method(s.name, std::string("toString"), t);
             toString->return_type = "str";
@@ -3032,7 +3032,7 @@ namespace sclc {
             toString->force_add = true;
             return toString;
         };
-        auto createOrdinalMethod = [&](Enum& s) -> Method* {
+        auto createOrdinalMethod = [&](const Enum& s) -> Method* {
             Token t(tok_identifier, "ordinal", s.name_token.location);
             Method* toString = new Method(s.name, std::string("ordinal"), t);
             toString->return_type = "int";
@@ -3049,7 +3049,7 @@ namespace sclc {
             return toString;
         };
 
-        for (Struct& s : result.structs) {
+        for (const Struct& s : result.structs) {
             if (s.isStatic()) continue;
             bool hasImplementedToString = false;
             Method* toString = getMethodByName(result, "toString", s.name);
@@ -3058,7 +3058,7 @@ namespace sclc {
                 hasImplementedToString = true;
             }
 
-            for (auto& toImplement : s.toImplementFunctions) {
+            for (auto&& toImplement : s.toImplementFunctions) {
                 if (!hasImplementedToString && toImplement == "toString") {
                     result.functions.push_back(createToStringMethod(s));
                 }
@@ -3072,13 +3072,13 @@ namespace sclc {
                 }
             }
         }
-        for (Layout& s : result.layouts) {
+        for (const Layout& s : result.layouts) {
             Method* toString = getMethodByName(result, "toString", s.name);
             if (toString == nullptr || contains<std::string>(toString->modifiers, "<generated>")) {
                 result.functions.push_back(createToStringMethodLayout(s));
             }
         }
-        for (Enum& s : result.enums) {
+        for (const Enum& s : result.enums) {
             Method* toString = getMethodByName(result, "toString", s.name);
             Method* ordinal = getMethodByName(result, "ordinal", s.name);
             if (toString == nullptr || contains<std::string>(toString->modifiers, "<generated>")) {
@@ -3089,7 +3089,7 @@ namespace sclc {
             }
         }
         if (Main::options::Werror) {
-            for (auto warn : result.warns) {
+            for (auto&& warn : result.warns) {
                 result.errors.push_back(warn);
             }
             result.warns.clear();

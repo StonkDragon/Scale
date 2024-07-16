@@ -222,7 +222,7 @@ namespace sclc {
             handle(ParenOpen);
             append("}\n");
         } else {
-            append("_scl_assert(_scl_pop(scl_int), \"Assertion at %s:%d:%d failed!\");\n", assertToken.location.file.c_str(), assertToken.location.line, assertToken.location.column);
+            append("_scl_assert_fast(_scl_pop(scl_int), \"Assertion at %s:%d:%d failed!\");\n", assertToken.location.file.c_str(), assertToken.location.line, assertToken.location.column);
             typePop;
         }
         varScopePop();

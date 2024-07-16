@@ -592,7 +592,7 @@ namespace sclc {
             if (UNLIKELY(typeCanBeNil(arg.type) || hasEnum(result, arg.type) || arg.type == "varargs" || (hasTypealias(result, arg.type) && typealiasCanBeNil(result, arg.type)))) continue;
 
             if (!arg.name.empty() && arg.type.front() != '@') {
-                append("_scl_assert(*(scl_int*) &Var_%s, \"Argument '%%s' is nil\", \"%s\");\n", arg.name.c_str(), arg.name.c_str());
+                append("_scl_assert_fast(REINTERPRET_CAST(scl_int, Var_%s), \"Argument '%s' is nil\");\n", arg.name.c_str(), arg.name.c_str());
             }
         }
         if (!function->has_async) {

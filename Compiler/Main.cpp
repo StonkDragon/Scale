@@ -1328,6 +1328,9 @@ namespace sclc
         cflags.push_back("-Wl,-R");
         cflags.push_back("-Wl," + scaleFolder + DIR_SEP "Internal" DIR_SEP "lib");
 #endif
+#if defined(__APPLE__)
+        cflags.push_back("-Wl,-w");
+#endif
         if (!Main::options::embedded) {
         #ifdef LINK_MATH
             cflags.push_back("-lm");
