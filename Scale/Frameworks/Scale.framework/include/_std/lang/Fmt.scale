@@ -1,0 +1,17 @@
+# Formatted IO
+final static sealed struct ConsoleColor  
+  expect function reset(): str
+  expect function black(): str
+  expect function red(): str
+  expect function green(): str
+  expect function yellow(): str
+  expect function blue(): str
+  expect function magenta(): str
+  expect function cyan(): str
+  expect function white(): str
+  expect function bold(): str
+end
+
+final static sealed struct FmtIO
+  expect function puts(fmt: str, args: varargs): none
+end

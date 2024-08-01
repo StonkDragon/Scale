@@ -162,11 +162,14 @@ namespace sclc
 
         for (Variable& v : result.globals) {
             const std::string& file = v.name_token.location.file;
-            if (!strstarts(v.name, "$T") && !Main::options::noLinkScale && pathstarts(file, scaleFolder + DIR_SEP "Frameworks" DIR_SEP "Scale.framework") && !Main::options::noMain) {
-                if (!pathcontains(file, DIR_SEP "compiler" DIR_SEP) && !pathcontains(file, DIR_SEP "macros" DIR_SEP) && !pathcontains(file, DIR_SEP "__")) {
-                    continue;
-                }
+            if (!Main::options::noLinkScale && pathstarts(file, scaleFolder + DIR_SEP "Frameworks" DIR_SEP "Scale.framework") && !strstarts(v.name, "$T")) {
+                continue;
             }
+            // if (!strstarts(v.name, "$T") && !Main::options::noLinkScale && pathstarts(file, scaleFolder + DIR_SEP "Frameworks" DIR_SEP "Scale.framework") /* && !Main::options::noMain */) {
+            //     if (!pathcontains(file, DIR_SEP "compiler" DIR_SEP) && !pathcontains(file, DIR_SEP "macros" DIR_SEP) && !pathcontains(file, DIR_SEP "__")) {
+            //         continue;
+            //     }
+            // }
             if (!v.isExtern) {
                 Method* m = nullptr;
                 const Struct& s = getStructByName(result, v.type);
@@ -198,10 +201,12 @@ namespace sclc
                 }
                 type = sclTypeToCType(result, type);
                 if (type == "scl_float" || type == "scl_float32") {
-                    append("%s Var_%s = 0.0;\n", type.c_str(), v.name.c_str());
+                    append("%s Var_%s", type.c_str(), v.name.c_str());
+                    append2(" __asm__(_scl_macro_to_string(__USER_LABEL_PREFIX__) \"%s\") = 0.0;\n", v.name.c_str());
                 } else {
                     if (s != Struct::Null && !s.isStatic()) {
-                        append("%s Var_%s = {0};\n", type.c_str(), v.name.c_str());
+                        append("%s Var_%s", type.c_str(), v.name.c_str());
+                        append2(" __asm__(_scl_macro_to_string(__USER_LABEL_PREFIX__) \"%s\") = {0};\n", v.name.c_str());
                         if (m != nullptr) {
                             Function* f = new Function("static_init$" + v.name, v.name_token);
                             f->return_type = "none";
@@ -215,9 +220,11 @@ namespace sclc
                             append("}\n", v.name.c_str());
                         }
                     } else if (hasTypealias(result, type) || hasLayout(result, type)) {
-                        append("%s Var_%s;\n", type.c_str(), v.name.c_str());
+                        append("%s Var_%s", type.c_str(), v.name.c_str());
+                        append2(" __asm__(_scl_macro_to_string(__USER_LABEL_PREFIX__) \"%s\");\n", v.name.c_str());
                     } else {
-                        append("%s Var_%s = 0;\n", type.c_str(), v.name.c_str());
+                        append("%s Var_%s", type.c_str(), v.name.c_str());
+                        append2(" __asm__(_scl_macro_to_string(__USER_LABEL_PREFIX__) \"%s\") = 0;\n", v.name.c_str());
                     }
                 }
             }
@@ -237,13 +244,17 @@ namespace sclc
         scopeDepth++;
         append("_scl_setup();\n");
         for (auto&& f : initFuncs) {
-            if (!strstarts(f->member_type, "$T") && !Main::options::noLinkScale && pathstarts(f->name_token.location.file, scaleFolder + DIR_SEP "Frameworks" DIR_SEP "Scale.framework") && !Main::options::noMain) {
-                const std::string& file = f->name_token.location.file;
-                if (!pathcontains(file, DIR_SEP "compiler" DIR_SEP) && !pathcontains(file, DIR_SEP "macros" DIR_SEP) && !pathcontains(file, DIR_SEP "__")) {
-                    continue;
-                }
+            const std::string& file = f->name_token.location.file;
+            if (!Main::options::noLinkScale && pathstarts(file, scaleFolder + DIR_SEP "Frameworks" DIR_SEP "Scale.framework") && !strstarts(f->name_without_overload, "$T")) {
+                continue;
             }
-            append("  fn_%s();\n", f->name.c_str());
+            // if (!strstarts(f->member_type, "$T") && !Main::options::noLinkScale && pathstarts(f->name_token.location.file, scaleFolder + DIR_SEP "Frameworks" DIR_SEP "Scale.framework") /* && !Main::options::noMain */) {
+            //     if (!pathcontains(file, DIR_SEP "compiler" DIR_SEP) && !pathcontains(file, DIR_SEP "macros" DIR_SEP) && !pathcontains(file, DIR_SEP "__")) {
+            //         continue;
+            //     }
+            // }
+            if (!f->has_expect)
+                append("  fn_%s();\n", f->name.c_str());
         }
         scopeDepth--;
         append("}\n");
@@ -253,7 +264,8 @@ namespace sclc
         if (destroyFuncs.size()) {
             scopeDepth++;
             for (auto&& f : destroyFuncs) {
-                append("  fn_%s();\n", f->name.c_str());
+                if (!f->has_expect)
+                    append("  fn_%s();\n", f->name.c_str());
             }
             scopeDepth--;
         }
@@ -269,16 +281,13 @@ namespace sclc
             structTree->forEach([&fp](StructTreeNode* node) {
                 append("\n");
                 const Struct& s = node->s;
+                if (s.isExtern()) {
+                    append("extern expect const TypeInfo _scl_ti_%s __asm__(\"__T%s\");\n", s.name.c_str(), s.name.c_str());
+                }
                 if (s.isStatic() || s.isExtern()) {
                     return;
                 }
-                const std::string& file = s.name_token.location.file;
-                if (!strstarts(s.name, "$T") && !Main::options::noLinkScale && pathstarts(file, scaleFolder + DIR_SEP "Frameworks" DIR_SEP "Scale.framework") && !Main::options::noMain) {
-                    if (!pathcontains(file, DIR_SEP "compiler" DIR_SEP) && !pathcontains(file, DIR_SEP "macros" DIR_SEP) && !pathcontains(file, DIR_SEP "__")) {
-                        append("extern expect const TypeInfo _scl_ti_%s __asm__(\"__T%s\");\n", s.name.c_str(), s.name.c_str());
-                        return;
-                    }
-                }
+
                 auto vtable = vtables.find(s.name);
                 if (vtable == vtables.end()) {
                     return;

@@ -1,0 +1,49 @@
+@std.thread.Thread
+@@{frameworkPath}/include/std/thread/Thread.scale
+## Thread
+### final struct ThreadException: Exception
+The struct `ThreadException` represents an exception that is thrown when an error occurs in a thread.
+
+### static function ThreadException::new(msg: str): ThreadException
+Returns a new instance of `ThreadException` with the message `msg`.
+
+### final struct AtomicOperationException: Exception
+The struct `AtomicOperationException` represents an exception that is thrown when an error occurs in an atomic operation.
+
+### static function AtomicOperationException::new(msg: str): AtomicOperationException
+Returns a new instance of `AtomicOperationException` with the message `msg`.
+
+### final struct Thread
+The struct `Thread` represents a thread.
+Declared Fields:
+- `name: str` - The name of the thread.
+
+Static Fields:
+- `mainThread: readonly Thread` - The main thread.
+
+### static function Thread::stackTrace(): [str]
+Returns a list of strings containing stack trace of the current thread.
+
+### static function Thread::currentThread(): Thread
+Returns the current thread.
+
+### static function Thread::new(func: lambda(): none): Thread
+Returns a new instance of `Thread` that executes `func`.
+
+### function Thread:start(): none
+Starts this thread.
+
+### function Thread:join(): none
+Waits for this thread to finish.
+
+### function Thread:detach(): none
+Detaches this thread.
+
+### function Thread:equals(other: any): bool
+Returns true if `self` and `other` represent the same thread.
+
+### function Thread:==(other: any): bool
+Returns true if `self` and `other` represent the same thread.
+
+### function Thread:!=(other: any): bool
+Returns true if `self` and `other` do not represent the same thread or if `other` is not a `Thread`.

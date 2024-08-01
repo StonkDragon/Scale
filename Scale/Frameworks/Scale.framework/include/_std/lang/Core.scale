@@ -1,0 +1,20 @@
+import std.io
+import std.util.Array
+
+cdecl "s_memset"
+expect foreign unsafe reified function memset<T,,>(ptr: T, val: int32, len: int): T
+cdecl "s_memcpy"
+expect foreign unsafe reified function memcpy<T,,>(dst: T, src: T, n: int): T
+cdecl "_scl_sleep"
+expect foreign function sleep(millis: int): none
+
+expect function system(command: str): int
+
+expect function getenv(environKey: str): str?
+
+expect layout timeval
+  decl seconds: int
+  decl microseconds: int32
+end
+
+expect function time(): float

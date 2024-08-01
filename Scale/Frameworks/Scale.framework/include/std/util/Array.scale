@@ -10,7 +10,6 @@ sealed struct Array: Lock is Iterable
   decl values:      readonly [any]
   decl count:       readonly int
   decl capacity:    readonly int
-  decl initCap:     readonly int
 
   function sort(comparator: lambda(any, any): int): none
     0 => decl i
@@ -139,7 +138,6 @@ sealed struct Array: Lock is Iterable
     new[size] => self.values
     0 => self.count
     size => self.capacity
-    size => self.initCap
   end
 
   function init(): none

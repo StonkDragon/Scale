@@ -15,6 +15,7 @@ namespace sclc {
                 return;
             }
             std::string returnType = lambdaReturnType(typeStackTop);
+            std::string rType = removeTypeModifiers(returnType);
             size_t argAmount = lambdaArgCount(typeStackTop);
             std::string op = body[i].value;
             typePop;
@@ -34,7 +35,7 @@ namespace sclc {
             if (op == "accept") {
                 append("{\n");
                 scopeDepth++;
-                if (removeTypeModifiers(returnType) == "none" || removeTypeModifiers(returnType) == "nothing") {
+                if (rType == "none" || rType == "nothing") {
                     if (argTypes.size()) {
                         append("void(*(*lambda))(void*, %s);\n", argTypes.c_str());
                         append("lambda = _scl_pop(typeof(lambda));\n");
@@ -151,8 +152,8 @@ namespace sclc {
         };
 
         if (s == Struct::Null) {
-            Layout l = getLayout(result, type);
-            Enum e = getEnumByName(result, type);
+            const Layout& l = getLayout(result, type);
+            const Enum& e = getEnumByName(result, type);
             if (l.name.size() || e.name.size()) {
                 safeInc();
                 Method* f;

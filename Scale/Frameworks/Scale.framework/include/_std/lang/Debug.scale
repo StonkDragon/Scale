@@ -1,0 +1,48 @@
+import std.io
+import std.runtime.Process
+
+cdecl "_scl_throw"
+expect foreign function throw(ex: Exception): nothing
+
+cdecl "raise"
+private expect foreign unsafe function __c_raise(sigNum: int): int
+cdecl "get_errno"
+expect foreign function errno(): int
+cdecl "get_errno_as_str"
+expect foreign function strerror(): str
+cdecl "abort"
+expect foreign function abort(): nothing
+
+expect function crash(): nothing
+expect function raise(sigNum: int): nothing
+expect function breakPoint(): none
+
+expect sealed struct Exception
+  decl msg: str
+  decl stackTrace: const [str]
+  
+  expect function init(): none
+
+  expect sealed function printStackTrace(): none
+end
+
+expect final sealed struct InvalidSignalException: Exception
+  decl sig: readonly int
+
+  expect function init(sig: int): none
+end
+
+expect final sealed open struct NullPointerException: Exception
+
+expect sealed struct Error: Exception
+  expect function init(msg: str): none
+end
+
+expect final sealed open struct AssertError: Error
+expect final sealed open struct CastError: Error
+expect final sealed open struct UnreachableError: Error
+expect final sealed open struct OutOfMemoryError: Error
+expect final sealed open struct RuntimeError: Error
+expect final sealed open struct SignalError: Error
+
+expect function sysPrettyString(): str

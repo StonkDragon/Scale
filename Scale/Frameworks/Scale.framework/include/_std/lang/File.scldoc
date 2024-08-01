@@ -1,0 +1,93 @@
+
+@std.fs
+@@{frameworkPath}/include/std/lang/File.scale
+## Filesystem
+### final struct EndOfFileException
+The struct `EndOfFileException` is thrown when an end of file is reached.
+
+### final struct File
+The struct `File` represents a file on the filesystem.
+
+### static decl File::stdin: const File
+Contains a `File` object representing the standard input stream.
+
+### static decl File::stdout: const File
+Contains a `File` object representing the standard output stream.
+
+### static decl File::stderr: const File
+Contains a `File` object representing the standard error stream.
+
+### static function File::new(name: str): File
+Returns a new instance of `File` with the given name `name`.
+
+### function File:name(): str
+Returns the name of this file.
+
+### function File:close(): none
+Closes this file. Any further operations on this file will result in undefined behavior.
+
+### function File:readLine(): str
+Reads a line from this file and returns it.
+Throws an `EndOfFileException` if the end of the file has been reached.
+
+### function File:readLines(): [str]
+Returns a list of all lines in this file.
+
+### function File:size(): int
+Returns the size of this file in bytes.
+
+### function File:contents(): [int8]
+Returns the contents of this file as a byte array.
+
+### function File:stringContent(): str
+Returns the contents of this file as a string.
+
+### function File:setContent(data: [int8]): none
+Sets the contents of this file to the byte array `data`.
+
+### function File:setContent(data: str): none
+Sets the contents of this file to the string `data`.
+
+### function File:toStart(): none
+Sets the current offset of this file to the beginning of the file.
+This is equivalent to calling `0 f:offsetFromBegin`.
+
+### function File:toEnd(): none
+Sets the current offset of this file to the end of the file.
+This is equivalent to calling `0 f:offsetFromEnd`.
+
+### function File:append(s: str): none
+Appends the string `s` to this file.
+
+### reified function File:puts<T>(value: T): none
+Writes the string representation of `value` to this file.
+
+### function File:writeBinary(buf: any, sz: int): none
+Writes `sz` bytes from the memory block pointed to by `buf` to this file.
+
+### function File:read(sz: int): any
+Reads `sz` bytes from this file and returns a pointer to the memory block containing the data.
+
+### function File:offsetFromBegin(offset: int): none
+Sets the offset of this file to `offset` bytes from the beginning of the file.
+
+### function File:offsetFromEnd(offset: int): none
+Sets the offset of this file to `offset` bytes from the end of the file.
+
+### function File:offset(offset: int): none
+Sets the offset of this file to `offset` bytes from the current offset.
+
+### function File:fileno(): int
+Returns the file descriptor of this file.
+
+### function File:pos(): int
+Returns the current offset of this file.
+
+### function File:delete(): bool
+Deletes this file and returns true if the operation was successful.
+
+### function File:create(): none
+Creates this file.
+
+### static function File::exists(f: str): bool
+Returns true if the file with the name `f` exists.

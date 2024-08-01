@@ -243,14 +243,12 @@ namespace sclc {
     Method* getMethodByName(TPResult& result, const std::string& name, const std::string& type);
     Method* getMethodByNameOnThisType(TPResult& result, const std::string& name, const std::string& type);
     Struct& getStructByName(TPResult& result, const std::string& name);
-    Layout getLayout(TPResult& result, const std::string& name);
+    Layout& getLayout(TPResult& result, const std::string& name);
     bool hasLayout(TPResult& result, const std::string& name);
+    bool hasStruct(TPResult& result, const std::string& name);
     bool hasFunction(TPResult& result, const std::string& name);
     bool hasEnum(TPResult& result, const std::string& name);
     Enum getEnumByName(TPResult& result, const std::string& name);
-    std::vector<std::string> supersToVector(TPResult& r, Struct& s);
-    std::string supersToHashedCList(TPResult& r, Struct& s);
-    std::string supersToCList(TPResult& r, Struct& s);
     std::vector<Method*> methodsOnType(TPResult& res, std::string type);
     bool hasMethod(TPResult& result, const std::string& name, const std::string& type);
     bool hasGlobal(TPResult& result, std::string name);

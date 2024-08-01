@@ -48,12 +48,13 @@ namespace sclc
         std::string name;
         Token name_token;
         std::vector<Variable> members;
+        bool isExtern;
     
         Layout(std::string name);
         Layout(std::string name, Token t);
         void addMember(Variable member);
         bool hasMember(std::string member) const;
-        Variable getMember(std::string name);
+        const Variable& getMember(std::string name) const;
 
         bool operator==(const Layout& other) const;
         bool operator!=(const Layout& other) const;

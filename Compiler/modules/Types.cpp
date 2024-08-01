@@ -387,65 +387,72 @@ namespace sclc {
     }
 
     std::string sclTypeToCType(TPResult& result, std::string t) {
-        if (t == "?") {
-            return "scl_any";
-        }
+        static std::unordered_map<std::string, std::string> cache = {
+            std::pair("any", "scl_any"),
+            std::pair("none", "void"),
+            std::pair("nothing", "_scl_no_return void"),
+            std::pair("int", "scl_int"),
+            std::pair("int8", "scl_int8"),
+            std::pair("[int8]", "scl_int8*"),
+            std::pair("[str]", "scl_str*"),
+            std::pair("SclObject", "scl_SclObject"),
+            std::pair("str", "scl_str"),
+            std::pair("int16", "scl_int16"),
+            std::pair("int32", "scl_int32"),
+            std::pair("int64", "scl_int64"),
+            std::pair("uint", "scl_uint"),
+            std::pair("uint8", "scl_uint8"),
+            std::pair("uint16", "scl_uint16"),
+            std::pair("uint32", "scl_uint32"),
+            std::pair("uint64", "scl_uint64"),
+            std::pair("float", "scl_float"),
+            std::pair("bool", "scl_bool"),
+            std::pair("varargs", "..."),
+            std::pair("?", "scl_any"),
+        };
+
+        auto it = cache.find(t);
+        if (it != cache.end()) return it->second;
+
         bool valueType = t.front() == '@';
         t = removeTypeModifiers(t);
 
-        if (strstarts(t, "async<")) return "scl_any";
-        if (strstarts(t, "lambda(")) return "_scl_lambda";
-        if (t == "any") return "scl_any";
-        if (t == "none") return "void";
-        if (t == "nothing") return "_scl_no_return void";
-        if (t == "int") return "scl_int";
-        if (t == "int8") return "scl_int8";
-        if (t == "int16") return "scl_int16";
-        if (t == "int32") return "scl_int32";
-        if (t == "int64") return "scl_int64";
-        if (t == "uint") return "scl_uint";
-        if (t == "uint8") return "scl_uint8";
-        if (t == "uint16") return "scl_uint16";
-        if (t == "uint32") return "scl_uint32";
-        if (t == "uint64") return "scl_uint64";
-        if (t == "float") return "scl_float";
-        if (t == "bool") return "scl_bool";
-        if (t == "varargs") return "...";
+        if (strstarts(t, "async<")) return cache[t] = ("scl_any");
+        if (strstarts(t, "lambda(")) return cache[t] = ("_scl_lambda");
+        if (t.size() > 2 && t.front() == '[') {
+            return cache[t] = (sclTypeToCType(result, t.substr(1, t.size() - 2)) + "*");
+        }
         if (!(getStructByName(result, t) == Struct::Null)) {
             if (valueType) {
-                if (t == "str") {
-                    return "struct Struct_str";
-                }
-                return "struct Struct_" + t;
+                return cache[t] = ("struct Struct_" + t);
+            } else {
+                return cache[t] = ("scl_" + t);
             }
-            return "scl_" + t;
-        }
-        if (t.size() > 2 && t.front() == '[') {
-            return sclTypeToCType(result, t.substr(1, t.size() - 2)) + "*";
         }
         if (getInterfaceByName(result, t)) {
             if (Main::options::noScaleFramework) {
-                return "scl_any";
+                return cache[t] = ("scl_any");
+            } else if (valueType) {
+                return cache[t] = ("struct Struct_SclObject");
+            } else {
+                return cache[t] = ("scl_SclObject");
             }
-            if (valueType) {
-                return "struct Struct_SclObject";
-            }
-            return "scl_SclObject";
         }
         if (hasTypealias(result, t)) {
-            return "ta_" + t;
+            return cache[t] = ("ta_" + t);
         }
         if (hasEnum(result, t)) {
-            return "scl_int";
+            return cache[t] = ("scl_int");
         }
         if (hasLayout(result, t)) {
             if (valueType) {
-                return "struct Layout_" + t;
+                return cache[t] = ("struct Layout_" + t);
+            } else {
+                return cache[t] = ("scl_" + t);
             }
-            return "scl_" + t;
         }
 
-        return "scl_any";
+        return cache[t] = ("scl_any");
     }
 
     std::string sclIntTypeToConvert(std::string type) {
@@ -557,19 +564,18 @@ namespace sclc {
     std::string argsToRTSignature(Function* f) {
         static std::unordered_map<Function*, std::string> cache;
 
-        if (cache.find(f) == cache.end()) {
-            std::string args = "(";
-            for (const Variable& v : f->args) {
-                if (f->isMethod && v.name == "self") {
-                    continue;
-                }
-                args += typeToRTSig(v.type);
-            }
-            args += ")" + typeToRTSig(f->return_type);
-            cache[f] = args;
-        }
+        auto it = cache.find(f);
+        if (it != cache.end()) return it->second;
 
-        return cache[f];
+        std::string args = "(";
+        for (const Variable& v : f->args) {
+            if (f->isMethod && v.name == "self") {
+                continue;
+            }
+            args += typeToRTSig(v.type);
+        }
+        args += ")" + typeToRTSig(f->return_type);
+        return cache[f] = args;
     }
 
     std::string typeToRTSigIdent(std::string type) {
@@ -605,9 +611,8 @@ namespace sclc {
 
     std::string argsToRTSignatureIdent(Function* f) {
         static std::unordered_map<Function*, std::string> cache;
-        if (cache.find(f) != cache.end()) {
-            return cache[f];
-        }
+        auto it = cache.find(f);
+        if (it != cache.end()) return it->second;
 
         std::string args;
         for (const Variable& v : f->args) {

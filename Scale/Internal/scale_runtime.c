@@ -12,10 +12,12 @@ extern "C" {
 
 #define unimplemented(_what) do { fprintf(stderr, "%s:%d: %s: Not Implemented: %s\n", __FILE__, __LINE__, __FUNCTION__, _what); exit(1); } while (0)
 
-typedef struct Struct {
+typedef struct Struct_SclObject {
 	// Typeinfo for this object
 	TypeInfo*		type;
 } Struct;
+
+typedef Struct* scl_SclObject;
 
 typedef struct Struct_Exception {
 	Struct rtFields;
@@ -36,7 +38,6 @@ struct Struct_Array {
 	scl_any* values;
 	scl_int count;
 	scl_int capacity;
-	scl_int initCapacity;
 };
 
 typedef struct Struct_IndexOutOfBoundsException {
@@ -950,7 +951,7 @@ scl_any _scl_run_async(scl_any func, scl_any func_args) {
 
 scl_any _scl_run_await(scl_any _args) {
 	struct async_func* args = (struct async_func*) _args;
-	_scl_thread_finish(args->thread);
+	if (args->thread) _scl_thread_finish(args->thread);
 	scl_any ret = args->ret;
 	free(args);
 	return ret;

@@ -1,0 +1,99 @@
+import std.util.Pair
+import std.util.Iterable
+import std.util.InvalidArgumentException
+
+template<T>
+final sealed struct MapEntry
+  decl key: str
+  decl value: T
+
+  function init(key: str, value: T): none
+    key => self.key
+    value => self.value
+  end
+
+  const function toString(): str
+    key ": " + value:toString + return
+  end
+end
+
+template<T>
+final sealed struct Map is Iterable
+  private decl data: TypedArray<MapEntry<T>>
+
+  function init(size: int): none
+    size TypedArray<MapEntry<T>>::new => self.data
+  end
+
+  function [](key: str): T
+    key self:get return
+  end
+
+  function get(key: str): T
+    for i in 0 to self.data.count do
+      self.data[i] => decl entry
+      if entry.key key == then
+        entry.value return
+      fi
+    done
+    "Key '" key + "' not found in map" + InvalidArgumentException::new throw
+  end
+
+  function =>[](key: str, value: T): none
+    key value self:set
+  end
+
+  function containsKey(key: str): bool
+    for i in 0 to self.data.count do
+      if self.data[i].key key == then
+        true return
+      fi
+    done
+    false return
+  end
+
+  function set(key: str, value: T): none
+    for i in 0 to self.data.count do
+      i self.data:get => decl entry
+      if entry nil == then
+        i (key value MapEntry<T>::new) self.data:set
+        return
+      elif entry!!.key key == then
+        value => entry.value
+        return
+      fi
+    done
+    key value MapEntry<T>::new self.data:push
+  end
+
+  function iterate(): MapIterator<T>
+    self.data MapIterator<T>::new return
+  end
+
+  const function toString(): str
+    self.data:toString return
+  end
+
+  function map(x: lambda(MapEntry<T>): none): none
+    for i in 0 to self.data.count do
+      self.data[i] x:accept
+    done
+  end
+end
+
+template<T>
+final sealed struct MapIterator is Iterator
+  private decl data: ArrayIterator
+
+  function init(data: Array): none
+    data ArrayIterator::new => self.data
+  end
+
+  function hasNext(): bool
+    self.data:hasNext return
+  end
+
+  function next(): MapEntry<T>
+    self.data:next as MapEntry<T> return
+  end
+end

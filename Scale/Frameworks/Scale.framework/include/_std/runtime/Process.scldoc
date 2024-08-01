@@ -1,0 +1,23 @@
+@std.runtime.Process
+@@{frameworkPath}/include/std/runtime/Process.scale
+## Runtime: Process
+### final static struct Process
+The static struct `Process` provides utility functions for working with the current process.
+
+### static function Process::exit(:int): none
+Exits the current process with the exit code `code`.
+
+### static function Process::stackTrace(): [str]
+Returns a list of strings containing the current stack trace.
+
+### static function Process::gcEnabled(): bool
+Returns true if the garbage collector is enabled.
+
+### static function Process::isOnMainThread(): bool
+Returns true if the current thread is the main thread.
+
+### static function Process::lock(obj: Lock): none
+Locks `obj` on the current thread, blocking if another thread has already locked `obj`.
+
+### static function Process::unlock(obj: Lock): none
+Unlocks `obj` on the current thread.

@@ -1,0 +1,57 @@
+@std.Any
+@@{frameworkPath}/include/std/lang/Any.scale
+## Any
+### final static struct any
+The static struct `any` provides utility functions for working with the `any` type.
+
+### static function any::new(sz: int): any
+Returns a pointer to a newly allocated memory block of size `sz` bytes.
+
+### static function any::delete(ptr: any): none
+Frees the memory block pointed to by `ptr`.
+
+### static function any::size(ptr: any): int
+Returns the size of the memory block pointed to by `ptr`.
+Returns 0 if `ptr` is nil or invalid.
+
+### static function any::resize(newSize: int, ptr: any): any
+Resizes the memory block pointed to by `ptr` to `newSize` bytes.
+Returns a pointer to the resized memory block.
+
+### static function any::default(): any
+Returns a pointer to a newly allocated memory block of size 8 bytes.
+
+### static function any::toString(x: any): str
+Returns a string representation of `x`.
+
+### static function any::toHexString(x: any): str
+Returns a hexadecimal string representation of `x`.
+
+### static function any::referenceEquals(one: any, other: any): bool
+Returns true if `one` and `other` point to the same memory block.
+
+### static function any::asReference(x: any): Any
+Returns a new instance of `Any` that represents the value `x`.
+
+### struct Any
+The struct `Any` is the reference type that represents the `any` type.
+Declared Fields:
+- `value: readonly any` - The value of the `Any` instance.
+
+### static function Any::valueOf(x: any): Any
+Returns a new instance of `Any` that represents the value `x`.
+
+### function Any:equals(other: any): bool
+Returns true if `self` and `other` point to the same memory block.
+
+### function Any:==(other: any): bool
+Returns true if `self` and `other` point to the same memory block.
+
+### function Any:!=(other: any): bool
+Returns true if `self` and `other` do not point to the same memory block.
+
+### function Any:@(): any
+Returns the data pointed to by this `Any` instance.
+
+### function Any:toString(): str
+Returns a string representation of this `Any` instance.

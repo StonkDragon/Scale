@@ -614,7 +614,7 @@ namespace sclc {
         } else if (function->isMethod) {
             Struct s = getStructByName(result, function->member_type);
             if (s == Struct::Null && hasLayout(result, function->member_type)) {
-                Layout l = getLayout(result, function->member_type);
+                const Layout& l = getLayout(result, function->member_type);
                 Method* method = getMethodByName(result, body[i].value, l.name);
                 Function* f;
                 if (method != nullptr) {

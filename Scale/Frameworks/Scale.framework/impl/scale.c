@@ -1,17 +1,15 @@
 #include <scale_runtime.h>
 
-typedef struct Struct {
+typedef struct Struct_SclObject {
 	TypeInfo*		type;
 } Struct;
+
+typedef Struct* scl_SclObject;
 
 typedef struct Struct_Lock {
 	TypeInfo*		type;
 	scl_any			mutex;
 }* scl_Lock;
-
-typedef struct Struct_SclObject {
-	Struct rtFields;
-}* scl_SclObject;
 
 typedef struct Struct_Exception {
 	Struct rtFields;
@@ -33,7 +31,6 @@ typedef struct Struct_Array {
 	scl_any* values;
 	scl_int count;
 	scl_int capacity;
-	scl_int initCapacity;
 }* scl_Array;
 
 typedef struct Struct_ReadOnlyArray {
@@ -41,7 +38,6 @@ typedef struct Struct_ReadOnlyArray {
 	scl_any* values;
 	scl_int count;
 	scl_int capacity;
-	scl_int initCapacity;
 }* scl_ReadOnlyArray;
 
 typedef struct Struct_IndexOutOfBoundsException {
@@ -95,8 +91,8 @@ typedef struct Struct_Range {
 	scl_int end;
 }* scl_Range;
 
-extern scl_Array		Var_Thread$threads;
-extern scl_Thread		Var_Thread$mainThread;
+extern scl_Array		Thread$threads;
+extern scl_Thread		Thread$mainThread;
 
 tls scl_Thread			_currentThread = nil;
 
@@ -185,9 +181,9 @@ void Thread$run(scl_Thread self) {
 	_currentThread = self;
 	_scl_set_thread_name(self->name->data);
 
-	Process$lock(Var_Thread$threads);
-	virtual_call(Var_Thread$threads, "push(LThread;)V;", void, self);
-	Process$unlock(Var_Thread$threads);
+	Process$lock(Thread$threads);
+	virtual_call(Thread$threads, "push(LThread;)V;", void, self);
+	Process$unlock(Thread$threads);
 	
 	TRY {
 		(*self->function)(self->function);
@@ -195,9 +191,9 @@ void Thread$run(scl_Thread self) {
 		_scl_runtime_catch(_scl_exception_handler.exception);
 	}
 
-	Process$lock(Var_Thread$threads);
-	virtual_call(Var_Thread$threads, "remove(LThread;)V;", void, self);
-	Process$unlock(Var_Thread$threads);
+	Process$lock(Thread$threads);
+	virtual_call(Thread$threads, "remove(LThread;)V;", void, self);
+	Process$unlock(Thread$threads);
 	
 	_currentThread = nil;
 	_scl_set_thread_name(nil);
@@ -236,7 +232,7 @@ void Thread$detach0(scl_Thread self) {
 scl_Thread Thread$currentThread(void) {
 	SCL_BACKTRACE("Thread::currentThread(): Thread");
 	if (!_currentThread) {
-		_currentThread = Var_Thread$mainThread;
+		_currentThread = Thread$mainThread;
 	}
 	return _currentThread;
 }

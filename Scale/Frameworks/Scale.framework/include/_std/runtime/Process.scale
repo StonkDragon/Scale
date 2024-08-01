@@ -1,0 +1,12 @@
+static final sealed struct Process
+    cdecl "exit"
+    expect foreign function exit(:int): none
+    expect foreign function stackTrace(): [str]
+
+    expect foreign function gcEnabled(): bool
+
+    expect function isOnMainThread(): bool
+
+    expect foreign function lock(obj: Lock): none
+    expect foreign function unlock(obj: Lock): none
+end

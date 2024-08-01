@@ -1,0 +1,8 @@
+interface Iterator
+  function hasNext(): bool
+  function next(): ?
+end
+
+interface Iterable
+  function iterate(): Iterator
+end

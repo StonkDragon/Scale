@@ -79,6 +79,14 @@ namespace sclc {
         return args;
     }
 
+    std::string functionArgsToStructBody(Function* f, TPResult& result) {
+        std::string s = "{ ";
+        for (auto&& arg : f->args) {
+            s += sclTypeToCType(result, arg.type) + " Var_" + arg.name + "; ";
+        }
+        return s + "}";
+    }
+
     void createVariadicCall(Function* f, std::ostream& fp, TPResult& result, std::vector<FPResult>& errors, std::vector<Token>& body, size_t& i) {
         bool parseCount = (i + 1) < body.size() && body[i + 1].value == "!";
         size_t amountOfVarargs = 0;
@@ -152,11 +160,9 @@ namespace sclc {
         }
 
         if (f->has_async) {
-            if (args.size()) {
-                append2("_scl_async(fn_%s, fn_%s, %s)", f->name.c_str(), f->name.c_str(), args.c_str());
-            } else {
-                append2("_scl_async(fn_%s, fn_%s)", f->name.c_str(), f->name.c_str());
-            }
+            transpilerError("Variadic functions cannot be called asynchronously", i);
+            errors.push_back(err);
+            return;
         } else {
             append2("fn_%s(%s)", f->name.c_str(), args.c_str());
         }
@@ -534,9 +540,17 @@ namespace sclc {
                 append("");
             }
         }
-        if (self->has_nonvirtual) {
+
+        bool asyncImmediatelyAwaited = self->has_async && (i + 1) < body.size() && body[i + 1].type == tok_await;
+        std::string rtype = removeTypeModifiers(self->return_type);
+
+        if (self->has_nonvirtual || self->has_sealed) {
             if (self->has_async) {
-                append2("_scl_async(mt_%s$%s, mt_%s$%s, %s)", self->member_type.c_str(), self->name.c_str(), self->member_type.c_str(), self->name.c_str(), args.c_str());
+                if (asyncImmediatelyAwaited) {
+                    append2("_scl_sync(mt_%s$%s, %s, %s)", self->member_type.c_str(), self->name.c_str(), functionArgsToStructBody(self, result).c_str(), args.c_str());
+                } else {
+                    append2("_scl_async(mt_%s$%s, %s, %s)", self->member_type.c_str(), self->name.c_str(), functionArgsToStructBody(self, result).c_str(), args.c_str());
+                }
             } else {
                 append2("mt_%s$%s(%s)", self->member_type.c_str(), self->name.c_str(), args.c_str());
             }
@@ -548,11 +562,19 @@ namespace sclc {
                 if (method->operator==(self)) {
                     std::string functionPtrCast = getFunctionType(result, self);
                     if (self->has_async) {
-                        append2("_scl_async((%s) _scl_positive_offset(%zu, %s)->", functionPtrCast.c_str(), argc - 1, sclTypeToCType(result, self->member_type).c_str());
-                        if (onSuperType) {
-                            append2("$type->super->vtable[%zu], mt_%s$%s, %s)", index, args.c_str(), self->member_type.c_str(), self->name.c_str());
+                        if (asyncImmediatelyAwaited) {
+                            if (rtype != "none" && rtype != "nothing") {
+                                append2("_scl_sync(%s, (%s) _scl_positive_offset(%zu, %s)->", sclTypeToCType(result, self->return_type).c_str(), functionPtrCast.c_str(), argc - 1, sclTypeToCType(result, self->member_type).c_str());
+                            } else {
+                                append2("_scl_sync_v((%s) _scl_positive_offset(%zu, %s)->", functionPtrCast.c_str(), argc - 1, sclTypeToCType(result, self->member_type).c_str());
+                            }
                         } else {
-                            append2("$type->vtable[%zu], mt_%s$%s, %s)", index, self->member_type.c_str(), self->name.c_str(), args.c_str());
+                            append2("_scl_async((%s) _scl_positive_offset(%zu, %s)->", functionPtrCast.c_str(), argc - 1, sclTypeToCType(result, self->member_type).c_str());
+                        }
+                        if (onSuperType) {
+                            append2("$type->super->vtable[%zu], %s, %s)", index, functionArgsToStructBody(self, result).c_str(), args.c_str());
+                        } else {
+                            append2("$type->vtable[%zu], %s, %s)", index, functionArgsToStructBody(self, result).c_str(), args.c_str());
                         }
                     } else {
                         append2("((%s) _scl_positive_offset(%zu, %s)->", functionPtrCast.c_str(), argc - 1, sclTypeToCType(result, self->member_type).c_str());
@@ -570,27 +592,36 @@ namespace sclc {
         } else {
             std::string rtSig = argsToRTSignature(self);
             std::string functionPtrCast = getFunctionType(result, self);
-            if (self->has_async) {
-                transpilerError("Calling async method on interface is not supported", i);
-                warns.push_back(err);
-            }
+            append("{\n");
+            scopeDepth++;
             append(
-                "((%s) (_scl_get_vtable_function(_scl_positive_offset(%zu, scl_any), \"%s%s\")))(%s)",
-                functionPtrCast.c_str(),
+                "scl_any tmp = _scl_get_vtable_function(_scl_positive_offset(%zu, scl_any), \"%s%s\"));\n",
                 argc - 1,
-                self->name.c_str(),
-                rtSig.c_str(),
-                args.c_str()
+                self->name_without_overload.c_str(),
+                rtSig.c_str()
             );
+            if (self->has_async) {
+                if (asyncImmediatelyAwaited) {
+                    if (rtype != "none" && rtype != "nothing") {
+                        append("_scl_sync(%s, (%s) tmp, %s, %s)", sclTypeToCType(result, self->return_type).c_str(), functionPtrCast.c_str(), functionArgsToStructBody(self, result).c_str(), args.c_str());
+                    } else {
+                        append("_scl_sync_v((%s) tmp, %s, %s)", functionPtrCast.c_str(), functionArgsToStructBody(self, result).c_str(), args.c_str());
+                    }
+                } else {
+                    append("_scl_async((%s) tmp, %s, %s)", functionPtrCast.c_str(), functionArgsToStructBody(self, result).c_str(), args.c_str());
+                }
+            } else {
+                append("((%s) tmp)(%s)", functionPtrCast.c_str(), args.c_str());
+            }
             found = true;
         }
         if (closeThePush) {
             append2(")");
         }
         append2(";\n");
-        if (self->has_async) {
+        if (self->has_async && !asyncImmediatelyAwaited) {
             typeStack.push_back("async<" + self->return_type + ">");
-        } else if (removeTypeModifiers(self->return_type) != "none" && removeTypeModifiers(self->return_type) != "nothing") {
+        } else if (rtype != "none" && rtype != "nothing") {
             if (self->return_type.front() == '@') {
                 typeStack.push_back(self->return_type.substr(1));
             } else {
@@ -600,6 +631,9 @@ namespace sclc {
         if (!found) {
             transpilerError("Method '" + sclFunctionNameToFriendlyString(self) + "' not found on type '" + self->member_type + "'", i);
             errors.push_back(err);
+        }
+        if (asyncImmediatelyAwaited) {
+            i++;
         }
     }
 
@@ -1155,21 +1189,31 @@ namespace sclc {
         for (size_t m = 0; m < self->args.size(); m++) {
             typePop;
         }
+        std::string rtype = removeTypeModifiers(self->return_type);
         bool closeThePush = false;
         if (self->return_type.size() && self->return_type.front() == '@' && !self->has_async) {
             const Struct& s = getStructByName(result, self->return_type);
             append("_scl_push_value(%s, %s, ", sclTypeToCType(result, self->return_type).c_str(), (s != Struct::Null ? "MEM_FLAG_INSTANCE" : "0"));
             closeThePush = true;
         } else {
-            if (removeTypeModifiers(self->return_type) != "none" && removeTypeModifiers(self->return_type) != "nothing" && !self->has_async) {
+            if (rtype != "none" && rtype != "nothing" && !self->has_async) {
                 append("_scl_push(%s, ", sclTypeToCType(result, self->return_type).c_str());
                 closeThePush = true;
             } else {
                 append("");
             }
         }
+        bool asyncImmediatelyAwaited = self->has_async && (i + 1) < body.size() && body[i + 1].type == tok_await;
         if (self->has_async) {
-            append("_scl_async(fn_%s, fn_%s%s%s)", self->name.c_str(), self->name.c_str(), args.size() ? ", " : "", args.c_str());
+            if (asyncImmediatelyAwaited) {
+                if (rtype != "none" && rtype != "nothing") {
+                    append2("_scl_sync(%s, fn_%s, %s%s%s)", sclTypeToCType(result, self->return_type).c_str(), self->name.c_str(), functionArgsToStructBody(self, result).c_str(), args.size() ? ", " : "", args.c_str());
+                } else {
+                    append2("_scl_sync_v(fn_%s, %s%s%s)", self->name.c_str(), functionArgsToStructBody(self, result).c_str(), args.size() ? ", " : "", args.c_str());
+                }
+            } else {
+                append2("_scl_async(fn_%s, %s%s%s)", self->name.c_str(), functionArgsToStructBody(self, result).c_str(), args.size() ? ", " : "", args.c_str());
+            }
         } else {
             append2("fn_%s(%s)", self->name.c_str(), args.c_str());
         }
@@ -1177,14 +1221,17 @@ namespace sclc {
             append2(")");
         }
         append2(";\n");
-        if (self->has_async) {
+        if (self->has_async && !asyncImmediatelyAwaited) {
             typeStack.push_back("async<" + self->return_type + ">");
-        } else if (removeTypeModifiers(self->return_type) != "none" && removeTypeModifiers(self->return_type) != "nothing") {
+        } else if (rtype != "none" && rtype != "nothing") {
             if (self->return_type.front() == '@') {
                 typeStack.push_back(self->return_type.substr(1));
             } else {
                 typeStack.push_back(self->return_type);
             }
+        }
+        if (asyncImmediatelyAwaited) {
+            i++;
         }
     }
 
@@ -1209,9 +1256,8 @@ namespace sclc {
     std::string retemplate(std::string type) {
         static std::unordered_map<std::string, std::string> cache;
 
-        if (cache.find(type) != cache.end()) {
-            return cache[type];
-        }
+        auto it = cache.find(type);
+        if (it != cache.end()) return it->second;
 
         if (strstarts(type, "$T")) type = type.substr(2);
 

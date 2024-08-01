@@ -1,0 +1,97 @@
+macro! IntStruct(type) {
+  final static sealed struct $type
+    expect decl minValue: const $type
+    expect decl maxValue: const $type
+
+    expect function toString(x: $type): str
+    expect function toHexString(x: $type): str
+    expect function parse(s: str): $type
+    expect function asReference(i: int): Int
+  end
+}
+macro! UIntStruct(type) {
+  final static sealed struct $type
+    expect decl minValue: const $type
+    expect decl maxValue: const $type
+
+    expect function toString(x: $type): str
+    expect function toHexString(x: $type): str
+    expect function parse(s: str): $type
+    expect function asReference(i: int): Int
+  end
+}
+
+final static sealed struct bool
+  expect function toString(x: bool): str
+  expect function parse(s: str): bool
+end
+
+IntStruct! int8
+IntStruct! int16
+IntStruct! int32
+IntStruct! int64
+IntStruct! int
+UIntStruct! uint8
+UIntStruct! uint16
+UIntStruct! uint32
+UIntStruct! uint64
+UIntStruct! uint
+
+delmacro! IntStruct
+delmacro! UIntStruct
+
+expect final sealed struct Int
+  decl value: readonly int
+
+  expect static function valueOf(x: int): Int
+
+  expect function init(x: int): none
+  expect function equals(other: any): bool
+  expect function ==(other: any): bool
+  expect function !=(other: any): bool
+  expect function @(): int
+
+  expect const function toString(): str
+end
+
+reified operator "add" function +<A, B>(:A, :B): _ABBigger
+reified operator "sub" function -<A, B>(:A, :B): _ABBigger
+reified operator "mul" function *<A, B>(:A, :B): _ABBigger
+reified operator "div" function /<A, B>(:A, :B): _ABBigger
+reified operator "pow" function **<A, B>(:A, :B): _ABBigger
+
+reified function /.<A, >(:A, :A): A gcd end
+reified function *.<A, >(:A, :A): A lcm end
+reified function >.<A, >(:A, :A): A max end
+reified function <.<A, >(:A, :A): A min end
+
+expect reified operator "eq" function == <A?, B?>(:A?, :B?): bool
+expect reified operator "ne" function != <A?, B?>(:A?, :B?): bool
+expect reified operator "gt" function > <A?, B?>(:A?, :B?): bool
+expect reified operator "ge" function >= <A?, B?>(:A?, :B?): bool
+expect reified operator "lt" function < <A?, B?>(:A?, :B?): bool
+expect reified operator "le" function <= <A?, B?>(:A?, :B?): bool
+
+expect operator "and" function &&(:int, :int): bool
+expect operator "or" function ||(:int, :int): bool
+expect operator "not" function !(:int): bool
+
+expect reified operator "mod" function % <A, >(:A, :int): A
+expect reified operator "land" function & <A, >(:A, :int): A
+expect reified operator "lor" function | <A, >(:A, :int): A
+expect reified operator "lxor" function ^ <A, >(:A, :int): A
+expect reified operator "lnot" function ~ <A>(:A): A
+expect reified operator "lsl" function << <A, >(:A, :int): A
+expect reified operator "lsr" function >> <A, >(:A, :int): A
+expect reified operator "rol" function <<< <A, >(:A, :int): A
+expect reified operator "ror" function >>> <A, >(:A, :int): A
+
+expect reified operator "inc" function ++ <A>(:A): A
+expect reified operator "dec" function -- <A>(:A): A
+
+expect reified operator "at" function @<[T]>(:[T]): T
+expect reified operator "ann" function !!<T?>(:T?): T
+expect reified operator "elvis" function ?:<T?, >(:T?, :T): T
+
+expect function isnil(x: any): bool
+expect function isnotnil(x: any): bool

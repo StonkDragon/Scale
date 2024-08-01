@@ -1,0 +1,105 @@
+import std.math
+
+static struct Filters
+    expect function all(_: int): bool
+    expect function positive(val: int): bool
+    expect function negative(val: int): bool
+    expect function even(val: int): bool
+    expect function odd(val: int): bool
+    expect function zero(val: int): bool
+    expect function nonZero(val: int): bool
+end
+
+static struct Maps
+    expect function identity(val: int): int
+    expect function square(val: int): int
+    expect function cube(val: int): int
+    expect function double(val: int): int
+    expect function triple(val: int): int
+    expect function half(val: int): int
+    expect function third(val: int): int
+    expect function negate(val: int): int
+    expect function abs(val: int): int
+    expect function sign(val: int): int
+    expect function incr(val: int): int
+    expect function decr(val: int): int
+end
+
+static struct Reducers
+    expect function sum(acc: int, val: int): int
+    expect function product(acc: int, val: int): int
+    expect function max(acc: int, val: int): int
+    expect function min(acc: int, val: int): int
+    expect function avg(acc: int, val: int): int
+    expect function count(acc: int, val: int): int
+    expect function some(acc: int, val: int): int
+    expect function first(acc: int, val: int): int
+    expect function last(acc: int, val: int): int
+end
+
+static struct Counters
+    expect function all(_: int): bool
+    expect function positive(val: int): bool
+    expect function negative(val: int): bool
+    expect function even(val: int): bool
+    expect function odd(val: int): bool
+    expect function zero(val: int): bool
+    expect function nonZero(val: int): bool
+end
+
+static struct Transformers
+    expect function partialSum(data: [int8]): [int]
+    expect function partialProduct(data: [int8]): [int]
+    expect function partialMin(data: [int8]): [int]
+    expect function partialMax(data: [int8]): [int]
+
+    expect function partialSum(data: [int16]): [int]
+    expect function partialProduct(data: [int16]): [int]
+    expect function partialMin(data: [int16]): [int]
+    expect function partialMax(data: [int16]): [int]
+
+    expect function partialSum(data: [int32]): [int]
+    expect function partialProduct(data: [int32]): [int]
+    expect function partialMin(data: [int32]): [int]
+    expect function partialMax(data: [int32]): [int]
+
+    expect function partialSum(data: [int64]): [int]
+    expect function partialProduct(data: [int64]): [int]
+    expect function partialMin(data: [int64]): [int]
+    expect function partialMax(data: [int64]): [int]
+
+    expect function partialSum(data: [int]): [int]
+    expect function partialProduct(data: [int]): [int]
+    expect function partialMin(data: [int]): [int]
+    expect function partialMax(data: [int]): [int]
+
+    expect function partialSum(data: [uint8]): [int]
+    expect function partialProduct(data: [uint8]): [int]
+    expect function partialMin(data: [uint8]): [int]
+    expect function partialMax(data: [uint8]): [int]
+
+    expect function partialSum(data: [uint16]): [int]6
+    expect function partialProduct(data: [uint16]): [int]
+    expect function partialMin(data: [uint16]): [int]
+    expect function partialMax(data: [uint16]): [int]
+
+    expect function partialSum(data: [uint32]): [int]2
+    expect function partialProduct(data: [uint32]): [int]
+    expect function partialMin(data: [uint32]): [int]
+    expect function partialMax(data: [uint32]): [int]
+
+    expect function partialSum(data: [uint64]): [int]4
+    expect function partialProduct(data: [uint64]): [int]
+    expect function partialMin(data: [uint64]): [int]
+    expect function partialMax(data: [uint64]): [int]
+
+    expect function partialSum(data: [uint]): [int]
+    expect function partialProduct(data: [uint]): [int]
+    expect function partialMin(data: [uint]): [int]
+    expect function partialMax(data: [uint]): [int]
+
+    expect function partialSum(data: str): [int]
+    expect function partialProduct(data: str): [int]
+    expect function partialMin(data: str): [int]
+    expect function partialMax(data: str): [int]
+end

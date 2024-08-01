@@ -1,0 +1,12 @@
+static final sealed struct GarbageCollector
+    expect foreign function heapSize(): int
+    expect foreign function freeBytesEstimate(): int
+    expect foreign function bytesSinceLastCollect(): int
+    expect foreign function totalMemory(): int
+
+    expect function collect(): none
+    expect function pause(): none
+    expect function resume(): none
+    expect function isPaused(): bool
+    expect function implementation(): str
+end

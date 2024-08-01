@@ -1,0 +1,47 @@
+import std.util.Iterable
+import std.debug
+import std.util.InvalidArgumentException
+import std.util.IndexOutOfBoundsException
+import std.util.TypedArray
+import std.util.ReadOnlyArray
+import std.thread.Lock
+
+expect sealed struct Array: Lock is Iterable
+  decl values:      readonly [any]
+  decl count:       readonly int
+  decl capacity:    readonly int
+
+  expect function sort(comparator: lambda(any, any): int): none
+  expect function sort(): none
+  expect function [](index: int): any
+  expect function get(index: int): any
+  expect function =>[](index: int, value: any): none
+  expect function set(index: int, value: any): none
+  expect function top(): any
+  expect function push(value: any): none
+  expect function pop(): none
+  expect function indexOf(val: any): int
+  expect function contains(val: any): bool
+  expect function init(size: int): none
+  expect function init(): none
+  expect function iterate(): ArrayIterator
+  expect function reverse(): Array
+  expect const function toString() s: str
+  expect function insert(elem: any, index: int): none
+  expect function remove(val: any): none
+  expect function removeAll(val: any): none
+  expect function map(x: lambda(any): none): none
+  expect function filter(x: lambda(any): bool) arr: Array
+  expect function clone(): Array
+  expect static function of(args: varargs): Array
+  expect static function fromPointerCollection(count: int, values: [any]) arr: Array
+end
+
+expect sealed struct ArrayIterator is Iterator
+  private decl array: Array
+  private decl pos: int
+
+  expect function init(arr: Array): none
+  expect function hasNext(): bool
+  expect function next(): any
+end

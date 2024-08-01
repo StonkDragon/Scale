@@ -1,0 +1,10 @@
+expect final sealed struct Pair
+	decl a: any
+	decl b: any
+
+	expect function init(a: any, b: any): none
+	expect const function toString(): str
+	expect function ==(other: any): bool
+	expect function !=(other: any): bool
+	expect function [](i: int): any
+end

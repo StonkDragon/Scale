@@ -468,7 +468,7 @@ int real_main(int argc, char const *argv[]) {
         "-makelib",
         "-o",
         path + DIR_SEP "Frameworks" DIR_SEP "Scale.framework" DIR_SEP "impl" DIR_SEP "__scale_macros.scl",
-        path + DIR_SEP "Frameworks" DIR_SEP "Scale.framework" DIR_SEP "include" DIR_SEP "std" DIR_SEP "__internal" DIR_SEP "macro_entry.scale"
+        path + DIR_SEP "Frameworks" DIR_SEP "Scale.framework" DIR_SEP "impl" DIR_SEP "macro_entry.scale"
     });
 
     auto scale_stdlib = create_command({
@@ -481,7 +481,7 @@ int real_main(int argc, char const *argv[]) {
 
     auto files = listFiles(path + DIR_SEP "Frameworks" DIR_SEP "Scale.framework" DIR_SEP "include", ".scale");
     for (auto&& f : files) {
-        if (pathcontains(f, DIR_SEP "macros" DIR_SEP) || pathcontains(f, DIR_SEP "__") || pathcontains(f, DIR_SEP "compiler" DIR_SEP)) {
+        if (pathcontains(f, DIR_SEP "macros" DIR_SEP) || pathcontains(f, DIR_SEP "compiler" DIR_SEP)) {
             continue;
         }
         scale_stdlib += f.string() + " ";

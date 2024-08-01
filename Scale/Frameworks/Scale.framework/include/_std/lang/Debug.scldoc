@@ -1,0 +1,66 @@
+
+@std.debug
+@@{frameworkPath}/include/std/lang/Debug.scale
+## Debug
+### function throw(ex: Exception): nothing
+Throws the given exception `ex`.
+
+### function errno(): int
+Returns the value of the errno variable.
+
+### function strerror(): str
+Returns a string representation of the error code in errno.
+
+### function crash(): none
+Crashes the program.
+
+### function raise(sigNum: int): none
+Raises the signal `sigNum`.
+
+### function breakPoint(): none
+Sets a breakpoint.
+
+### struct Exception
+The struct `Exception` is the base class for all exceptions.
+Declared Fields:
+- `msg: str` - The message of the exception.
+- `stackTrace: const Array` - The stack trace of the exception.
+
+### static function Exception::new(): Exception
+Returns a new instance of `Exception`.
+
+### function Exception:printStackTrace(): none
+Prints the stack trace of this exception to stderr.
+
+### final struct InvalidSignalException: Exception
+The struct `InvalidSignalException` is thrown when an invalid signal is passed to `setSignalHandler` or `resetSignalHandler`.
+Declared Fields:
+- `sig: readonly int` - The signal number that was passed to `setSignalHandler` or `resetSignalHandler`.
+
+### static function InvalidSignalException::new(sig: int): InvalidSignalException
+Returns a new instance of `InvalidSignalException` with the given signal number `sig`.
+
+### struct NullPointerException: Exception
+The struct `NullPointerException` is thrown when a nil pointer is dereferenced.
+
+### struct Error: Exception
+The struct `Error` is the base class for all errors.
+Errors are thrown when the program encounters an unrecoverable error and cannot be handled by the program.
+
+### static function Error::new(msg: str): Error
+Returns a new instance of `Error` with the given message `msg`.
+
+### final struct AssertError: Error
+The struct `AssertError` is thrown when an assertion fails.
+
+### final struct CastError: Error
+The struct `CastError` is thrown when a cast fails.
+
+### final struct UnreachableError: Error
+The struct `UnreachableError` is thrown when the program encounters a statement that is unreachable.
+
+### final struct SignalError: Error
+The struct `SignalError` is thrown when the program receives a terminating signal.
+
+### function sysPrettyString(): str
+Returns a string representation of the system name.

@@ -1,0 +1,9 @@
+expect union Result
+    Ok: any
+    Err: any
+end
+
+expect function Result:expected(id: int): none
+expect function Result:isOk(): bool
+expect function Result:isErr(): bool
+expect function Result:toString(): str

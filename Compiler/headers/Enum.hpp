@@ -13,6 +13,7 @@ namespace sclc {
         std::unordered_map<std::string, std::string> member_types;
         long nextValue = 0;
         Token name_token;
+        bool isExtern;
         static const size_t npos;
 
         Enum(std::string name);

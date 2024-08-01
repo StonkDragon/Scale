@@ -1,0 +1,10 @@
+expect struct Union
+    decl __tag: readonly int
+    decl __value: readonly any
+
+    expect function init(tag: int, val: any): none
+    expect const function toString(): str
+    expect function expected(s: int): none
+    expect function ==(other: any): bool
+    expect function !=(other: any): bool
+end

@@ -882,123 +882,121 @@ namespace sclc {
         std::unordered_map<std::string, Macro*> macros;
 
         for (size_t i = 0; i < tokens.size(); i++) {
-            if (tokens[i].type != tok_identifier || tokens[i].value != "macro!") {
-                continue;
-            }
-            size_t start = i;
-            i++;
             if (tokens[i].type != tok_identifier) {
-                errors.push_back(MacroError("Expected macro name"));
                 continue;
-            }
-            std::string name = tokens[i].value;
-            i++;
-            std::vector<sclc::MacroArg> args;
-            if (tokens[i].type == tok_paren_open) {
+            } else if (tokens[i].value == "macro!") {
+                size_t start = i;
                 i++;
-                while (tokens[i].type != tok_paren_close) {
-                    args.push_back(tokens[i].value);
-                    i++;
-                    if (tokens[i].type == tok_column) {
-                        i++;
-                        FPResult r = parseType(tokens, i);
-                        if (!r.success) {
-                            errors.push_back(r);
-                            continue;
-                        }
-                        args.back().type = r.value;
-                        i++;
-                    }
-                    if (tokens[i].type == tok_comma) {
-                        i++;
-                    }
-                }
-            } else {
-                errors.push_back(MacroError("Expected '(' after macro name"));
-                continue;
-            }
-            i++;
-            Macro* macro = nullptr;
-            if (tokens[i].type == tok_in) {
-                i++;
-                if (tokens[i].type != tok_string_literal) {
-                    errors.push_back(MacroError("Expected string literal after 'in'"));
+                if (tokens[i].type != tok_identifier) {
+                    errors.push_back(MacroError("Expected macro name"));
                     continue;
                 }
-                std::string library = tokens[i].value;
+                std::string name = tokens[i].value;
                 i++;
-                macro = new NativeMacro(library, name);
+                std::vector<sclc::MacroArg> args;
+                if (tokens[i].type == tok_paren_open) {
+                    i++;
+                    while (tokens[i].type != tok_paren_close) {
+                        args.push_back(tokens[i].value);
+                        i++;
+                        if (tokens[i].type == tok_column) {
+                            i++;
+                            FPResult r = parseType(tokens, i);
+                            if (!r.success) {
+                                errors.push_back(r);
+                                continue;
+                            }
+                            args.back().type = r.value;
+                            i++;
+                        }
+                        if (tokens[i].type == tok_comma) {
+                            i++;
+                        }
+                    }
+                } else {
+                    errors.push_back(MacroError("Expected '(' after macro name"));
+                    continue;
+                }
+                i++;
+                Macro* macro = nullptr;
+                if (tokens[i].type == tok_in) {
+                    i++;
+                    if (tokens[i].type != tok_string_literal) {
+                        errors.push_back(MacroError("Expected string literal after 'in'"));
+                        continue;
+                    }
+                    std::string library = tokens[i].value;
+                    i++;
+                    macro = new NativeMacro(library, name);
+                    macro->args = args;
+                    tokens.erase(tokens.begin() + start, tokens.begin() + i);
+                    i = start;
+                    i--;
+                    if (macros.find(name) != macros.end()) {
+                        errors.push_back(MacroError("Macro '" + name + "' already defined"));
+                        continue;
+                    }
+                    DBG("Defining native macro %s", name.c_str());
+                    macros[name] = macro;
+                    continue;
+                }
+                macro = new Macro();
                 macro->args = args;
+
+                if (tokens[i].type != tok_curly_open) {
+                    errors.push_back(MacroError("Expected '{' after macro name"));
+                    continue;
+                }
+                i++;
+                ssize_t depth = 1;
+                while (depth > 0) {
+                    if (tokens[i].type == tok_curly_open) {
+                        depth++;
+                    } else if (tokens[i].type == tok_curly_close) {
+                        depth--;
+                    }
+                    if (depth <= 0) {
+                        i++;
+                        break;
+                    }
+                    if (tokens[i].type == tok_dollar) {
+                        macro->hasDollar = true;
+                        i++;
+                        if (tokens[i].type != tok_identifier) {
+                            errors.push_back(MacroError("Expected identifier after '$'"));
+                            continue;
+                        }
+                        size_t argIndex = -1;
+                        for (size_t j = 0; j < macro->args.size(); j++) {
+                            if (macro->args[j].name == tokens[i].value) {
+                                argIndex = j;
+                                break;
+                            }
+                        }
+                        if (argIndex == (size_t) -1) {
+                            errors.push_back(MacroError("Unknown argument '" + tokens[i].value + "'"));
+                            continue;
+                        }
+
+                        macro->tokens.push_back(Token(tok_dollar, std::to_string(argIndex), SourceLocation("", argIndex, 0)));
+                    } else {
+                        macro->tokens.push_back(tokens[i]);
+                    }
+                    i++;
+                }
+                // delete macro declaration
                 tokens.erase(tokens.begin() + start, tokens.begin() + i);
                 i = start;
                 i--;
-                if (macros.find(name) != macros.end()) {
-                    errors.push_back(MacroError("Macro '" + name + "' already defined"));
-                    continue;
-                }
-                macros[name] = macro;
-                continue;
-            }
-            macro = new Macro();
-            macro->args = args;
-
-            if (tokens[i].type != tok_curly_open) {
-                errors.push_back(MacroError("Expected '{' after macro name"));
-                continue;
-            }
-            i++;
-            ssize_t depth = 1;
-            while (depth > 0) {
-                if (tokens[i].type == tok_curly_open) {
-                    depth++;
-                } else if (tokens[i].type == tok_curly_close) {
-                    depth--;
-                }
-                if (depth <= 0) {
-                    i++;
-                    break;
-                }
-                if (tokens[i].type == tok_dollar) {
-                    macro->hasDollar = true;
-                    i++;
-                    if (tokens[i].type != tok_identifier) {
-                        errors.push_back(MacroError("Expected identifier after '$'"));
-                        continue;
-                    }
-                    size_t argIndex = -1;
-                    for (size_t j = 0; j < macro->args.size(); j++) {
-                        if (macro->args[j].name == tokens[i].value) {
-                            argIndex = j;
-                            break;
-                        }
-                    }
-                    if (argIndex == (size_t) -1) {
-                        errors.push_back(MacroError("Unknown argument '" + tokens[i].value + "'"));
-                        continue;
-                    }
-
-                    macro->tokens.push_back(Token(tok_dollar, std::to_string(argIndex), SourceLocation("", argIndex, 0)));
+                #ifdef DEBUG
+                if (macros.find(name) == macros.end()) {
+                    DBG("Defining macro %s", name.c_str());
                 } else {
-                    macro->tokens.push_back(tokens[i]);
+                    DBG("Re-defining macro %s", name.c_str());
                 }
-                i++;
-            }
-            // delete macro declaration
-            tokens.erase(tokens.begin() + start, tokens.begin() + i);
-            i = start;
-            i--;
-            if (macros.find(name) != macros.end()) {
-                errors.push_back(MacroError("Macro '" + name + "' already defined"));
-                continue;
-            }
-            macros[name] = macro;
-        }
-
-        for (size_t i = 0; i < tokens.size(); i++) {
-            if (tokens[i].type != tok_identifier) {
-                continue;
-            }
-            if (tokens[i].value == "delmacro!") {
+                #endif
+                macros[name] = macro;
+            } else if (tokens[i].value == "delmacro!") {
                 i++;
                 if (tokens[i].type != tok_identifier) {
                     errors.push_back(MacroError("Expected macro name"));
@@ -1009,33 +1007,33 @@ namespace sclc {
                     errors.push_back(MacroError("Macro '" + name + "' not defined"));
                     continue;
                 }
+                DBG("Deleting macro %s", name.c_str());
                 macros.erase(name);
                 continue;
-            }
-            if (
-                macros.find(tokens[i].value) == macros.end() ||
-                i + 1 >= tokens.size() ||
-                tokens[i + 1].value != "!" ||
-                tokens[i + 1].location.line != tokens[i].location.line
+            } else if (
+                macros.find(tokens[i].value) != macros.end() &&
+                i + 1 < tokens.size() &&
+                tokens[i + 1].value == "!" &&
+                tokens[i + 1].location.line == tokens[i].location.line
             ) {
-                continue;
-            }
-            Macro* macro = macros[tokens[i].value];
-            std::vector<Token> args;
-            size_t start = i;
-            Token macroTok = tokens[i];
-            i += 2;
-            if (macro->type != Macro::MacroType::Native) {
-                for (size_t j = 0; j < macro->args.size(); j++) {
-                    args.push_back(tokens[i]);
-                    i++;
+                Macro* macro = macros[tokens[i].value];
+                DBG("Expanding macro %s with %zu tokens", tokens[i].value.c_str(), macro->tokens.size());
+                std::vector<Token> args;
+                size_t start = i;
+                Token macroTok = tokens[i];
+                i += 2;
+                if (macro->type != Macro::MacroType::Native) {
+                    for (size_t j = 0; j < macro->args.size(); j++) {
+                        args.push_back(tokens[i]);
+                        i++;
+                    }
                 }
+                // delete macro call
+                tokens.erase(tokens.begin() + start, tokens.begin() + i);
+                i = start;
+                macro->expand(macroTok, tokens, i, args, errors);
+                i--;
             }
-            // delete macro call
-            tokens.erase(tokens.begin() + start, tokens.begin() + i);
-            i = start;
-            macro->expand(macroTok, tokens, i, args, errors);
-            i--;
         }
 
         if (errors.size()) {
@@ -1210,8 +1208,9 @@ namespace sclc {
             std::string makeIdentifier(std::string what) {
                 static std::unordered_map<std::string, std::string> cache;
 
-                if (cache.find(what) != cache.end()) {
-                    return cache[what];
+                auto it = cache.find(what);
+                if (it != cache.end()) {
+                    return it->second;
                 }
 
                 bool isValidIdent = true;
@@ -1221,7 +1220,7 @@ namespace sclc {
                         break;
                     }
                 }
-                if (isValidIdent) return what;
+                if (isValidIdent) return cache[what] = what;
                 std::string s;
                 for (char c : what) {
                     if ((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9')) {
@@ -1710,7 +1709,7 @@ namespace sclc {
                                 currentFunction = nullptr;
                                 continue;
                             } else {
-                                if (currentFunction->args == f->args) {
+                                if (currentFunction->args == f->args && !(currentFunction->has_reified && f->has_reified)) {
                                     FPResult result;
                                     result.message = "Function " + currentFunction->name + " is already defined!";
                                     result.value = currentFunction->name;
@@ -1720,6 +1719,10 @@ namespace sclc {
                                     result.success = false;
                                     errors.push_back(result);
                                     nextAttributes.clear();
+                                    currentFunction = nullptr;
+                                    continue;
+                                }
+                                if (currentFunction->has_reified && f->has_reified) {
                                     currentFunction = nullptr;
                                     continue;
                                 }
@@ -2085,6 +2088,10 @@ namespace sclc {
                 std::string name = tokens[i].value;
                 currentLayout = Layout(namePrefix + name);
                 currentLayout.name_token = tokens[i];
+                if (contains<std::string>(nextAttributes, "expect")) {
+                    currentLayout.isExtern = true;
+                }
+                nextAttributes.clear();
             } else if (token.type == tok_using && currentFunction == nullptr && i + 1 < tokens.size() && tokens[i + 1].type == tok_struct_def) {
                 if (usingStructs.find(token.location.file) == usingStructs.end()) {
                     usingStructs[token.location.file] = std::vector<std::string>();
@@ -2137,6 +2144,10 @@ namespace sclc {
                 std::string name = tokens[i].value;
                 i++;
                 Enum e = Enum(namePrefix + name);
+                if (contains<std::string>(nextAttributes, "expect")) {
+                    e.isExtern = true;
+                }
+                nextAttributes.clear();
                 e.name_token = tokens[i - 1];
                 while (i < tokens.size() && tokens[i].type != tok_end) {
                     long next = e.nextValue;
@@ -2433,9 +2444,12 @@ namespace sclc {
                 if (contains<std::string>(nextAttributes, "expect")) {
                     v.isExtern = true;
                 }
-                if (std::find(globals.begin(), globals.end(), v) == globals.end()) {
+                auto it = std::find(globals.begin(), globals.end(), v);
+                if (it == globals.end()) {
                     globals.push_back(v);
-                } else {
+                } else if (it->isExtern) {
+                    *it = v;
+                } else if (!v.isExtern) {
                     FPResult result;
                     result.message = "Variable '" + v.name + "' already declared.";
                     result.value = tokens[start].value;
@@ -2509,13 +2523,16 @@ namespace sclc {
                     v.name_token = name_token;
                     v.hasInitializer = i >= 2 && tokens[start - 2].type == tok_store;
                     v.isPrivate = (isPrivate || contains<std::string>(nextAttributes, "private"));
-                    nextAttributes.clear();
                     if (contains<std::string>(nextAttributes, "expect")) {
                         v.isExtern = true;
                     }
-                    if (std::find(globals.begin(), globals.end(), v) == globals.end()) {
+                    nextAttributes.clear();
+                    auto it = std::find(globals.begin(), globals.end(), v);
+                    if (it == globals.end()) {
                         globals.push_back(v);
-                    } else {
+                    } else if (it->isExtern) {
+                        *it = v;
+                    } else if (!v.isExtern) {
                         FPResult result;
                         result.message = "Variable '" + v.name + "' already declared.";
                         result.value = tokens[start].value;
@@ -2867,6 +2884,9 @@ namespace sclc {
         auto createToStringMethod = [&](const Struct& s) -> Method* {
             Token t(tok_identifier, "toString", s.name_token.location);
             Method* toString = new Method(s.name, std::string("toString"), t);
+            if (s.isExtern()) {
+                toString->addModifier("expect");
+            }
             std::string retemplate(std::string type);
             std::string stringify = retemplate(s.name) + " {";
             toString->return_type = "str";
@@ -2938,6 +2958,9 @@ namespace sclc {
         auto createToStringMethodLayout = [&](const Layout& s) -> Method* {
             Token t(tok_identifier, "toString", s.name_token.location);
             Method* toString = new Method(s.name, std::string("toString"), t);
+            if (s.isExtern) {
+                toString->addModifier("expect");
+            }
             std::string retemplate(std::string type);
             std::string stringify = retemplate(s.name) + " {";
             toString->return_type = "str";
@@ -3010,6 +3033,9 @@ namespace sclc {
         auto createToStringMethodEnum = [&](const Enum& s) -> Method* {
             Token t(tok_identifier, "toString", s.name_token.location);
             Method* toString = new Method(s.name, std::string("toString"), t);
+            if (s.isExtern) {
+                toString->addModifier("expect");
+            }
             toString->return_type = "str";
             toString->addModifier("<generated>");
             toString->addModifier("const");
@@ -3035,6 +3061,9 @@ namespace sclc {
         auto createOrdinalMethod = [&](const Enum& s) -> Method* {
             Token t(tok_identifier, "ordinal", s.name_token.location);
             Method* toString = new Method(s.name, std::string("ordinal"), t);
+            if (s.isExtern) {
+                toString->addModifier("expect");
+            }
             toString->return_type = "int";
             toString->addModifier("<generated>");
             toString->addModifier("const");
@@ -3052,7 +3081,13 @@ namespace sclc {
         for (const Struct& s : result.structs) {
             if (s.isStatic()) continue;
             bool hasImplementedToString = false;
-            Method* toString = getMethodByName(result, "toString", s.name);
+            Method* toString = nullptr;
+            for (auto x : methodsOnType(result, s.name)) {
+                if (x->name_without_overload == "toString") {
+                    toString = x;
+                    break;
+                }
+            }
             if (toString == nullptr || contains<std::string>(toString->modifiers, "<generated>")) {
                 result.functions.push_back(createToStringMethod(s));
                 hasImplementedToString = true;
@@ -3073,14 +3108,33 @@ namespace sclc {
             }
         }
         for (const Layout& s : result.layouts) {
-            Method* toString = getMethodByName(result, "toString", s.name);
+            Method* toString = nullptr;
+            for (auto x : methodsOnType(result, s.name)) {
+                if (x->name_without_overload == "toString") {
+                    toString = x;
+                    break;
+                }
+            }
             if (toString == nullptr || contains<std::string>(toString->modifiers, "<generated>")) {
                 result.functions.push_back(createToStringMethodLayout(s));
             }
         }
         for (const Enum& s : result.enums) {
-            Method* toString = getMethodByName(result, "toString", s.name);
-            Method* ordinal = getMethodByName(result, "ordinal", s.name);
+            Method* toString = nullptr;
+            for (auto x : methodsOnType(result, s.name)) {
+                if (x->name_without_overload == "toString") {
+                    toString = x;
+                    break;
+                }
+            }
+            Method* ordinal = nullptr;
+            for (auto x : methodsOnType(result, s.name)) {
+                if (x->name_without_overload == "ordinal") {
+                    ordinal = x;
+                    break;
+                }
+            }
+            
             if (toString == nullptr || contains<std::string>(toString->modifiers, "<generated>")) {
                 result.functions.push_back(createToStringMethodEnum(s));
             }

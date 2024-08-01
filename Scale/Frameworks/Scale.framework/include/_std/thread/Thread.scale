@@ -1,0 +1,30 @@
+expect final sealed struct ThreadException: Exception
+    expect function init(msg: str): none
+end
+
+expect final sealed struct AtomicOperationException: Exception
+    expect function init(msg: str): none
+end
+
+expect final sealed open struct MutexError: Error
+
+expect final sealed struct Thread: Lock
+    static expect decl mainThread: const Thread
+
+    private decl func: any
+    private decl tid: any
+
+    decl name: str
+
+    expect static function stackTrace(): [str]
+
+    expect foreign static function currentThread(): Thread
+
+    expect function init(func: lambda(): none): none
+    expect function start(): none
+    expect function join(): none
+    expect function detach(): none
+    expect function equals(other: any): bool
+    expect function ==(other: any): bool
+    expect function !=(other: any): bool
+end

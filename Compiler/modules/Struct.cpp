@@ -117,13 +117,13 @@ namespace sclc {
         }
         return false;
     }
-    Variable Layout::getMember(std::string name) {
-        for (Variable& v : members) {
+    const Variable& Layout::getMember(std::string name) const {
+        for (const Variable& v : members) {
             if (v.name == name) {
                 return v;
             }
         }
-        return Variable("", "");
+        return Variable::emptyVar();
     }
 
     bool Layout::operator==(const Layout& other) const {

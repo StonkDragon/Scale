@@ -1,0 +1,185 @@
+
+@std.String
+@@{frameworkPath}/include/std/lang/String.scale
+## String
+### final struct str is Iterable
+The struct `str` represents a string.
+
+### function str:+(what: str | int | float | [int8]): str
+Prepends `what` to `self` and returns the result.
+
+### function str:clone(): str
+Returns a new instance of `str` that is a clone of `self`.
+
+### function str:append(what: str | [int8]): str
+Appends `what` to `self` and returns the result.
+
+### function str:prepend(what: str | [int8]): str
+Prepends `what` to `self` and returns the result.
+
+### function str:equals(other: any): bool
+Returns true if `self` and `other` represent the same string.
+
+### function str:==(other: any): bool
+Returns true if `self` and `other` represent the same string.
+
+### function str:!=(other: any): bool
+Returns true if `self` and `other` do not represent the same string.
+Returns false if `other` is not a string.
+
+### function str:size(): int
+Returns the size of `self`.
+
+### function str:utfLength(): int
+Returns the amount of utf8 codepoints in `self`.
+`s:utfLength s:size ==` is true if `self` only contains ascii characters.
+
+### function str:at(i: int): int
+Returns the character at index `i` in `self`.
+
+### function str:toString(): str
+Returns `self`.
+
+### function str:@(i: int): int
+Returns the character at index `i` in `self`.
+Method is deprecated in favor of `str:[]`.
+
+### function str:[](index: int): int8
+Returns the character at index `index` in `self`.
+
+### function str:reverse(): str
+Returns a reversed copy of `self`.
+
+### function str:toChars(): Array
+Returns an array containing the characters of `self`.
+Method is deprecated in favor of `str:view`.
+
+### function str:split(delimiter: str): [str]
+Splits `self` at `delimiter` and returns the resulting substrings.
+
+### function str:startsWith(string: str): bool
+Returns true if `self` starts with `string`.
+
+### function str:endsWith(string: str): bool
+Returns true if `self` ends with `string`.
+
+### function str:subString(start: int): str
+Returns a substring of `self` starting at `start`.
+
+### function str:subString(range: Range): str
+Returns a substring of `self` in the range `range`.
+
+### function str:indexOf(c: int8): int
+Returns the index of the first occurrence of `c` in `self`.
+Returns -1 if `self` does not contain `c`.
+
+### function str:indexOf(s: str): int
+Returns the index of the first occurrence of `s` in `self`.
+Returns -1 if `self` does not contain `s`.
+
+### function str:lastIndexOf(c: int8): int
+Returns the index of the last occurrence of `c` in `self`.
+Returns -1 if `self` does not contain `c`.
+
+### function str:contains(c: int8): bool
+Returns true if `self` contains `c`.
+
+### function str:trim(): str
+Returns a copy of `self` with leading and trailing whitespace removed.
+
+### function str:view(): [int8]
+Returns a pointer to the memory block containing the data of `self`.
+
+### function str:iterate(): StringIterator
+Returns an iterator over the characters of `self`.
+
+### function str:hashCode(): int
+Returns the hash code of `self`.
+
+### static function str::new(data: [int8]): str
+Returns a new instance of `str` with the data `data`.
+
+### static function str::new(data: [int8], n: int): str
+Returns a new instance of `str` with the data `data` and size `n`.
+The resulting string will contain at most `n` characters.
+
+### static function str::new(): str
+Returns a new instance of `str` with size 0.
+
+### static function str::format(fmt: str, args: varargs): str
+Formats the string `fmt` with the given arguments.
+The format string `fmt` is a string that may contain format specifiers.
+Format specifiers are replaced by the values of the arguments `args`.
+The format specifiers are introduced by a `%` character.
+The following format specifiers are supported:
+- `"%s"`: string
+- `"%i"`: integer
+- `"%f"`: float
+- `"%c"`: character
+- `"%@"`: object
+- `"%p"`: pointer
+- `"%b"`: boolean
+
+### static function str::vformat(fmt: str, args: [any]): str
+Formats the string `fmt` with the given arguments.
+The format string `fmt` is a string that may contain format specifiers.
+Format specifiers are replaced by the values in `args`.
+The format specifiers are introduced by a `%` character.
+The following format specifiers are supported:
+- `"%s"`: string
+- `"%i"`: integer
+- `"%f"`: float
+- `"%c"`: character
+- `"%@"`: object
+- `"%p"`: pointer
+- `"%b"`: boolean
+
+### static function str::=>(data: [int8]): str
+Allows assigning C strings to `str` variables.
+
+### static function str::of(data: [int8]): str
+Returns a new instance of `str` with the data `data`.
+This function does not copy the data.
+
+### static function str::filter(:str, predicate: lambda(int8): bool): str
+Returns a new instance of `str` containing only the characters of `self` for which `predicate` returns true.
+This function makes the `str` type compatible with `do`-notation.
+
+### static function str::map(:str, mapper: lambda(int8): int8): str
+Returns a new instance of `str` containing the characters of `self` mapped by `mapper`.
+This function makes the `str` type compatible with `do`-notation.
+
+### static function str::reduce(:str, reducer: lambda(int, int8): int): int
+Returns the result of reducing `self` with `reducer`.
+This function makes the `str` type compatible with `do`-notation.
+
+### static function str::count(:str, predicate: lambda(int8): bool): int
+Returns the number of characters in `self` for which `predicate` returns true.
+This function makes the `str` type compatible with `do`-notation.
+
+### static function str::each(:str, action: lambda(int8): none): none
+Executes `action` for each character in `self`.
+This function makes the `str` type compatible with `do`-notation.
+
+### static function str::also(:str, action: lambda(int8): none): str
+Executes `action` for each character in `self` and returns `self`.
+This function makes the `str` type compatible with `do`-notation.
+
+### static function str::transform(:str, transformer: lambda(str): any): any
+Returns the result of applying `transformer` to `self`.
+This function makes the `str` type compatible with `do`-notation.
+
+### final struct StringIterator is Iterator
+The struct `StringIterator` is an iterator over the characters of a string.
+
+### static function StringIterator::new(s: str): StringIterator
+Returns a new instance of `StringIterator` that iterates over the characters of `s`.
+
+### function StringIterator:next(): int8
+Returns the next character in the string.
+
+### function StringIterator:hasNext(): bool
+Returns true if there are more characters to iterate over.
+
+### function +(string: str, number: int | float): str
+Appends the string representation of `number` to `string` and returns the result.

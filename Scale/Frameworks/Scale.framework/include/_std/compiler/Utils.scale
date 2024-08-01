@@ -1,0 +1,119 @@
+import std.Result
+
+expect enum TokenType
+    EOF
+    Return
+    Function
+    End
+    True
+    False
+    Nil
+    If
+    Unless
+    Then
+    Elif
+    Elunless
+    Else
+    Fi
+    While
+    Until
+    Do
+    Done
+    ExternC
+    Break
+    Continue
+    For
+    Foreach
+    In
+    Step
+    To
+    AddrRef
+    Store
+    Declare
+    ContainerDef
+    Repeat
+    StructDef
+    UnionDef
+    New
+    Is
+    CDecl
+    Label
+    Goto
+    Switch
+    Case
+    Esac
+    Default
+    InterfaceDef
+    As
+    Enum
+    Using
+    Lambda
+    Pragma
+    Await
+    Typeof
+    Typeid
+    Nameof
+    Sizeof
+    Try
+    Catch
+    Unsafe
+    Assert
+    Varargs
+
+    QuestionMark
+    AddrOf
+    ParenOpen
+    ParenClose
+    CurlyOpen
+    CurlyClose
+    BracketOpen
+    BracketClose
+    Comma
+    Column
+    DoubleColumn
+    Dot
+    
+    Ticked
+    Identifier
+    Number
+    NumberFloat
+    StringLiteral
+    CharStringLiteral
+    UtfStringLiteral
+    CharLiteral
+    Dollar
+    StackOp
+    MAX
+end
+
+expect layout SourceLocation
+    decl file: str
+    decl line: int
+    decl column: int
+end
+
+expect layout Token
+    decl type: TokenType
+    decl value: str
+    decl location: SourceLocation
+end
+
+expect layout MacroError
+    decl msg: str
+    decl location: SourceLocation
+end
+
+expect struct Parser
+    expect nonvirtual foreign function peek(): Token?
+    expect nonvirtual foreign function consume(): Token?
+    expect nonvirtual foreign function getConfig(): Config
+
+    expect private function init(): none
+end
+
+expect struct Config
+    expect nonvirtual foreign function hasKey(key: str): bool
+    expect nonvirtual foreign function getKey(key: str): str?
+
+    expect private function init(): none
+end

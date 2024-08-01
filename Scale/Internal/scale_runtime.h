@@ -213,7 +213,7 @@ typedef float				scl_float;
 
 typedef scl_int				scl_bool;
 
-typedef struct Struct_str* scl_str;
+typedef struct Struct_str*	scl_str;
 
 #define SCL_int64_MAX		((1LL << (sizeof(scl_int64) * 8 - 1)) - 1)
 #define SCL_int64_MASK		((scl_int64) -1)
@@ -249,8 +249,8 @@ typedef unsigned int		scl_uint32;
 typedef unsigned short		scl_uint16;
 typedef unsigned char		scl_uint8;
 
-typedef void*(*_scl_function)(void);
-typedef void*(*(*_scl_lambda))(void*);
+typedef void(*_scl_function)(void);
+typedef void(*(*_scl_lambda))(void*);
 
 typedef scl_uint ID_t;
 
@@ -391,11 +391,22 @@ struct Struct_str {
 	*(_type*) &_tmp; \
 })
 
-#define _scl_async(x, at, ...) ({ \
-	struct _args_ ## at* args = malloc(sizeof(struct _args_ ## at)); \
-	struct _args_ ## at args_ = { __VA_ARGS__ }; \
-	memcpy(args, &args_, sizeof(struct _args_ ## at)); \
-	_scl_push(scl_any, _scl_run_async((x), args)); \
+#define _scl_async(x, structbody, ...) ({ \
+	scl_any func = (x); \
+	struct structbody tmp = { __VA_ARGS__ }; \
+	typeof(tmp)* args = malloc(sizeof(tmp)); \
+	memcpy(args, &tmp, sizeof(tmp)); \
+	_scl_push(scl_any, _scl_run_async(func, args)); \
+})
+#define _scl_sync(rtype, x, structbody, ...) ({ \
+	rtype(*func)(scl_any) = (typeof(func)) (x); \
+	struct structbody tmp = { __VA_ARGS__ }; \
+	_scl_push(rtype, func(&tmp)); \
+})
+#define _scl_sync_v(x, structbody, ...) ({ \
+	void(*func)(scl_any) = (typeof(func)) (x); \
+	struct structbody tmp = { __VA_ARGS__ }; \
+	func(&tmp); \
 })
 #define _scl_await(rtype) (_scl_top(rtype) = _scl_run_await(_scl_top(scl_any)))
 #define _scl_await_void() _scl_run_await(_scl_pop(scl_any))
@@ -656,6 +667,7 @@ scl_any				_scl_thread_start(scl_any func, scl_any args);
 void				_scl_thread_finish(scl_any thread);
 void				_scl_thread_detach(scl_any thread);
 scl_any				_scl_run_async(scl_any func, scl_any func_args);
+scl_any				_scl_run_sync(scl_any func, scl_any func_args);
 scl_any				_scl_run_await(scl_any _args);
 void				_scl_yield();
 
@@ -800,6 +812,10 @@ void _scl_setup(void) {}
 #define _scl_assert_fast _scl_assert
 static inline scl_int _scl_assert(scl_int b, const scl_int8* msg, ...) {
 	if (unlikely(!b)) {
+		va_list va;
+		va_start(va, msg);
+		vfprintf(stderr, msg, va);
+		va_end(va);
 		abort();
 	}
 	return b;

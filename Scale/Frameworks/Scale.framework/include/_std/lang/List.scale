@@ -1,0 +1,307 @@
+import std.util.Range
+
+static struct List
+    cdecl "_scl_array_resize"
+    expect foreign reified function resize<[T]>(size: int, arr: [T]): [T]
+
+    cdecl "_scl_array_size"
+    expect foreign reified function size<[T]>(arr: [T]): int
+
+    expect function resizeToFit(arr: [int8]): [int8]
+
+    reified function filter<[T], >(arr: [T], f: lambda(T): bool): [T]
+        new<T>[arr:size] => decl result: [T]
+        0 => decl acc: int
+        foreach x in arr do
+            if x f:accept then
+                x => result[acc]
+                acc 1 +> acc
+            fi
+        done
+        if acc 1 < then
+            new<T>[0] return
+        fi
+        acc result:resize return
+    end
+
+    reified function map<[T], lambda(T): U>(arr: [T], f: lambda(T): U): [U]
+        new<U>[arr:size] => decl out: [U]
+        for i in 0 to arr:size do
+            arr[i] f:accept => out[i]
+        done
+        out return
+    end
+
+    reified function reduce<[T], >(arr: [T], f: lambda(T, T): T): T
+        decl result: T
+        for i in 0 to arr:size do
+            result arr[i] f:accept => result
+        done
+        result return
+    end
+
+    reified function count<[T], >(arr: [T], f: lambda(T): bool): int
+        decl acc: int
+        foreach val in arr do
+            if val f:accept then
+                acc 1 +> acc
+            fi
+        done
+        acc return
+    end
+
+    reified function each<[T], >(arr: [T], f: lambda(T): none): none
+        foreach val in arr do
+            val f:accept
+        done
+    end
+
+    reified function also<[T], >(arr: [T], f: lambda(T): none): [T]
+        foreach val in arr do
+            val f:accept
+        done
+        arr return
+    end
+
+    reified function transform<[T], lambda([T]): U>(arr: [T], f: lambda([T]): U): U
+        arr f:accept return
+    end
+
+    reified function tail<[T]>(x: [T]): [T]
+        (1 to x:size) x:slice return
+    end
+
+    reified function head<[T]>(x: [T]): T
+        x[0] return
+    end
+
+    reified function last<[T]>(x: [T]): T
+        x[x:size 1 -] return
+    end
+
+    reified function zip<[T]>(a: [T], b: [T]): [[T]]
+        assert (a:size b:size ==) else (
+            "Arrays must be of same size" InvalidArgumentException::new throw
+        )
+        new<T>[a:size][2] => decl result: [[T]]
+        for i in 0 to a:size do
+            a[i] => result[i][0]
+            b[i] => result[i][1]
+        done
+        result return
+    end
+
+    reified function slice<[T]>(r: Range, arr: [T]): [T]
+        if r.lower 0 < r.upper arr:size > || then
+            "Slice out of bounds" InvalidArgumentException::new throw
+        fi
+
+        r:toList => decl indices: [int]
+        new<T>[indices:size] => decl result: [T]
+        decl j: int
+        foreach i in indices do
+            arr[i] => result[j]
+            j++ => j
+        done
+        result return
+    end
+
+    reified function sort<[T]>(arr: [T]): [T]
+        decl i: int
+
+        while i arr:size < do
+            arr[i] => decl tmp
+            i 1 - => decl j
+            while j 0 >= do
+                if tmp arr[j] < then
+                    arr[j] => arr[j 1 +]
+                    tmp => arr[j]
+                else
+                    tmp => arr[j 1 +]
+                    break
+                fi
+                j-- => j
+            done
+            i++ => i
+        done
+
+        arr return
+    end
+
+    reified function reverse<[T]>(arr: [T]): [T]
+        arr:size => decl sz: int
+        for i in 0 to sz 2 / do
+            arr[i] => decl tmp: T
+            arr[sz i - 1 -] => arr[i]
+            tmp => arr[sz i - 1 -]
+        done
+        arr return
+    end
+
+    reified function toString<[T]>(arr: [T]): str
+        if arr:size 0 == then
+            "[]" return
+        fi
+        "[" => decl s: str
+        for i in 0 to arr:size do
+            if i 0 != then
+                s ", " +> s
+            fi
+            s arr[i]:toString +> s
+        done
+        s "]" + return
+    end
+
+    reified function empty<[T]>(arr: [T]): bool
+        arr:size 0 == return
+    end
+
+    reified function contains<[T]>(val: T, arr: [T]): bool
+        val arr:indexOf -1 != return
+    end
+
+    reified function indexOf<[T]>(val: T, arr: [T]): int
+        for i in 0 to arr:size do
+            if arr[i] val == then
+                i return
+            fi
+        done
+        -1 return
+    end
+
+    reified function lastIndexOf<[T]>(val: T, arr: [T]): int
+        for i in arr:size 1 - to -1 step -- do
+            if arr[i] val == then
+                i return
+            fi
+        done
+        -1 return
+    end
+
+    reified function once<[T]>(val: T, arr: [T]): bool
+        decl _count: int
+        for i in 0 to arr:size do
+            if arr[i] val == then
+                _count 1 +> _count
+                if _count 1 > then
+                    false return
+                fi
+            fi
+        done
+        _count 1 == return
+    end
+
+    reified function combine<[T]>(a: [T], b: [T]): [T]
+        new<T>[a:size b:size +] => decl result: [T]
+        for i in 0 to a:size do
+            a[i] => result[i]
+        done
+        a:size => decl j: int
+        for i in j to result:size do
+            b[i j -] => result[i]
+        done
+        result return
+    end
+
+    reified function append<[T]>(elem: T, arr: [T]): [T]
+        new<T>[arr:size 1 +] => decl result: [T]
+        for i in 0 to arr:size do
+            arr[i] => result[i]
+        done
+        elem => result[arr:size]
+        result return
+    end
+
+    reified function prepend<[T]>(elem: T, arr: [T]): [T]
+        new<T>[arr:size 1 +] => decl result: [T]
+        elem => result[0]
+        for i in 0 to arr:size do
+            arr[i] => result[i 1 +]
+        done
+        result return
+    end
+
+    reified function insert<[T]>(elem: T, index: int, arr: [T]): [T]
+        if index 0 < index arr:size > || then
+            "Index out of bounds" InvalidArgumentException::new throw
+        fi
+
+        new<T>[arr:size 1 +] => decl result: [T]
+        for i in 0 to index do
+            arr[i] => result[i]
+        done
+        elem => result[index]
+        for i in index to arr:size do
+            arr[i] => result[i 1 +]
+        done
+        result return
+    end
+
+    reified function remove<[T]>(index: int, arr: [T]): [T]
+        if index 0 < index arr:size > || then
+            "Index out of bounds" InvalidArgumentException::new throw
+        fi
+
+        new<T>[arr:size 1 -] => decl result: [T]
+        for i in 0 to index do
+            arr[i] => result[i]
+        done
+        for i in index to arr:size do
+            arr[i 1 +] => result[i]
+        done
+        result return
+    end
+
+    reified function intersect<[T]>(b: [T], a: [T]): [T]
+        new<T>[a:size] => decl result: [T]
+        decl total: int
+        for i in 0 to a:size do
+            for j in 0 to b:size do
+                if a[i] b[j] == then
+                    a[i] => result[total]
+                    total 1 +> total
+                    break
+                fi
+            done
+        done
+        if total 1 < then
+            new<T>[0] return
+        fi
+        total result:resize return
+    end
+
+    reified function excl<[T]>(b: [T], a: [T]): [T]
+        new<T>[a:size b:size +] => decl result: [T]
+        decl total: int
+        for i in 0 to a:size do
+            false => decl found: bool
+            for j in 0 to b:size do
+                if a[i] b[j] == then
+                    true => found
+                    break
+                fi
+            done
+            if found ! then
+                a[i] => result[total]
+                total 1 +> total
+            fi
+        done
+        for i in 0 to b:size do
+            false => decl found: bool
+            for j in 0 to a:size do
+                if b[i] a[j] == then
+                    true => found
+                    break
+                fi
+            done
+            if found ! then
+                b[i] => result[total]
+                total 1 +> total
+            fi
+        done
+        if total 1 < then
+            new<T>[0] return
+        fi
+        total result:resize return
+    end
+end

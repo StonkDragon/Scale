@@ -1,0 +1,87 @@
+template<Type, Size>
+final sealed struct StaticArrayIterator is Iterator
+    private decl arr: StaticArray<Type, Size>
+    private decl pos: int
+
+    function init(arr: StaticArray<Type, Size>): none
+        arr => self.arr
+        0 => self.pos
+    end
+
+    function hasNext(): bool
+        self.pos Size < return
+    end
+
+    function next(): Type
+        self.pos 1 + => self.pos
+        self.arr[self.pos 1 -] return
+    end
+end
+
+template<Type, Size>
+layout StaticArray
+    decl __value: Size const [Type]
+
+    function [](at: int) value: Type
+        if at 0 < at Size >= || then
+            "Index " at + " is out of bounds for array of length " + Size + "!" + IndexOutOfBoundsException::new throw
+        fi
+        unsafe
+            c!
+                *value = (&(*self)->__value$BACKER0)[*at];
+            end
+            return
+        end
+    end
+
+    function =>[](at: int, value: Type): none
+        if at 0 < at Size >= || then
+            "Index " at + " is out of bounds for array of length " + Size + "!" + IndexOutOfBoundsException::new throw
+        fi
+        unsafe
+            c!
+                (&(*self)->__value$BACKER0)[*at] = *value;
+            end
+        end
+    end
+
+    function fill(arr: [Type]): none
+        if arr:size Size != then
+            "Array is not of correct size. Expected array of size " Size + ", but array of size " + arr:size + " was provided!" + InvalidArgumentException::new throw
+        fi
+        for i in 0 to Size do
+            arr[i] => self[i]
+        done
+    end
+
+    function iterate(): StaticArrayIterator<Type, Size>
+        self StaticArrayIterator<Type, Size>::new return
+    end
+
+    function copyInto(arr: [Type]): StaticArray<Type, Size>
+        arr self:fill
+        self return
+    end
+
+    function toString(): str
+        "[" => decl s: str
+        for i in 0 to Size do
+            if i then
+                s ", " + => s
+            fi
+            s self[i]:toString + => s
+        done
+        s "]" + return
+    end
+end
+
+template<Type, Size>
+function arrayToStaticArray(arr: [Type]): StaticArray<Type, Size>
+    StaticArray<Type, Size>::new => decl x
+    arr x:copyInto return
+end
+
+template<Type, Size>
+function staticArrayOf(args: varargs): StaticArray<Type, Size>
+    args as const [Type] arrayToStaticArray<Type, Size> return
+end

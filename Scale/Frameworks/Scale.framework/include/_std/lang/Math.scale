@@ -1,0 +1,67 @@
+static final sealed struct MathConstants
+  expect decl e: const float
+  expect decl pi: const float
+  expect decl nan: const float
+  expect decl infinity: const float
+  expect decl negativeInfinity: const float
+end
+
+expect foreign function acos(:float): float
+expect foreign function asin(:float): float
+expect foreign function atan(:float): float
+expect foreign function atan2(:float, :float): float
+expect foreign function cos(:float): float
+expect foreign function sin(:float): float
+expect foreign function tan(:float): float
+expect foreign function acosh(:float): float
+expect foreign function asinh(:float): float
+expect foreign function atanh(:float): float
+expect foreign function cosh(:float): float
+expect foreign function sinh(:float): float
+expect foreign function tanh(:float): float
+expect foreign function exp(:float): float
+expect foreign function exp2(:float): float
+expect foreign function expm1(:float): float
+expect foreign function log(:float): float
+expect foreign function log10(:float): float
+expect foreign function log2(:float): float
+expect foreign function log1p(:float): float
+expect foreign function logb(:float): float
+expect foreign function fabs(:float): float
+expect foreign function cbrt(:float): float
+expect foreign function hypot(:float, :float): float
+expect foreign function pow(:float, :float): float
+expect foreign function sqrt(:float): float
+expect foreign function erf(:float): float
+expect foreign function erfc(:float): float
+expect foreign function lgamma(:float): float
+expect foreign function tgamma(:float): float
+expect foreign function ceil(:float): float
+expect foreign function floor(:float): float
+expect foreign function nearbyint(:float): float
+expect foreign function rint(:float): float
+expect foreign function round(:float): float
+expect foreign function trunc(:float): float
+expect foreign function fmod(:float, :float): float
+expect foreign function remainder(:float, :float): float
+expect foreign function fdim(:float, :float): float
+expect foreign function fmax(:float, :float): float
+expect foreign function fmin(:float, :float): float
+expect foreign function fma(:float, :float, :float): float
+
+expect function random(): int
+expect function iseven(number: int): int
+expect function isodd(number: int): int
+expect function lrandom(limit: int): int
+expect function lerp(a: float, b: float, t: float): float
+expect function abs(a: int): int
+expect function sign(a: int): int
+expect function min(a: int, b: int): int
+expect function max(a: int, b: int): int
+expect function min(a: float, b: float): float
+expect function max(a: float, b: float): float
+expect function min(a: float32, b: float32): float32
+expect function max(a: float32, b: float32): float32
+expect function clamp(x: int, lower: int, upper: int): int
+expect function gcd(a: int, b: int): int
+expect function lcm(a: int, b: int): int

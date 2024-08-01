@@ -607,13 +607,18 @@ namespace sclc
     };
 
     Function* getFunctionByName0(TPResult& result, const std::string& name) {
+        static std::unordered_map<std::string, Function*> cache;
+        
+        auto it = cache.find(name);
+        if (it != cache.end()) return it->second;
+
         for (Function* func : result.functions) {
             if (func->isMethod) continue;
             if ((func->name_without_overload == name || func->name == name)) {
-                return func;
+                return cache[name] = func;
             }
         }
-        return nullptr;
+        return cache[name] = nullptr;
     }
     Function* getFunctionByName(TPResult& result, const std::string& name2) {
         try {
@@ -625,6 +630,12 @@ namespace sclc
     }
 
     bool hasEnum(TPResult& result, const std::string& name) {
+        for (const Enum& e : result.enums) {
+            if (e.isExtern) continue;
+            if (e.name == name) {
+                return true;
+            }
+        }
         for (const Enum& e : result.enums) {
             if (e.name == name) {
                 return true;
@@ -662,11 +673,10 @@ namespace sclc
                 return (Method*) func;
             }
         }
-        const Struct& s = getStructByName(result, type);
         if (getInterfaceByName(result, type)) {
             return nullptr;
         }
-        return getMethodByName0(result, name, s.super);
+        return getMethodByName0(result, name, getStructByName(result, type).super);
     }
 
     Method* getMethodByName(TPResult& result, const std::string& name2, const std::string& type) {
@@ -719,6 +729,12 @@ namespace sclc
     Struct& getStructByName(TPResult& result, const std::string& name) {
         const std::string& typeName = removeTypeModifiers(name);
         for (auto it = result.structs.begin(); it != result.structs.end(); it++) {
+            if (it->isExtern()) continue;
+            if (it->name == typeName) {
+                return *it;
+            }
+        }
+        for (auto it = result.structs.begin(); it != result.structs.end(); it++) {
             if (it->name == typeName) {
                 return *it;
             }
@@ -728,8 +744,14 @@ namespace sclc
 
     Layout EmptyLayout = Layout("");
 
-    Layout getLayout(TPResult& result, const std::string& name) {
+    Layout& getLayout(TPResult& result, const std::string& name) {
         const std::string& typeName = removeTypeModifiers(name);
+        for (Layout& layout : result.layouts) {
+            if (layout.isExtern) continue;
+            if (layout.name == typeName) {
+                return layout;
+            }
+        }
         for (Layout& layout : result.layouts) {
             if (layout.name == typeName) {
                 return layout;
@@ -742,46 +764,12 @@ namespace sclc
         return !(getLayout(result, name).name.empty());
     }
 
-    bool hasFunction(TPResult& result, const std::string& name) {
-        return getFunctionByName(result, name) != nullptr;
+    bool hasStruct(TPResult& result, const std::string& name) {
+        return !(getStructByName(result, name).name.empty());
     }
 
-    std::vector<std::string> supersToVector(TPResult& r, Struct& s) {
-        std::vector<std::string> v;
-        v.reserve(16);
-        v.push_back(s.name);
-        Struct super = getStructByName(r, s.super);
-        while (super.name.size()) {
-            v.push_back(super.name);
-            super = getStructByName(r, super.super);
-        }
-        return v;
-    }
-    std::string supersToHashedCList(TPResult& r, Struct& s) {
-        std::string list = "(scl_int[]) {";
-        std::vector<std::string> v = supersToVector(r, s);
-        for (size_t i = 0; i < v.size(); i++) {
-            if (i) {
-                list += ", ";
-            }
-            std::string super = v[i];
-            list += std::to_string(id(super.c_str()));
-        }
-        list += "}";
-        return list;
-    }
-    std::string supersToCList(TPResult& r, Struct& s) {
-        std::string list = "(scl_str*) {\"" + s.name + "\"";
-        Struct super = getStructByName(r, s.super);
-        while (super.name.size()) {
-            list += "\"" + super.name + "\"";
-            super = getStructByName(r, super.super);
-            if (super.name.size()) {
-                list += ", ";
-            }
-        }
-        list += "}";
-        return list;
+    bool hasFunction(TPResult& result, const std::string& name) {
+        return getFunctionByName(result, name) != nullptr;
     }
 
     bool hasMethod(TPResult& result, const std::string& name, const std::string& type) {

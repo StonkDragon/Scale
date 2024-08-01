@@ -11,7 +11,7 @@ namespace sclc {
         typePop;
 
         if (hasLayout(result, type)) {
-            Layout l = getLayout(result, type);
+            const Layout& l = getLayout(result, type);
             safeInc();
             std::string member = body[i].value;
             if (!l.hasMember(member)) {

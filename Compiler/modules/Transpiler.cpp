@@ -230,10 +230,7 @@ namespace sclc {
 
         for (Variable& s : result.globals) {
             append("extern %s Var_%s", sclTypeToCType(result, s.type).c_str(), s.name.c_str());
-            if (s.isExtern) {
-                append2("__asm__(_scl_macro_to_string(__USER_LABEL_PREFIX__) \"%s\")", s.name.c_str());
-            }
-            append2(";\n");
+            append2(" __asm__(_scl_macro_to_string(__USER_LABEL_PREFIX__) \"%s\");\n", s.name.c_str());
         }
 
         append("\n");
@@ -717,19 +714,22 @@ namespace sclc {
                 }
             }
 
-            bool isTemplate = false;
-            if (function->isMethod) {
-                isTemplate = strstarts(function->member_type, "$T");
-            } else {
-                isTemplate = strstarts(function->name, "$T");
-            }
+            // bool isTemplate = false;
+            // if (function->isMethod) {
+            //     isTemplate = strstarts(function->member_type, "$T");
+            // } else {
+            //     isTemplate = strstarts(function->name, "$T");
+            // }
 
             const std::string& file = function->name_token.location.file;
-            if (!isTemplate && !Main::options::noLinkScale && function->reified_parameters.size() == 0 && pathstarts(file, scaleFolder + DIR_SEP "Frameworks" DIR_SEP "Scale.framework") && !Main::options::noMain) {
-                if (!pathcontains(file, DIR_SEP "compiler" DIR_SEP) && !pathcontains(file, DIR_SEP "macros" DIR_SEP) && !pathcontains(file, DIR_SEP "__")) {
-                    continue;
-                }
+            if (!Main::options::noLinkScale && pathstarts(file, scaleFolder + DIR_SEP "Frameworks" DIR_SEP "Scale.framework") && !strstarts(function->name_without_overload, "$T")) {
+                continue;
             }
+            // if (!isTemplate && !Main::options::noLinkScale && function->reified_parameters.size() == 0 && pathstarts(file, scaleFolder + DIR_SEP "Frameworks" DIR_SEP "Scale.framework") /* && !Main::options::noMain */) {
+            //     if (!pathcontains(file, DIR_SEP "compiler" DIR_SEP) && !pathcontains(file, DIR_SEP "macros" DIR_SEP) && !pathcontains(file, DIR_SEP "__")) {
+            //         continue;
+            //     }
+            // }
 
             typeStack.clear();
 

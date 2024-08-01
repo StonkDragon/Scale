@@ -1,0 +1,25 @@
+final static sealed struct any
+    expect function new(sz: int): any
+    expect function delete(ptr: any): none
+    expect function size(ptr: any): int
+    expect function resize(newSize: int, ptr: any): any
+    expect function default(): any
+    expect function toString(x: any): str
+    expect function toHexString(x: any): str
+    expect function referenceEquals(one: any, other: any): bool
+    expect function asReference(x: any): Any
+end
+
+expect final sealed struct Any
+    decl value: readonly any
+
+    expect static function valueOf(x: any): Any
+
+    expect function init(x: any): none
+    expect function equals(other: any): bool
+    expect function ==(other: any): bool
+    expect function !=(other: any): bool
+    expect function @(): any
+
+    expect const function toString(): str
+end

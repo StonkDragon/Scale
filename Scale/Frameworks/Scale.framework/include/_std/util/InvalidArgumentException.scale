@@ -1,0 +1,3 @@
+expect final sealed struct InvalidArgumentException : Exception
+    expect function init(s: str): none
+end

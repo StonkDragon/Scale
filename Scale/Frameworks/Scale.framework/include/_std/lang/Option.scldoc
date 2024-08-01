@@ -1,0 +1,25 @@
+@std.Option
+@@{frameworkPath}/include/std/lang/Option.scale
+## Option
+### union Option
+The union `Option` represents a value or nothing.
+Declared Fields:
+- `Some: any` - The `Some` value of the `Option` instance.
+- `None: none` - The `None` value of the `Option` instance.
+
+Accessing the `Some` field of an `Option` instance that does not contain a value throws an `AssertError`.
+
+### static function Option::Some(value: any): Option
+Returns a new instance of `Option` with the `Some` value `value`.
+
+### static function Option::None(): Option
+Returns a new instance of `Option` with the `None` value.
+
+### function Option:isSome(): bool
+Returns true if this `Option` instance represents a `Some` value.
+
+### function Option:isNone(): bool
+Returns true if this `Option` instance represents a `None` value.
+
+### function Option:toString(): str
+Returns a string representation of this `Option` instance.
