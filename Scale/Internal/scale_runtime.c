@@ -475,9 +475,9 @@ scl_any _scl_atomic_clone(scl_any ptr) {
 }
 
 scl_any _scl_copy_fields(scl_any dest, scl_any src, scl_int size) {
-	size -= sizeof(struct Struct);
+	size -= sizeof(struct Struct_SclObject);
 	if (size == 0) return dest;
-	memmove(dest + sizeof(struct Struct), src + sizeof(struct Struct), size);
+	memmove(dest + sizeof(struct Struct_SclObject), src + sizeof(struct Struct_SclObject), size);
 	return dest;
 }
 
