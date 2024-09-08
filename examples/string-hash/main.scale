@@ -8,5 +8,5 @@ function main(): none
     s1:hashCode puts
     s2:hashCode puts
 
-    s1 s2 == puts
+    s1 s2 == puts::<bool>
 end
