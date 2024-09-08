@@ -240,8 +240,8 @@ namespace sclc {
         if (hasEnum(result, arg)) {
             arg = "int";
         }
-        if (arg == "bool") arg = "int";
-        if (stack == "bool") stack = "int";
+        if (allowIntPromotion && arg == "bool") arg = "int";
+        if (allowIntPromotion && stack == "bool") stack = "int";
         if (typeEquals(stack, arg) && stackTypeIsNilable == argIsNilable) {
             return true;
         }
@@ -473,6 +473,7 @@ namespace sclc {
         if (rtType.empty()) return "";
         if (rtType == "a") return "any";
         if (rtType == "i") return "int";
+        if (rtType == "g") return "bool";
         if (rtType == "f") return "float";
         if (rtType == "f32") return "float32";
         if (rtType == "s") return "str";
@@ -507,7 +508,8 @@ namespace sclc {
         }
         type = removeTypeModifiers(type);
         if (type == "any") return "a;";
-        if (type == "int" || type == "bool") return "i;";
+        if (type == "int") return "i;";
+        if (type == "bool") return "g;";
         if (type == "float") return "f;";
         if (type == "float32") return "f32;";
         if (type == "str") return "s;";
@@ -537,7 +539,8 @@ namespace sclc {
         }
         type = removeTypeModifiers(type);
         if (type == "any") return "a";
-        if (type == "int" || type == "bool") return "l";
+        if (type == "int") return "l";
+        if (type == "bool") return "g";
         if (type == "int8") return "b";
         if (type == "int16") return "s";
         if (type == "int32") return "i";
@@ -583,7 +586,8 @@ namespace sclc {
         }
         type = removeTypeModifiers(type);
         if (type == "any") return "a$";
-        if (type == "int" || type == "bool") return "i$";
+        if (type == "int") return "i$";
+        if (type == "bool") return "g$";
         if (type == "float") return "f$";
         if (type == "float32") return "f32$";
         if (type == "str") return "s$";
