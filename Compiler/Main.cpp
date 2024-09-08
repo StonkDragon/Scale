@@ -613,7 +613,7 @@ namespace sclc
                 std::cout << Color::BOLDRED << "Fatal Error: Could not open file " << error.location.file << ": " << strerror(errno) << Color::RESET << std::endl;
                 continue;
             }
-            char* line = (char*) malloc(sizeof(char) * 512);
+            char* line = new char[512];
             int i = 1;
             if (f) fseek(f, 0, SEEK_SET);
             std::string colString;
@@ -644,7 +644,7 @@ namespace sclc
                 i++;
             }
             fclose(f);
-            free(line);
+            delete[] line;
             logErrors(error.errors);
             logWarns(error.warns);
         }
@@ -680,7 +680,7 @@ namespace sclc
                 std::cout << Color::BOLDRED << "Fatal Error: Could not open file " << error.location.file << ": " << strerror(errno) << Color::RESET << std::endl;
                 continue;
             }
-            char* line = (char*) malloc(sizeof(char) * 512);
+            char* line = new char[512];
             int i = 1;
             if (f) fseek(f, 0, SEEK_SET);
             std::string fileRelativeToCurrent = std::filesystem::relative(error.location.file, std::filesystem::current_path()).string();
@@ -709,7 +709,7 @@ namespace sclc
                 i++;
             }
             fclose(f);
-            free(line);
+            delete[] line;
             errorCount++;
             logErrors(error.errors);
             logWarns(error.warns);

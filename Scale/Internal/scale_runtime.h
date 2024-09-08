@@ -367,7 +367,7 @@ typedef struct TypeInfo {
 	const scl_int8*						type_name;
 	const size_t						size;
 	const struct _scl_methodinfo* const	vtable_info;
-	const _scl_function					vtable[];
+	const _scl_function*				vtable;
 } TypeInfo;
 
 struct Struct_str {

@@ -40,10 +40,6 @@ typedef struct Struct_ReadOnlyArray {
 	scl_int capacity;
 }* scl_ReadOnlyArray;
 
-typedef struct Struct_IndexOutOfBoundsException {
-	struct Struct_Exception self;
-}* scl_IndexOutOfBoundsException;
-
 typedef struct Struct_Int {
 	Struct rtFields;
 	scl_int value;

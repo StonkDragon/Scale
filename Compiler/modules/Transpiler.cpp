@@ -714,15 +714,15 @@ namespace sclc {
                 }
             }
 
-            // bool isTemplate = false;
-            // if (function->isMethod) {
-            //     isTemplate = strstarts(function->member_type, "$T");
-            // } else {
-            //     isTemplate = strstarts(function->name, "$T");
-            // }
+            bool isTemplate = false;
+            if (function->isMethod) {
+                isTemplate = strstarts(function->member_type, "$T");
+            } else {
+                isTemplate = strstarts(function->name, "$T");
+            }
 
             const std::string& file = function->name_token.location.file;
-            if (!Main::options::noLinkScale && pathstarts(file, scaleFolder + DIR_SEP "Frameworks" DIR_SEP "Scale.framework") && !strstarts(function->name_without_overload, "$T")) {
+            if (!Main::options::noLinkScale && pathstarts(file, scaleFolder + DIR_SEP "Frameworks" DIR_SEP "Scale.framework") && !isTemplate && function->reified_parameters.empty()) {
                 continue;
             }
             // if (!isTemplate && !Main::options::noLinkScale && function->reified_parameters.size() == 0 && pathstarts(file, scaleFolder + DIR_SEP "Frameworks" DIR_SEP "Scale.framework") /* && !Main::options::noMain */) {

@@ -1,9 +1,0 @@
-expect struct SclObject
-    expect function ==(other: any): bool
-    expect function !=(other: any): bool
-    expect function equals(other: any): bool
-    expect foreign cdecl "_scl_atomic_clone" function clone(): SclObject
-    expect foreign cdecl "_scl_identity_hash" function hashCode(): int
-    expect function init(): none
-    expect function finalize(): none
-end

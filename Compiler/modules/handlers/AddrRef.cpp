@@ -99,6 +99,11 @@ namespace sclc {
                 return;
             }
 
+            if (f->isCVarArgs()) {
+                transpilerError("Cannot convert variadic function to lambda!", begin);
+                errors.push_back(err);
+                return;
+            }
             append("_scl_push(scl_any, ({\n");
             append("  scl_any* tmp = _scl_alloc(sizeof(scl_any));\n");
             append("  *tmp = fn_%s;\n", f->name.c_str());
@@ -211,7 +216,16 @@ namespace sclc {
                             errors.push_back(err);
                             return;
                         }
-                        append("_scl_push(typeof(&mt_%s$%s), &mt_%s$%s);\n", f->member_type.c_str(), f->name.c_str(), f->member_type.c_str(), f->name.c_str());
+                        if (f->isCVarArgs()) {
+                            transpilerError("Cannot convert variadic function to lambda!", begin);
+                            errors.push_back(err);
+                            return;
+                        }
+                        append("_scl_push(scl_any, ({\n");
+                        append("  scl_any* tmp = _scl_alloc(sizeof(scl_any));\n");
+                        append("  *tmp = mt_%s$%s;\n", f->member_type.c_str(), f->name.c_str());
+                        append("  tmp;\n");
+                        append("}));\n");
                         std::string lambdaType = "lambda(" + std::to_string(f->args.size()) + "):" + f->return_type;
                         typeStack.push_back(lambdaType);
                         return;
@@ -314,6 +328,11 @@ namespace sclc {
                         return;
                     }
 
+                    if (f->isCVarArgs()) {
+                        transpilerError("Cannot convert variadic function to lambda!", begin);
+                        errors.push_back(err);
+                        return;
+                    }
                     append("_scl_push(scl_any, ({\n");
                     append("  scl_any* tmp = _scl_alloc(sizeof(scl_any));\n");
                     append("  *tmp = mt_%s$%s;\n", f->member_type.c_str(), f->name.c_str());

@@ -96,45 +96,24 @@ bool pathcontains(std::filesystem::path str, std::string substr) {
     return strcontains(str.string(), substr);
 }
 
-// void GO_REBUILD_URSELF(argc, argv)                                  \
-// do {                                                               \
-// const char *source_path = __FILE__;                            \
-// assert(argc >= 1);                                             \
-// const char *binary_path = argv[0];                             \
-// \
-// if (is_path1_modified_after_path2(source_path, binary_path)) { \
-// RENAME(binary_path, CONCAT(binary_path, ".old"));          \
-// REBUILD_URSELF(binary_path, source_path);                  \
-// Cmd cmd = {                                                \
-// .line = {                                              \
-// .elems = (Cstr*) argv,                             \
-// .count = argc,                                     \
-// },                                                     \
-// };                                                         \
-// INFO("CMD: %s", cmd_show(cmd));                            \
-// cmd_run_sync(cmd);                                         \
-// exit(0);                                                   \
-// }                                                              \
-// } while(0)
-
 long modified_time(std::string file) {
-  return std::filesystem::last_write_time(file).time_since_epoch().count();
+    return std::filesystem::last_write_time(file).time_since_epoch().count();
 }
 
 void go_rebuild_yourself(int argc, char const *argv[]) {
-  const char* source_file = __FILE__;
-  const char* binary_file = argv[0];
-  if (modified_time(source_file) > modified_time(binary_file)) {
-    auto cmd = create_command({
-      "clang++", "-o", binary_file, source_file, "-std=gnu++20",
-    #ifdef _WIN32
-      "-lAdvapi32"
-    #endif
-    });
-    exec_command(cmd);
-    exec_command(create_command(std::vector<std::string>(argv, argv + argc)));
-    exit(0);
-  }
+    const char* source_file = __FILE__;
+    const char* binary_file = argv[0];
+    if (modified_time(source_file) > modified_time(binary_file)) {
+        auto cmd = create_command({
+        "clang++", "-o", binary_file, source_file, "-std=gnu++20",
+        #ifdef _WIN32
+        "-lAdvapi32"
+        #endif
+        });
+        exec_command(cmd);
+        exec_command(create_command(std::vector<std::string>(argv, argv + argc)));
+        exit(0);
+    }
 }
 
 int real_main(int argc, char const *argv[]) {

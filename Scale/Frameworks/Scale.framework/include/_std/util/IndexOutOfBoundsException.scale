@@ -1,3 +1,0 @@
-expect final sealed struct IndexOutOfBoundsException : Exception
-    expect function init(s: str): none
-end

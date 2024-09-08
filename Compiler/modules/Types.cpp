@@ -411,48 +411,47 @@ namespace sclc {
             std::pair("?", "scl_any"),
         };
 
+        std::string key = t;
+
         auto it = cache.find(t);
         if (it != cache.end()) return it->second;
 
         bool valueType = t.front() == '@';
         t = removeTypeModifiers(t);
 
-        if (strstarts(t, "async<")) return cache[t] = ("scl_any");
-        if (strstarts(t, "lambda(")) return cache[t] = ("_scl_lambda");
-        if (t.size() > 2 && t.front() == '[') {
-            return cache[t] = (sclTypeToCType(result, t.substr(1, t.size() - 2)) + "*");
-        }
-        if (!(getStructByName(result, t) == Struct::Null)) {
+        if (strstarts(t, "async<")) cache[key] = ("scl_any");
+        else if (strstarts(t, "lambda(")) cache[key] = ("_scl_lambda");
+        else if (t.size() > 2 && t.front() == '[') {
+            cache[key] = (sclTypeToCType(result, t.substr(1, t.size() - 2)) + "*");
+        } else if (!(getStructByName(result, t) == Struct::Null)) {
             if (valueType) {
-                return cache[t] = ("struct Struct_" + t);
+                cache[key] = ("struct Struct_" + t);
             } else {
-                return cache[t] = ("scl_" + t);
+                cache[key] = ("scl_" + t);
             }
-        }
-        if (getInterfaceByName(result, t)) {
+        } else if (getInterfaceByName(result, t)) {
             if (Main::options::noScaleFramework) {
-                return cache[t] = ("scl_any");
+                cache[key] = ("scl_any");
             } else if (valueType) {
-                return cache[t] = ("struct Struct_SclObject");
+                cache[key] = ("struct Struct_SclObject");
             } else {
-                return cache[t] = ("scl_SclObject");
+                cache[key] = ("scl_SclObject");
             }
-        }
-        if (hasTypealias(result, t)) {
-            return cache[t] = ("ta_" + t);
-        }
-        if (hasEnum(result, t)) {
-            return cache[t] = ("scl_int");
-        }
-        if (hasLayout(result, t)) {
+        } else if (hasTypealias(result, t)) {
+            cache[key] = ("ta_" + t);
+        } else if (hasEnum(result, t)) {
+            cache[key] = ("scl_int");
+        } else if (hasLayout(result, t)) {
             if (valueType) {
-                return cache[t] = ("struct Layout_" + t);
+                cache[key] = ("struct Layout_" + t);
             } else {
-                return cache[t] = ("scl_" + t);
+                cache[key] = ("scl_" + t);
             }
+        } else {
+            cache[key] = ("scl_any");
         }
 
-        return cache[t] = ("scl_any");
+        return cache[key];
     }
 
     std::string sclIntTypeToConvert(std::string type) {

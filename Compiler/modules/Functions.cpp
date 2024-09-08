@@ -527,6 +527,7 @@ namespace sclc {
         bool found = false;
         size_t argc = self->args.size();
         append("_scl_popn(%zu);\n", argc);
+        append("// INVOKE %s\n", sclFunctionNameToFriendlyString(self).c_str());
         bool closeThePush = false;
         if (self->return_type.size() && self->return_type.front() == '@' && !self->has_async) {
             const Struct& s = getStructByName(result, self->return_type);
@@ -751,7 +752,7 @@ namespace sclc {
             return nullptr;
         }
         if (self->reified_parameters.size() > types.size()) {
-            transpilerError("Wrong amount of parameters for reified function call. Expected " + std::to_string(self->reified_parameters.size()) + " but got " + std::to_string(types.size()), i);
+            transpilerError("Wrong amount of parameters for reified function call. Expected " + std::to_string(self->reified_parameters.size()) + " but got " + std::to_string(types.size()) + " for function '" + sclFunctionNameToFriendlyString(self) + "'", i);
             errors.push_back(err);
             return nullptr;
         }
@@ -876,7 +877,7 @@ namespace sclc {
 
     Function* reifiedPreamble(Function* self, std::ostream& fp, TPResult& result, std::vector<FPResult>& errors, std::vector<Token>& body, size_t& i) {
         std::vector<std::string> types;
-        if (i + 1 < body.size() && body[i + 1].type == tok_double_column) {
+        if (i + 2 < body.size() && body[i + 1].type == tok_double_column) {
             safeInc(nullptr);
             safeInc(nullptr);
             if (body[i].type != tok_identifier || body[i].value != "<") {
@@ -904,13 +905,13 @@ namespace sclc {
             }
             types.push_back(self->member_type);
             if (types.size() < (self->reified_parameters.size() - self->isMethod)) {
-                transpilerError("Wrong amount of parameters for reified function call. Expected " + std::to_string(self->reified_parameters.size()) + " but got " + std::to_string(types.size()), i);
+                transpilerError("Wrong amount of parameters for reified function call. Expected " + std::to_string(self->reified_parameters.size()) + " but got " + std::to_string(types.size()) + " for function '" + sclFunctionNameToFriendlyString(self) + "'", i);
                 errors.push_back(err);
                 return nullptr;
             }
         } else {
             if (typeStack.size() < self->reified_parameters.size()) {
-                transpilerError("Wrong amount of parameters for reified function call. Expected " + std::to_string(self->reified_parameters.size()) + " but got " + std::to_string(typeStack.size()), i);
+                transpilerError("Wrong amount of parameters for reified function call. Expected " + std::to_string(self->reified_parameters.size()) + " but got " + std::to_string(typeStack.size()) + " for function '" + sclFunctionNameToFriendlyString(self) + "'", i-2);
                 errors.push_back(err);
                 return nullptr;
             }

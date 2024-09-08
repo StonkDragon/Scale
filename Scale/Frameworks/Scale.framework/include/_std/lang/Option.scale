@@ -1,9 +1,0 @@
-expect union Option
-    Some: any
-    None: none
-end
-
-expect function Option:expected(id: int): none
-expect function Option:isSome(): bool
-expect function Option:isNone(): bool
-expect function Option:toString(): str

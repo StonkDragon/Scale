@@ -170,32 +170,33 @@ final sealed struct str is Iterable
       self.data do 'map int8::toString return
     fi
 
+    0 => decl index: int
+    0 => decl arrayPtr: int
     new<str>[self:size] => decl arr: [str]
-    decl next: int
+    decl tmpStr: str
 
-    self.data => decl tmp: str
-    delim tmp:indexOf => decl index: int
+    while index self:size < do
+      if
+        delim.data
+        ((self.data as int) index +) as [int8]
+        delim.length unsafe __c_strncmp end 0 ==
+      then
+        tmpStr => arr[arrayPtr]
+        arrayPtr++ => arrayPtr
+        "" => tmpStr
 
-    while index 0 >= do
-      if index 0 == then
-        "" => arr[next]
+        delim.length index +> index
       else
-        (0 to index) tmp:subString => arr[next]
+        tmpStr self.data[index]:toString + => tmpStr
+
+        index++ => index
       fi
-      next 1 +> next
-      index delim:size + => decl nextStrStart: int
-      if nextStrStart tmp:size >= then
-        "" => tmp
-      else
-        nextStrStart tmp:subString => tmp
-      fi
-      delim tmp:indexOf => index
     done
 
-    tmp => arr[next]
-    next 1 +> next
-
-    next arr:resize return
+    tmpStr => arr[arrayPtr]
+    arrayPtr++ => arrayPtr
+  
+    arrayPtr arr:resize return
   end
 
   function startsWith(string: str): bool

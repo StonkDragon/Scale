@@ -18,7 +18,6 @@
 %include include/std/lang/String.scldoc
 %include include/std/lang/Union.scldoc
 %include include/std/macros/Macros.scldoc
-%include include/std/math/Fraction.scldoc
 %include include/std/runtime/GarbageCollector.scldoc
 %include include/std/runtime/Process.scldoc
 %include include/std/thread/Lock.scldoc

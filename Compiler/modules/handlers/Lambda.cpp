@@ -18,7 +18,6 @@ namespace sclc {
         f->addModifier("<lambda>");
         f->addModifier(generateSymbolForFunction(function).substr(44));
         f->return_type = "none";
-        f->args.push_back(Variable("$data", "any"));
         safeInc();
         if (body[i].type == tok_bracket_open) {
             while (body[i].type != tok_bracket_close) {
@@ -67,6 +66,10 @@ namespace sclc {
                         errors.push_back(err);
                         safeInc();
                         continue;
+                    }
+                    if (type == "varargs") {
+                        transpilerError("Lambdas may not take variadic arguments!", i);
+                        errors.push_back(err);
                     }
                     f->addArgument(Variable(name, type));
                 } else {
@@ -121,6 +124,7 @@ namespace sclc {
             f->addToken(body[i]);
             safeInc();
         }
+        f->args.push_back(Variable("$data", "any"));
 
         std::string arguments = "";
         if (f->isMethod) {

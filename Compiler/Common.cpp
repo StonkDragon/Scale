@@ -1482,7 +1482,7 @@ void operator delete(void* x) noexcept {
     size_t* a = (size_t*) ((ptrdiff_t) x - sizeof(size_t));
     adata.bytes_freed += *a;
 
-    free(a);
+    // free(a);
 }
 
 void* operator new(size_t x, std::nothrow_t&) noexcept

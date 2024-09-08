@@ -3089,8 +3089,10 @@ namespace sclc {
                 }
             }
             if (toString == nullptr || contains<std::string>(toString->modifiers, "<generated>")) {
-                result.functions.push_back(createToStringMethod(s));
-                hasImplementedToString = true;
+                if (s.super != "Union") {
+                    result.functions.push_back(createToStringMethod(s));
+                    hasImplementedToString = true;
+                }
             }
 
             for (auto&& toImplement : s.toImplementFunctions) {

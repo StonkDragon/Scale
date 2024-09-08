@@ -319,20 +319,17 @@ namespace sclc
                 append("}\n");
                 scopeDepth--;
                 append("};\n");
-
-                append("const TypeInfo _scl_ti_%s __asm__(\"__T%s\") = {\n", s.name.c_str(), s.name.c_str());
+                
+                append("static const _scl_vtable _scl_vtable_%s = {\n", s.name.c_str());
                 scopeDepth++;
-                append(".type = 0x%lxUL,\n", id(s.name.c_str()));
-                append(".type_name = \"%s\",\n", retemplate(s.name).c_str());
-                append(".vtable_info = (&_scl_vtable_info_%s)->infos,\n", s.name.c_str());
-                // append(".vtable = (&_scl_vtable_%s)->funcs,\n", s.name.c_str());
-                if (s.super.size()) {
-                    append(".super = &_scl_ti_%s,\n", s.super.c_str());
-                } else {
-                    append(".super = 0,\n");
-                }
-                append(".size = sizeof(struct Struct_%s),\n", s.name.c_str());
-                append(".vtable = {\n");
+                append(".layout = {\n");
+                scopeDepth++;
+                append(".size = %zu * sizeof(_scl_function),\n", vtable->second.size());
+                append(".flags = MEM_FLAG_ARRAY,\n");
+                append(".array_elem_size = sizeof(_scl_function)\n");
+                scopeDepth--;
+                append("},\n");
+                append(".funcs = {\n");
                 scopeDepth++;
                 for (auto&& m : vtable->second) {
                     append("(const _scl_function) mt_%s$%s,\n", m->member_type.c_str(), m->name.c_str());
@@ -340,6 +337,21 @@ namespace sclc
                 append("0\n");
                 scopeDepth--;
                 append("}\n");
+                scopeDepth--;
+                append("};\n");
+
+                append("const TypeInfo _scl_ti_%s __asm__(\"__T%s\") = {\n", s.name.c_str(), s.name.c_str());
+                scopeDepth++;
+                append(".type = 0x%lxUL,\n", id(s.name.c_str()));
+                append(".type_name = \"%s\",\n", retemplate(s.name).c_str());
+                append(".vtable_info = (&_scl_vtable_info_%s)->infos,\n", s.name.c_str());
+                append(".vtable = (&_scl_vtable_%s)->funcs,\n", s.name.c_str());
+                if (s.super.size()) {
+                    append(".super = &_scl_ti_%s,\n", s.super.c_str());
+                } else {
+                    append(".super = 0,\n");
+                }
+                append(".size = sizeof(struct Struct_%s),\n", s.name.c_str());
                 scopeDepth--;
                 append("};\n");
             });

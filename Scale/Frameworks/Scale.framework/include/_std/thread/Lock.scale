@@ -1,8 +1,0 @@
-expect struct Lock
-    private decl mutex: any
-
-    expect sealed function lock(): none
-    expect sealed function unlock(): none
-
-    expect function finalize(): none
-end

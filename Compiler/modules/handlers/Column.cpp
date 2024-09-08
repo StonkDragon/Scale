@@ -37,10 +37,10 @@ namespace sclc {
                 scopeDepth++;
                 if (rType == "none" || rType == "nothing") {
                     if (argTypes.size()) {
-                        append("void(*(*lambda))(void*, %s);\n", argTypes.c_str());
+                        append("void(*(*lambda))(%s, void*);\n", argTypes.c_str());
                         append("lambda = _scl_pop(typeof(lambda));\n");
                         append("_scl_popn(%zu);\n", argAmount);
-                        append("(*lambda)(lambda, %s);\n", argGet.c_str());
+                        append("(*lambda)(%s, lambda);\n", argGet.c_str());
                     } else {
                         append("void(*(*lambda))(void*);\n");
                         append("lambda = _scl_pop(typeof(lambda));\n");
@@ -49,10 +49,10 @@ namespace sclc {
                     }
                 } else {
                     if (argTypes.size()) {
-                        append("%s(*(*lambda))(void*, %s);\n", sclTypeToCType(result, returnType).c_str(), argTypes.c_str());
+                        append("%s(*(*lambda))(%s, void*);\n", sclTypeToCType(result, returnType).c_str(), argTypes.c_str());
                         append("lambda = _scl_pop(typeof(lambda));\n");
                         append("_scl_popn(%zu);\n", argAmount);
-                        append("_scl_push(%s, (*lambda)(lambda, %s));\n", sclTypeToCType(result, returnType).c_str(), argGet.c_str());
+                        append("_scl_push(%s, (*lambda)(%s, lambda));\n", sclTypeToCType(result, returnType).c_str(), argGet.c_str());
                     } else {
                         append("%s(*(*lambda))(void*);\n", sclTypeToCType(result, returnType).c_str());
                         append("lambda = _scl_pop(typeof(lambda));\n");
@@ -130,16 +130,16 @@ namespace sclc {
             append("_scl_popn(%zu);\n", argAmount);
             if (removeTypeModifiers(returnType) == "none" || removeTypeModifiers(returnType) == "nothing") {
                 if (argTypes.size()) {
-                    append("void(*(*lambda))(void*, %s) = tmp->%s;\n", argTypes.c_str(), v.name.c_str());
-                    append("(*lambda)(lambda, %s);\n", argGet.c_str());
+                    append("void(*(*lambda))(%s, void*) = tmp->%s;\n", argTypes.c_str(), v.name.c_str());
+                    append("(*lambda)(%s, lambda);\n", argGet.c_str());
                 } else {
                     append("void(*(*lambda))(void*) = tmp->%s;\n", v.name.c_str());
                     append("(*lambda)(lambda);\n");
                 }
             } else {
                 if (argTypes.size()) {
-                    append("void(*(*lambda))(void*, %s) = tmp->%s;\n", argTypes.c_str(), v.name.c_str());
-                    append("_scl_push(%s, (*lambda)(lambda, %s));\n", sclTypeToCType(result, returnType).c_str(), argGet.c_str());
+                    append("void(*(*lambda))(%s, void*) = tmp->%s;\n", argTypes.c_str(), v.name.c_str());
+                    append("_scl_push(%s, (*lambda)(%s, lambda));\n", sclTypeToCType(result, returnType).c_str(), argGet.c_str());
                 } else {
                     append("void(*(*lambda))(void*) = tmp->%s;\n", v.name.c_str());
                     append("_scl_push(%s, (*lambda)(lambda));\n", sclTypeToCType(result, returnType).c_str());
