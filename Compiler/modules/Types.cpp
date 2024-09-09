@@ -234,20 +234,11 @@ namespace sclc {
         bool argIsNilable = typeCanBeNil(arg);
         stack = removeTypeModifiers(stack);
         arg = removeTypeModifiers(arg);
-        if (hasEnum(result, stack)) {
-            stack = "int";
-        }
-        if (hasEnum(result, arg)) {
-            arg = "int";
-        }
         if (allowIntPromotion && arg == "bool") arg = "int";
         if (allowIntPromotion && stack == "bool") stack = "int";
         if (typeEquals(stack, arg) && stackTypeIsNilable == argIsNilable) {
             return true;
         }
-
-        if (hasEnum(result, stack)) stack = "int";
-        if (hasEnum(result, arg)) arg = "int";
 
         if (isPrimitiveIntegerType(arg) && isPrimitiveIntegerType(stack)) {
             return allowIntPromotion || (typeIsSigned(arg) == typeIsSigned(stack) && intBitWidth(arg) == intBitWidth(stack));

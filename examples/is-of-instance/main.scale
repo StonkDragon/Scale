@@ -1,7 +1,7 @@
 struct Foo
   decl x: int
 
-  function init(x: int): none
+  init(x: int)
     x => self.x
   end
 end

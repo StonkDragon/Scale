@@ -3,11 +3,11 @@ import std.util.Iterable
 import std.util.InvalidArgumentException
 
 template<T>
-final sealed struct MapEntry
+final struct MapEntry
   decl key: str
   decl value: T
 
-  function init(key: str, value: T): none
+  init(key: str, value: T)
     key => self.key
     value => self.value
   end
@@ -18,10 +18,10 @@ final sealed struct MapEntry
 end
 
 template<T>
-final sealed struct Map is Iterable
+final struct Map is Iterable
   private decl data: TypedArray<MapEntry<T>>
 
-  function init(size: int): none
+  init(size: int)
     size TypedArray<MapEntry<T>>::new => self.data
   end
 
@@ -82,10 +82,10 @@ final sealed struct Map is Iterable
 end
 
 template<T>
-final sealed struct MapIterator is Iterator
+final struct MapIterator is Iterator
   private decl data: ArrayIterator
 
-  function init(data: Array): none
+  init(data: Array)
     data ArrayIterator::new => self.data
   end
 

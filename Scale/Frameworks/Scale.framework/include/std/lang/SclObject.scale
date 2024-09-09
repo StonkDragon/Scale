@@ -15,7 +15,6 @@ struct SclObject
 
     expect foreign cdecl "_scl_identity_hash" function hashCode(): int
 
-    function init(): none end
-
-    function finalize(): none end
+    init() end
+    deinit() end
 end

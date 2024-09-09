@@ -545,7 +545,7 @@ namespace sclc {
         bool asyncImmediatelyAwaited = self->has_async && (i + 1) < body.size() && body[i + 1].type == tok_await;
         std::string rtype = removeTypeModifiers(self->return_type);
 
-        if (self->has_nonvirtual || self->has_sealed) {
+        if (self->has_nonvirtual || self->has_final) {
             if (self->has_async) {
                 if (asyncImmediatelyAwaited) {
                     append2("_scl_sync(mt_%s$%s, %s, %s)", self->member_type.c_str(), self->name.c_str(), functionArgsToStructBody(self, result).c_str(), args.c_str());
@@ -1303,7 +1303,7 @@ namespace sclc {
             name = retemplate(name);
         }
         if (f->has_lambda) {
-            name += "[" + std::to_string(f->lambdaIndex) + "]";
+            name += "[" + f->lambdaName + "]";
         }
         name += "(";
         for (size_t i = 0; i < f->args.size(); i++) {

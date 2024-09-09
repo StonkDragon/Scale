@@ -22,7 +22,7 @@ struct Vec3
     decl y: int
     decl z: int
 
-    function init(x: int, y: int, z: int): none
+    init(x: int, y: int, z: int)
         x => self.x
         y => self.y
         z => self.z

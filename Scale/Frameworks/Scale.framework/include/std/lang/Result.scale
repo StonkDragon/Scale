@@ -14,16 +14,8 @@ function Result:expected(id: int): none
     )
 end
 
-function Result:isOk(): bool
-    self.__tag 1 == return
-end
-
-function Result:isErr(): bool
-    self.__tag 2 == return
-end
-
 function Result:toString(): str
-    if self:isOk then
+    if self.isOk then
         "Ok {" self.Ok:toString + "}" +
     else
         "Err {" self.Err:toString + "}" +

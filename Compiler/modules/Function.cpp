@@ -20,18 +20,16 @@ Function::Function(std::string name, bool isMethod, Token name_token) : namedRet
     this->member_type = "";
 
     this->has_expect = 0;
-    this->has_export = 0;
     this->has_private = 0;
     this->has_construct = 0;
-    this->has_final = 0;
+    this->has_destructor = 0;
     this->has_constructor = 0;
     this->has_cdecl = 0;
     this->has_lambda = 0;
     this->has_asm = 0;
-    this->has_sealed = 0;
+    this->has_final = 0;
     this->has_unsafe = 0;
     this->has_operator = 0;
-    this->has_restrict = 0;
     this->has_getter = 0;
     this->has_setter = 0;
     this->has_foreign = 0;
@@ -53,19 +51,16 @@ void Function::addModifier(std::string modifier) {
     modifiers.push_back(modifier);
 
     if (has_expect == 0 && modifier == "expect") has_expect = modifiers.size();
-    else if (has_export == 0 && modifier == "export") has_export = modifiers.size();
     else if (has_private == 0 && modifier == "private") has_private = modifiers.size();
     else if (has_construct == 0 && modifier == "construct") has_construct = modifiers.size();
     else if (has_constructor == 0 && modifier == "<constructor>") has_constructor = modifiers.size();
-    else if (has_final == 0 && modifier == "final") has_final = modifiers.size();
-    else if (has_final == 0 && modifier == "<destructor>") has_final = modifiers.size();
+    else if (has_destructor == 0 && modifier == "<destructor>") has_destructor = modifiers.size();
     else if (has_cdecl == 0 && modifier == "cdecl") has_cdecl = modifiers.size();
     else if (has_asm == 0 && modifier == "asm") has_asm = modifiers.size();
     else if (has_lambda == 0 && modifier == "<lambda>") has_lambda = modifiers.size();
-    else if (has_sealed == 0 && modifier == "sealed") has_sealed = modifiers.size();
+    else if (has_final == 0 && modifier == "final") has_final = modifiers.size();
     else if (has_unsafe == 0 && modifier == "unsafe") has_unsafe = modifiers.size();
     else if (has_operator == 0 && modifier == "operator") has_operator = modifiers.size();
-    else if (has_restrict == 0 && modifier == "restrict") has_restrict = modifiers.size();
     else if (has_getter == 0 && modifier == "@getter") has_getter = modifiers.size();
     else if (has_setter == 0 && modifier == "@setter") has_setter = modifiers.size();
     else if (has_foreign == 0 && modifier == "foreign") has_foreign = modifiers.size();
@@ -73,6 +68,7 @@ void Function::addModifier(std::string modifier) {
     else if (has_nonvirtual == 0 && modifier == "nonvirtual") has_nonvirtual = modifiers.size();
     else if (has_async == 0 && modifier == "async") has_async = modifiers.size();
     else if (has_const == 0 && modifier == "const") has_const = modifiers.size();
+    else if (has_inline == 0 && modifier == "inline") has_inline = modifiers.size();
     else if (has_reified == 0 && modifier == "reified") {
         has_reified = modifiers.size();
         has_nonvirtual = modifiers.size();

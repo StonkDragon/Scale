@@ -60,7 +60,7 @@ namespace sclc {
     void Struct::implement(const std::string& interface) {
         interfaces.insert(interface);
     }
-    bool Struct::isSealed() const {
+    bool Struct::isOpen() const {
         return (flags & 0b00000100) != 0;
     }
     bool Struct::isStatic() const {
@@ -78,7 +78,7 @@ namespace sclc {
     void Struct::addModifier(std::string m) {
         if (m == "final") {
             flags |= 0b00100000;
-        } else if (m == "sealed") {
+        } else if (m == "open") {
             flags |= 0b00000100;
         } else if (m == "static") {
             flags |= 0b00010000;

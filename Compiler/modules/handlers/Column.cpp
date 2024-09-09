@@ -94,7 +94,7 @@ namespace sclc {
         }
         Struct s = getStructByName(result, type);
 
-        auto callContainedLambda = [&fp, &errors, &body, &result](const Variable& v, const std::string& container, std::string& help) {
+        auto callContainedLambda = [&fp, &errors, &body, &result, &i](const Variable& v, const std::string& container, std::string& help) {
             std::string type = v.type;
             if (!strstarts(removeTypeModifiers(type), "lambda(")) {
                 help = ". Maybe you meant to use '.' instead of ':' here";

@@ -1,8 +1,8 @@
-final sealed struct Pair
+final struct Pair
 	decl a: any
 	decl b: any
 
-	function init(a: any, b: any): none
+	init(a: any, b: any)
 		a => self.a
 		b => self.b
 	end

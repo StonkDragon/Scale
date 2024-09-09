@@ -76,18 +76,18 @@
         var_indices.pop_back();                                    \
     } while (0)
 #define typeStackTop (typeStack.size() ? typeStack.back() : "")
-#define handler(_tok) extern "C" void handle##_tok(std::vector<Token> &body, Function *function, std::vector<FPResult> &errors, std::vector<FPResult> &warns, std::ostream &fp, TPResult &result)
-#define handle(_tok) handle##_tok(body, function, errors, warns, fp, result)
+#define handler(_tok) extern "C" void handle##_tok(std::vector<Token> &body, Function *function, std::vector<FPResult> &errors, std::vector<FPResult> &warns, std::ostream &fp, TPResult &result, size_t& i)
+#define handle(_tok) handle##_tok(body, function, errors, warns, fp, result, i)
 #define handlerRef(_tok) (&handle##_tok)
-#define handleRef(ref)                                    \
-    if (ref)                                              \
-    {                                                     \
-        (ref)(body, function, errors, warns, fp, result); \
-    }                                                     \
-    else                                                  \
-    {                                                     \
-        transpilerError("Unexpected token:", i);          \
-        errors.push_back(err);                            \
+#define handleRef(ref)                                       \
+    if (ref)                                                 \
+    {                                                        \
+        (ref)(body, function, errors, warns, fp, result, i); \
+    }                                                        \
+    else                                                     \
+    {                                                        \
+        transpilerError("Unexpected token:", i);             \
+        errors.push_back(err);                               \
     }
 #define noUnused    \
     (void)body;     \
@@ -95,7 +95,8 @@
     (void)errors;   \
     (void)warns;    \
     (void)fp;       \
-    (void)result
+    (void)result;   \
+    (void)i
 #define debugDump(_var) std::cout << __func__ << ":" << std::to_string(__LINE__) << ": " << #_var << ": " << _var << std::endl
 #define typePop                   \
     do                            \
@@ -139,7 +140,6 @@ namespace sclc
     extern std::unordered_map<std::string, std::vector<Method *>> vtables;
     extern StructTreeNode *structTree;
     extern int scopeDepth;
-    extern size_t i;
     extern size_t condCount;
     extern std::vector<short> whatWasIt;
     extern std::vector<std::string> switchTypes;

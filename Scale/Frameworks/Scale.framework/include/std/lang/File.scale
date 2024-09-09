@@ -11,13 +11,13 @@ private expect foreign unsafe function __c_strlen(cstr: [int8]): int
 cdecl "getline"
 private expect foreign unsafe function __c_getline(cstr: [[int8]], size: [int], file: __c_file): int
 
-final sealed struct EndOfFileException: Exception
-  function init(): none
+final struct EndOfFileException: Exception
+  init()
     "End of file reached" => self.msg
   end
 end
 
-final sealed struct File
+final struct File
   private decl _name: str
   private decl _file: __c_file
   private decl _can_close: bool
@@ -52,7 +52,7 @@ final sealed struct File
     end
   ) => decl stderr: const File
 
-  function init(name: str): none
+  init(name: str)
     unsafe
       name:view "rb+":view File::__c_fopen => decl file: __c_file?
       if file as any nil == then

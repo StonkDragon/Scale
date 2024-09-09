@@ -1,6 +1,6 @@
 import std.thread.Thread
 
-static final sealed struct Process
+static final struct Process
     cdecl "exit"
     expect foreign function exit(:int): none
     expect foreign function stackTrace(): [str]

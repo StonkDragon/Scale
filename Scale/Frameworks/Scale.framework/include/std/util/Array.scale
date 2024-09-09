@@ -6,7 +6,7 @@ import std.util.TypedArray
 import std.util.ReadOnlyArray
 import std.thread.Lock
 
-sealed struct Array: Lock is Iterable
+struct Array: Lock is Iterable
   decl values:      readonly [any]
   decl count:       readonly int
   decl capacity:    readonly int
@@ -130,7 +130,7 @@ sealed struct Array: Lock is Iterable
     val self:indexOf -1 != return
   end
 
-  function init(size: int): none
+  init(size: int)
     if size 0 < then
       "Invalid Argument: size must not be 0 or less" InvalidArgumentException::new throw
     fi
@@ -140,7 +140,7 @@ sealed struct Array: Lock is Iterable
     size => self.capacity
   end
 
-  function init(): none
+  init()
     16 self:init
   end
 
@@ -258,11 +258,11 @@ sealed struct Array: Lock is Iterable
   end
 end
 
-sealed struct ArrayIterator is Iterator
+struct ArrayIterator is Iterator
   private decl array: Array
   private decl pos: int
 
-  function init(arr: Array): none
+  init(arr: Array)
     arr => self.array
     0 => self.pos
   end

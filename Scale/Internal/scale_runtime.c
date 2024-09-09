@@ -258,7 +258,7 @@ void _scl_finalize(scl_any ptr) {
 	ptr = _scl_get_memory_layout(ptr);
 	if (ptr && (((memory_layout_t*) ptr)->flags & MEM_FLAG_INSTANCE)) {
 		scl_any obj = (scl_any) (ptr + sizeof(memory_layout_t));
-		virtual_call(obj, "finalize()V;", void);
+		virtual_call(obj, "deinit()V;", void);
 	}
 	memset(ptr, 0, sizeof(memory_layout_t));
 }

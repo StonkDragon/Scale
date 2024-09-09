@@ -1,4 +1,4 @@
-static final sealed struct GarbageCollector
+static final struct GarbageCollector
     private expect foreign unsafe function run0(): none
     private expect foreign unsafe function setPaused0(:bool): none
     private expect foreign unsafe function isPaused0(): bool

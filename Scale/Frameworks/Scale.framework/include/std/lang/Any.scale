@@ -3,7 +3,7 @@ private expect foreign unsafe function _scl_alloc(size: int): any
 private expect foreign unsafe function _scl_free(ptr: any): none
 private expect foreign unsafe function _scl_sizeof(ptr: any): int
 
-final static sealed struct any
+final static struct any
     function new(sz: int): any
         unsafe
             sz _scl_alloc return
@@ -51,16 +51,17 @@ final static sealed struct any
     end
 end
 
-final sealed struct Any
+final struct Any
     decl value: readonly any
 
     static function valueOf(x: any): Any
         x Any::new return
     end
 
-    function init(x: any): none
+    init(x: any)
         x => self.value
     end
+    
     function equals(other: any): bool
         other self == return
     end

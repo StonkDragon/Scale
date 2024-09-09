@@ -3,7 +3,7 @@ struct Foo
         "closed" puts
     end
 
-    function init(): none
+    init()
         "init" puts
     end
 end

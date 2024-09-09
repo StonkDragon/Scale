@@ -1,4 +1,4 @@
-static final sealed struct MathConstants
+static final struct MathConstants
   (2.71828182845904523536028747135266250) => decl e: const float
   (3.14159265358979323846264338327950288) => decl pi: const float
   (0.0 0.0 /) => decl nan: const float

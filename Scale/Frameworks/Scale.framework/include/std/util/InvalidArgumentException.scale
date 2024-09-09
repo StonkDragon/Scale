@@ -1,5 +1,5 @@
-final sealed struct InvalidArgumentException : Exception
-    function init(s: str): none
+final struct InvalidArgumentException : Exception
+    init(s: str)
         s => self.msg
     end
 end

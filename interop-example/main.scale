@@ -2,7 +2,7 @@
 expect foreign function foo(): none
 
 # function exported to C
-export function bar(a: str): none
+foreign function bar(a: str): none
     a puts
 end
 

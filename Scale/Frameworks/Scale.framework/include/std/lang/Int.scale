@@ -6,7 +6,7 @@ cdecl "printf"
 private expect foreign unsafe function __c_printf(:[int8], :varargs): int
 
 macro! IntStruct(type) {
-  final static sealed struct $type
+  final static struct $type
     (
       1 sizeof $type 8 * 1 - <<
     ) => decl minValue: const $type
@@ -50,7 +50,7 @@ macro! IntStruct(type) {
   end
 }
 macro! UIntStruct(type) {
-  final static sealed struct $type
+  final static struct $type
     (0) => decl minValue: const $type
     (-1) => decl maxValue: const $type
 
@@ -86,7 +86,7 @@ macro! UIntStruct(type) {
   end
 }
 
-final static sealed struct bool
+final static struct bool
   function toString(x: bool): str
     if x then
       "true" return
@@ -121,14 +121,14 @@ UIntStruct! uint
 delmacro! IntStruct
 delmacro! UIntStruct
 
-final sealed struct Int
+final struct Int
   decl value: readonly int
 
   static function valueOf(x: int): Int
     x Int::new return
   end
 
-  function init(x: int): none
+  init(x: int)
     x => self.value
   end
 

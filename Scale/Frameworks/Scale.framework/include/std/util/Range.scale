@@ -1,10 +1,10 @@
 import std.util.Iterable
 
-final sealed struct Range is Iterable
+final struct Range is Iterable
   decl lower: int
   decl upper: int
   
-  function init(lower: int, upper: int): none
+  init(lower: int, upper: int)
     if lower upper > then
       "lower must not be bigger than upper!" InvalidArgumentException::new throw
     fi
@@ -51,11 +51,11 @@ final sealed struct Range is Iterable
   end
 end
 
-final sealed struct ReverseRange is Iterable
+final struct ReverseRange is Iterable
   decl upper: int
   decl lower: int
 
-  function init(upper: int, lower: int): none
+  init(upper: int, lower: int)
     if upper lower < then
       "upper must not be smaller than lower!" InvalidArgumentException::new throw
     fi
@@ -87,11 +87,11 @@ final sealed struct ReverseRange is Iterable
   end
 end
 
-final sealed struct RangeIterator is Iterator
+final struct RangeIterator is Iterator
   private decl cur: int
   private decl last: int
 
-  function init(r: Range): none
+  init(r: Range)
     r.lower => self.cur
     r.upper => self.last
   end
@@ -107,11 +107,11 @@ final sealed struct RangeIterator is Iterator
   end
 end
 
-final sealed struct ReverseRangeIterator is Iterator
+final struct ReverseRangeIterator is Iterator
   private decl cur: int
   private decl last: int
 
-  function init(r: ReverseRange): none
+  init(r: ReverseRange)
     r.lower => self.last
     r.upper => self.cur
   end
@@ -126,20 +126,20 @@ final sealed struct ReverseRangeIterator is Iterator
   end
 end
 
-final sealed struct UnboundRange is Iterable
+final struct UnboundRange is Iterable
   function iterate(): UnboundRangeIterator
     UnboundRangeIterator::new return
   end
 
   const function toString(): str
-    "( to )" return
+    "to" return
   end
 end
 
-final sealed struct UnboundRangeIterator is Iterator
+final struct UnboundRangeIterator is Iterator
   private decl i: int
 
-  function init(): none
+  init()
     int::minValue => i
   end
 
@@ -154,11 +154,11 @@ final sealed struct UnboundRangeIterator is Iterator
   end
 end
 
-final sealed struct PartialRange is Iterable
+final struct PartialRange is Iterable
   private decl hasUpperBound: bool
   private decl bound: int
 
-  function init(): none end
+  init() end
 
   static function lowerBound(bound: int): PartialRange
     PartialRange::new => decl range: PartialRange

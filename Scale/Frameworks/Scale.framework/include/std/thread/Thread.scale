@@ -1,18 +1,18 @@
-final sealed struct ThreadException: Exception
-    function init(msg: str): none
+final struct ThreadException: Exception
+    init(msg: str)
         msg => self.msg
     end
 end
 
-final sealed struct AtomicOperationException: Exception
-    function init(msg: str): none
+final struct AtomicOperationException: Exception
+    init(msg: str)
         msg => self.msg
     end
 end
 
-final sealed open struct MutexError: Error
+final struct MutexError: Error end
 
-final sealed struct Thread: Lock
+final struct Thread: Lock
     private static (TypedArray<Thread>::new) => decl threads: const Array
     private static decl nextID: int
 
@@ -36,7 +36,7 @@ final sealed struct Thread: Lock
 
     expect foreign static function currentThread(): Thread
 
-    function init(func: lambda(): none): none
+    init(func: lambda(): none)
         func => self.func
         nil => self.tid
         "Thread " Thread::nextID:toString + => self.name

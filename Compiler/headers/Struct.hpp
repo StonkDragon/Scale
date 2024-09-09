@@ -33,7 +33,7 @@ namespace sclc
         const Variable& getMember(const std::string& name) const;
         bool implements(const std::string& name) const;
         void implement(const std::string& interface);
-        bool isSealed() const;
+        bool isOpen() const;
         bool isStatic() const;
         bool isFinal() const;
         bool isExtern() const;

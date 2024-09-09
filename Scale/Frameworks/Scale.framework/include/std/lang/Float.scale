@@ -3,7 +3,7 @@ private expect foreign unsafe function __c_sprintf(:[int8], :[int8], :varargs): 
 cdecl "atof"
 private expect foreign unsafe function __c_atof(:[int8]): float
 
-final static sealed struct float
+final static struct float
     (1023) => decl maxExponent: const int
     (-1022) => decl minExponent: const int
 
@@ -80,7 +80,7 @@ final static sealed struct float
     end
 end
 
-final static sealed struct float32
+final static struct float32
     (127) => decl maxExponent: const int
     (-126) => decl minExponent: const int
 
@@ -157,14 +157,14 @@ final static sealed struct float32
     end
 end
 
-final sealed struct Float
+final struct Float
     decl value: readonly float
 
     static function valueOf(x: float): Float
         x Float::new return
     end
 
-    function init(x: float): none
+    init(x: float)
         x => self.value
     end
     function equals(other: any): bool

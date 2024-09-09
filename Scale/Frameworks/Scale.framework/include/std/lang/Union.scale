@@ -2,7 +2,7 @@ struct Union
     decl __tag: readonly int
     decl __value: readonly any
 
-    function init(tag: int, val: any): none
+    init(tag: int, val: any)
         tag => self.__tag
         val => self.__value
     end

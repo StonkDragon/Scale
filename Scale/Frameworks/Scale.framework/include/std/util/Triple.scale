@@ -1,9 +1,9 @@
-final sealed struct Triple
+final struct Triple
   decl a: any
   decl b: any
   decl c: any
 
-  function init(a: any, b: any, c: any): none
+  init(a: any, b: any, c: any)
     a => self.a
     b => self.b
     c => self.c

@@ -16,7 +16,7 @@ namespace sclc
     typedef std::unordered_map<std::string, std::string> Deprecation;
 
     struct Function {
-        size_t lambdaIndex;
+        std::string lambdaName;
         std::string name;
         std::string name_without_overload;
         std::string return_type;
@@ -31,18 +31,16 @@ namespace sclc
         std::vector<Function*> overloads;
 
         long has_expect;
-        long has_export;
         long has_private;
         long has_construct;
-        long has_final;
+        long has_destructor;
         long has_constructor;
         long has_cdecl;
         long has_lambda;
         long has_asm;
-        long has_sealed;
+        long has_final;
         long has_unsafe;
         long has_operator;
-        long has_restrict;
         long has_getter;
         long has_setter;
         long has_foreign;

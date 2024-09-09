@@ -15,7 +15,7 @@ private expect foreign unsafe function __c_strcat(dest: [int8], src: [int8]): [i
 cdecl "strtok"
 private expect foreign unsafe function __c_strtok(:any, :[int8]): [int8]?
 
-final sealed struct str is Iterable
+final struct str is Iterable
   decl data: readonly [int8]
   decl length: readonly int
   decl hash: readonly uint
@@ -258,13 +258,13 @@ final sealed struct str is Iterable
     end
   end
 
-  function init(data: [int8]): none
+  init(data: [int8])
     data str::makeNilTerminated => self.data
     data:size 1 - => self.length
     data builtinHash => self.hash
   end
 
-  function init(data: [int8], n: int): none
+  init(data: [int8], n: int)
     data:size n <. => self.length
     new<int8>[self.length 1 +] => self.data
     for i in 0 to self.length do
@@ -273,7 +273,7 @@ final sealed struct str is Iterable
     self.data builtinHash => self.hash
   end
 
-  function init(): none
+  init()
     c"" => self.data
     0 => self.length
     0 => self.hash
@@ -456,11 +456,11 @@ final sealed struct str is Iterable
   end
 end
 
-final sealed struct StringIterator is Iterator
+final struct StringIterator is Iterator
   private decl _str: str
   private decl _pos: int
 
-  function init(s: str): none
+  init(s: str)
     s => self._str
     0 => self._pos
   end

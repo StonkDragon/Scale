@@ -6,7 +6,7 @@
 # by the catch block in main().
 
 struct TestException : Exception
-    function init(m: str): none
+    init(m: str)
         m => self.msg
     end
 end

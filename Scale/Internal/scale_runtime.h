@@ -85,9 +85,6 @@ extern "C" {
 // Scale expects this function
 #define expect
 
-// This function was declared in Scale code
-#define export
-
 #undef nil
 #define nil NULL
 

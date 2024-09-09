@@ -165,11 +165,6 @@ namespace sclc
             if (!Main::options::noLinkScale && pathstarts(file, scaleFolder + DIR_SEP "Frameworks" DIR_SEP "Scale.framework") && !strstarts(v.name, "$T")) {
                 continue;
             }
-            // if (!strstarts(v.name, "$T") && !Main::options::noLinkScale && pathstarts(file, scaleFolder + DIR_SEP "Frameworks" DIR_SEP "Scale.framework") /* && !Main::options::noMain */) {
-            //     if (!pathcontains(file, DIR_SEP "compiler" DIR_SEP) && !pathcontains(file, DIR_SEP "macros" DIR_SEP) && !pathcontains(file, DIR_SEP "__")) {
-            //         continue;
-            //     }
-            // }
             if (!v.isExtern) {
                 Method* m = nullptr;
                 const Struct& s = getStructByName(result, v.type);
@@ -248,11 +243,6 @@ namespace sclc
             if (!Main::options::noLinkScale && pathstarts(file, scaleFolder + DIR_SEP "Frameworks" DIR_SEP "Scale.framework") && !strstarts(f->name_without_overload, "$T")) {
                 continue;
             }
-            // if (!strstarts(f->member_type, "$T") && !Main::options::noLinkScale && pathstarts(f->name_token.location.file, scaleFolder + DIR_SEP "Frameworks" DIR_SEP "Scale.framework") /* && !Main::options::noMain */) {
-            //     if (!pathcontains(file, DIR_SEP "compiler" DIR_SEP) && !pathcontains(file, DIR_SEP "macros" DIR_SEP) && !pathcontains(file, DIR_SEP "__")) {
-            //         continue;
-            //     }
-            // }
             if (!f->has_expect)
                 append("  fn_%s();\n", f->name.c_str());
         }

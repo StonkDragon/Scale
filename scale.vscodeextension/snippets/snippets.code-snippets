@@ -51,11 +51,21 @@
 		"scope": "source.scale",
 		"prefix": "initmethod",
 		"body": [
-			"function init($2): none",
+			"init($2)",
 			"\t$0",
 			"end"
 		],
 		"description": "Initialization function of a type"
+	},
+	"Deinit": {
+		"scope": "source.scale",
+		"prefix": "deinitmethod",
+		"body": [
+			"deinit($2)",
+			"\t$0",
+			"end"
+		],
+		"description": "Deinitialization function of a type"
 	},
 	"While Loop": {
 		"scope": "source.scale",
@@ -190,16 +200,6 @@
 			"expect function ${1:name}($2): ${3:none}"
 		],
 		"description": "Import a function from a library or object file"
-	},
-	"Export Function": {
-		"scope": "source.scale",
-		"prefix": "export",
-		"body": [
-			"export function ${1:name}($2): ${3:none}",
-			"\t$0",
-			"end"
-		],
-		"description": "Export a function to C"
 	},
 	"Extern Method": {
 		"scope": "source.scale",
@@ -342,11 +342,11 @@
 		],
 		"description": "Struct"
 	},
-	"Sealed Struct": {
+	"Open Struct": {
 		"scope": "source.scale",
-		"prefix": "sealed struct",
+		"prefix": "open struct",
 		"body": [
-			"sealed struct ${1:name}",
+			"open struct ${1:name}",
 			"\t$0",
 			"end"
 		],

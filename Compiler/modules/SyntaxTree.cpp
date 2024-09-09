@@ -244,60 +244,24 @@ namespace sclc {
         return func;
     }
 
-    Method* parseMethod(std::string name, Token& name_token, std::string memberName, std::vector<FPResult>& errors, size_t& i, std::vector<Token>& tokens) {
-        if (name == "=>") {
-            if (tokens[i + 2].type == tok_bracket_open && tokens[i + 3].type == tok_bracket_close) {
-                i += 2;
-                name += "[]";
-            }
-        } else if (name == "[") {
-            if (tokens[i + 2].type == tok_bracket_close) {
-                i++;
-                name += "]";
-            }
-        } else if (name == "@") {
-            if (tokens[i + 2].type == tok_identifier) {
-                i++;
-                if (tokens[i + 1].value != memberName) {
-                    FPResult result;
-                    result.message = "Expected '" + memberName + "', but got '" + tokens[i + 1].value + "'";
-                    result.value = tokens[i + 1].value;
-                    result.location = tokens[i + 1].location;
-                    result.type = tokens[i + 1].type;
-                    result.success = false;
-                    errors.push_back(result);
-                    return nullptr;
-                }
-                name += tokens[i + 1].value;
-            }
-        }
-
-        for (auto&& p : funcNameIdents) {
-            if (p.first == name) {
-                name = p.second;
-                break;
-            }
-        }
-
-        Method* method = new Method(memberName, name, name_token);
-        method->force_add = true;
-        if (method->name_without_overload == "init") {
-            method->addModifier("<constructor>");
-        }
-        i += 2;
-        if (tokens[i].type == tok_identifier && tokens[i].value == "<") {
-            method->reified_parameters = parseReifiedParams(errors, i, tokens);
-            method->reified_parameters.push_back("");
-        }
+    Method* parseMethodArguments(Method* method, std::vector<FPResult>& errors, size_t& i, std::vector<Token>& tokens) {
         bool memberByValue = false;
         if (tokens[i].type == tok_paren_open) {
             i++;
             if (tokens[i].type == tok_addr_of) {
                 memberByValue = true;
                 i++;
-                if (tokens[i].type == tok_comma) {
-                    i++;
+                if (tokens[i].type != tok_comma) {
+                    FPResult result;
+                    result.message = "Type 'none' is only valid for function return types.";
+                    result.value = tokens[i].value;
+                    result.location = tokens[i].location;
+                    result.type = tokens[i].type;
+                    result.success = false;
+                    errors.push_back(result);
+                    return method;
                 }
+                i++;
             }
             while (i < tokens.size() && tokens[i].type != tok_paren_close) {
                 std::string fromTemplate = "";
@@ -409,7 +373,7 @@ namespace sclc {
                     result.success = false;
                     errors.push_back(result);
                     i++;
-                    continue;
+                    return method;
                 }
                 i++;
                 if (tokens[i].type == tok_comma || tokens[i].type == tok_paren_close) {
@@ -425,41 +389,10 @@ namespace sclc {
                 result.type = tokens[i].type;
                 result.success = false;
                 errors.push_back(result);
-                continue;
-            }
-            i++;
-
-            std::string namedReturn = "";
-            if (tokens[i].type == tok_identifier) {
-                namedReturn = tokens[i].value;
-                i++;
-            }
-            if (tokens[i].type == tok_column) {
-                i++;
-                FPResult r = parseType(tokens, i);
-                if (!r.success) {
-                    errors.push_back(r);
-                    return method;
-                }
-
-                std::string fromTemplate = r.message;
-                std::string type = r.value;
-                method->return_type = type;
-                if (namedReturn.size()) {
-                    method->namedReturnValue = Variable(namedReturn, type);
-                }
-            } else {
-                FPResult result;
-                result.message = "A type is required!";
-                result.value = tokens[i].value;
-                result.location = tokens[i].location;
-                result.type = tokens[i].type;
-                result.success = false;
-                errors.push_back(result);
-                i++;
                 return method;
             }
-            method->addArgument(Variable("self", memberByValue ? "@" + memberName : memberName));
+            i++;
+            method->addArgument(Variable("self", memberByValue ? "@" + method->member_type : method->member_type));
         } else {
             FPResult result;
             result.message = "Expected '(', but got '" + tokens[i].value + "'";
@@ -468,6 +401,85 @@ namespace sclc {
             result.type = tokens[i].type;
             result.success = false;
             errors.push_back(result);
+            return method;
+        }
+        return method;
+    }
+
+    Method* parseMethod(std::string name, Token& name_token, std::string memberName, std::vector<FPResult>& errors, size_t& i, std::vector<Token>& tokens) {
+        if (name == "=>") {
+            if (tokens[i + 2].type == tok_bracket_open && tokens[i + 3].type == tok_bracket_close) {
+                i += 2;
+                name += "[]";
+            }
+        } else if (name == "[") {
+            if (tokens[i + 2].type == tok_bracket_close) {
+                i++;
+                name += "]";
+            }
+        } else if (name == "@") {
+            if (tokens[i + 2].type == tok_identifier) {
+                i++;
+                if (tokens[i + 1].value != memberName) {
+                    FPResult result;
+                    result.message = "Expected '" + memberName + "', but got '" + tokens[i + 1].value + "'";
+                    result.value = tokens[i + 1].value;
+                    result.location = tokens[i + 1].location;
+                    result.type = tokens[i + 1].type;
+                    result.success = false;
+                    errors.push_back(result);
+                    return nullptr;
+                }
+                name += tokens[i + 1].value;
+            }
+        }
+
+        for (auto&& p : funcNameIdents) {
+            if (p.first == name) {
+                name = p.second;
+                break;
+            }
+        }
+
+        Method* method = new Method(memberName, name, name_token);
+        method->force_add = true;
+        if (method->name_without_overload == "init") {
+            method->addModifier("<constructor>");
+        }
+        i += 2;
+        if (tokens[i].type == tok_identifier && tokens[i].value == "<") {
+            method->reified_parameters = parseReifiedParams(errors, i, tokens);
+            method->reified_parameters.push_back("");
+        }
+        method = parseMethodArguments(method, errors, i, tokens);
+        std::string namedReturn = "";
+        if (tokens[i].type == tok_identifier) {
+            namedReturn = tokens[i].value;
+            i++;
+        }
+        if (tokens[i].type == tok_column) {
+            i++;
+            FPResult r = parseType(tokens, i);
+            if (!r.success) {
+                errors.push_back(r);
+                return method;
+            }
+
+            std::string fromTemplate = r.message;
+            std::string type = r.value;
+            method->return_type = type;
+            if (namedReturn.size()) {
+                method->namedReturnValue = Variable(namedReturn, type);
+            }
+        } else {
+            FPResult result;
+            result.message = "A type is required!";
+            result.value = tokens[i].value;
+            result.location = tokens[i].location;
+            result.type = tokens[i].type;
+            result.success = false;
+            errors.push_back(result);
+            i++;
             return method;
         }
         return method;
@@ -1300,7 +1312,9 @@ namespace sclc {
                        t.type == tok_enum ||
                        t.type == tok_union_def ||
                        t.type == tok_interface_def ||
-                       (t.type == tok_identifier && t.value == "layout");
+                       (t.type == tok_identifier && t.value == "layout") ||
+                       (t.type == tok_identifier && t.value == "init") ||
+                       (t.type == tok_identifier && t.value == "deinit");
             };
             auto isScopeEnterInFunc = [](const Token& t) {
                 return t.type == tok_function ||
@@ -1321,7 +1335,11 @@ namespace sclc {
                     if (t.name.value.empty() && !inFunction) {
                         t.name = tokens[i + 1];
                     }
-                    if (tokens[i].type == tok_function) inFunction = true;
+                    if (
+                        tokens[i].type == tok_function ||
+                       (tokens[i].type == tok_identifier && tokens[i].value == "init") ||
+                       (tokens[i].type == tok_identifier && tokens[i].value == "deinit")
+                    ) inFunction = true;
                     scope++;
                 } else if (tokens[i].type == tok_end) {
                     inFunction = false;
@@ -1461,7 +1479,7 @@ namespace sclc {
             if (token.type == tok_function) {
                 if (currentFunction != nullptr) {
                     FPResult result;
-                    result.message = "Cannot define function inside another function. Current function: " + currentFunction->name;
+                    result.message = "Cannot define function inside another function. Current function: " + currentFunction->name_without_overload;
                     result.value = tokens[i + 1].value;
                     result.location = tokens[i + 1].location;
                     result.type = tokens[i + 1].type;
@@ -1509,6 +1527,21 @@ namespace sclc {
                         Token& func = tokens[i + 1];
                         std::string name = func.value;
                         currentFunction = parseMethod(name, func, currentStructs.back()->name, errors, i, tokens);
+                        if (name == "init") {
+                            FPResult result;
+                            result.message = "Instance initializers should not be declared like functions.";
+                            result.location = tokens[i].location;
+                            result.type = tokens[i].type;
+                            result.success = false;
+                            warns.push_back(result);
+                            FPResult hint;
+                            hint.message = "Remove 'function' keyword and return type";
+                            hint.location = tokens[i].location;
+                            hint.type = tokens[i].type;
+                            hint.success = false;
+                            hint.isNote = true;
+                            warns.push_back(hint);
+                        }
                         currentFunction->deprecated = currentDeprecation;
                         currentDeprecation.clear();
                         for (std::string& s : nextAttributes) {
@@ -1550,6 +1583,21 @@ namespace sclc {
                         Token& func = tokens[i + 1];
                         std::string name = func.value;
                         currentFunction = parseMethod(name, func, currentLayout.name, errors, i, tokens);
+                        if (name == "init") {
+                            FPResult result;
+                            result.message = "Instance initializers should not be declared like functions.";
+                            result.location = tokens[i].location;
+                            result.type = tokens[i].type;
+                            result.success = false;
+                            warns.push_back(result);
+                            FPResult hint;
+                            hint.message = "Remove 'function' keyword and return type";
+                            hint.location = tokens[i].location;
+                            hint.type = tokens[i].type;
+                            hint.success = false;
+                            hint.isNote = true;
+                            warns.push_back(hint);
+                        }
                         currentFunction->deprecated = currentDeprecation;
                         currentFunction->addModifier("nonvirtual");
                         currentDeprecation.clear();
@@ -1615,6 +1663,21 @@ namespace sclc {
                         Token& func = tokens[i + 1];
                         std::string name = func.value;
                         currentFunction = parseMethod(name, func, member_type, errors, i, tokens);
+                        if (name == "init") {
+                            FPResult result;
+                            result.message = "Instance initializers should not be declared like functions.";
+                            result.location = tokens[i].location;
+                            result.type = tokens[i].type;
+                            result.success = false;
+                            warns.push_back(result);
+                            FPResult hint;
+                            hint.message = "Remove 'function' keyword and return type";
+                            hint.location = tokens[i].location;
+                            hint.type = tokens[i].type;
+                            hint.success = false;
+                            hint.isNote = true;
+                            warns.push_back(hint);
+                        }
                         currentFunction->deprecated = currentDeprecation;
                         currentDeprecation.clear();
                         if (contains<std::string>(nextAttributes, "private")) {
@@ -1817,6 +1880,7 @@ namespace sclc {
                 }
                 currentStructs.push_back(new Struct(namePrefix + tokens[i].value, tokens[i]));
                 Struct* currentStruct = currentStructs.back();
+                currentStruct->addModifier("open");
                 for (std::string& m : nextAttributes) {
                     currentStruct->addModifier(m);
                 }
@@ -1826,9 +1890,7 @@ namespace sclc {
 
                 auto makeGetter = [](const Variable& v, const std::string& unionName, int n) {
                     const std::string& varName = v.name;
-                    std::string name = "get";
-                    name += (char) std::toupper(varName[0]);
-                    name += varName.substr(1);
+                    std::string name = "get" + capitalize(varName);
 
                     Method* getter = new Method(unionName, name, v.name_token);
                     getter->return_type = v.type;
@@ -1852,6 +1914,24 @@ namespace sclc {
                     getter->addToken(Token(tok_identifier, removeTypeModifiers(v.type), v.name_token.location));
                     getter->addToken(Token(tok_bracket_close, "]", v.name_token.location));
                     getter->addToken(Token(tok_addr_of, "@", v.name_token.location));
+                    getter->addToken(Token(tok_return, "return", v.name_token.location));
+                    return getter;
+                };
+
+                auto makeChecker = [](const Variable& v, const std::string& unionName, int n) {
+                    const std::string& varName = v.name;
+                    std::string name = "get" + capitalize(varName);
+                    
+                    Method* getter = new Method(unionName, name, v.name_token);
+                    getter->return_type = v.type;
+                    getter->addModifier("@getter");
+                    getter->addModifier(varName);
+                    getter->addArgument(Variable("self", unionName));
+                    getter->addToken(Token(tok_number, std::to_string(n), v.name_token.location));
+                    getter->addToken(Token(tok_identifier, "self", v.name_token.location));
+                    getter->addToken(Token(tok_dot, ".", v.name_token.location));
+                    getter->addToken(Token(tok_identifier, "__tag", v.name_token.location));
+                    getter->addToken(Token(tok_identifier, "==", v.name_token.location));
                     getter->addToken(Token(tok_return, "return", v.name_token.location));
                     return getter;
                 };
@@ -1918,12 +1998,23 @@ namespace sclc {
                     v.isConst = true;
                     v.isVirtual = true;
                     currentStruct->addMember(v);
-                    Method* getter = makeGetter(v, currentStruct->name, currentStruct->members.size());
+                    Variable isv = Variable("is" + capitalize(name), "const bool");
+                    isv.name_token = tokens[start];
+                    isv.isConst = true;
+                    isv.isVirtual = true;
+                    currentStruct->addMember(v);
+                    currentStruct->addMember(isv);
+                    Method* getter = makeGetter(v, currentStruct->name, currentStruct->members.size() / 2);
                     if (currentStruct->isExtern()) {
                         getter->addModifier("expect");
                     }
                     functions.push_back(getter);
-                    Function* setter = makeSetter(v, currentStruct->name, currentStruct->members.size());
+                    Method* checker = makeChecker(isv, currentStruct->name, currentStruct->members.size() / 2);
+                    if (currentStruct->isExtern()) {
+                        checker->addModifier("expect");
+                    }
+                    functions.push_back(checker);
+                    Function* setter = makeSetter(v, currentStruct->name, currentStruct->members.size() / 2);
                     if (currentStruct->isExtern()) {
                         setter->addModifier("expect");
                     }
@@ -1997,7 +2088,6 @@ namespace sclc {
                 for (std::string& m : nextAttributes) {
                     currentStruct->addModifier(m);
                 }
-                bool open = contains<std::string>(nextAttributes, "open");
                 
                 nextAttributes.clear();
                 bool hasSuperSpecified = false;
@@ -2049,13 +2139,6 @@ namespace sclc {
                         i++;
                     } while (i < tokens.size() && tokens[i].type == tok_comma);
                     i--;
-                }
-
-                if (open) {
-                    if (std::find(structs.begin(), structs.end(), *currentStruct) == structs.end()) {
-                        structs.push_back(*currentStruct);
-                    }
-                    currentStructs.pop_back();
                 }
             } else if (token.type == tok_identifier && token.value == "layout") {
                 if (currentFunction != nullptr) {
@@ -2603,7 +2686,6 @@ namespace sclc {
                                 t.value == "nonvirtual" ||
                                 t.value == "construct" ||
                                 t.value == "overrides" ||
-                                t.value == "restrict" ||
                                 t.value == "operator" ||
                                 t.value == "foreign" ||
                                 t.value == "virtual" ||
@@ -2611,7 +2693,6 @@ namespace sclc {
                                 t.value == "private" ||
                                 t.value == "reified" ||
                                 t.value == "static" ||
-                                t.value == "export" ||
                                 t.value == "expect" ||
                                 t.value == "sealed" ||
                                 t.value == "const" ||
@@ -2687,6 +2768,31 @@ namespace sclc {
                         setter->addArgument(Variable("self", container));
                         currentFunction = setter;
                     }
+                } else if (currentStructs.size() && currentFunction == nullptr && (tokens[i].value == "init" || tokens[i].value == "deinit")) {
+                    std::string container = currentStructs.back()->name;
+                    currentFunction = new Method(container, tokens[i].value, tokens[i]);
+                    currentFunction->return_type = "none";
+                    ((Method*) currentFunction)->force_add = true;
+                    i++;
+                    currentFunction = parseMethodArguments((Method*) currentFunction, errors, i, tokens);
+                    i--;
+                    currentFunction->deprecated = currentDeprecation;
+                    currentDeprecation.clear();
+                    for (std::string& s : nextAttributes) {
+                        currentFunction->addModifier(s);
+                    }
+                    Function* f = findMethodByName(currentFunction->name, currentFunction->member_type);
+                    if (f) {
+                        currentFunction->name = currentFunction->name + "$$ol" + argsToRTSignatureIdent(currentFunction);
+                    }
+                    if (currentFunction->name_without_overload == "init") {
+                        currentFunction->addModifier("<constructor>");
+                    }
+                    if (currentFunction->has_expect) {
+                        functions.push_back(currentFunction);
+                        currentFunction = nullptr;
+                    }
+                    nextAttributes.clear();
                 } else if (tokens[i].value == "typealias") {
                     i++;
                     std::string type = tokens[i].value;
@@ -3060,22 +3166,22 @@ namespace sclc {
         };
         auto createOrdinalMethod = [&](const Enum& s) -> Method* {
             Token t(tok_identifier, "ordinal", s.name_token.location);
-            Method* toString = new Method(s.name, std::string("ordinal"), t);
+            Method* ordinal = new Method(s.name, std::string("ordinal"), t);
             if (s.isExtern) {
-                toString->addModifier("expect");
+                ordinal->addModifier("expect");
             }
-            toString->return_type = "int";
-            toString->addModifier("<generated>");
-            toString->addModifier("const");
-            toString->addModifier("nonvirtual");
-            toString->addArgument(Variable("self", s.name));
-            toString->addToken(Token(tok_identifier, "self", s.name_token.location));
-            toString->addToken(Token(tok_as, "as", s.name_token.location));
-            toString->addToken(Token(tok_identifier, "const", s.name_token.location));
-            toString->addToken(Token(tok_identifier, "int", s.name_token.location));
-            toString->addToken(Token(tok_return, "return", s.name_token.location));
-            toString->force_add = true;
-            return toString;
+            ordinal->return_type = "int";
+            ordinal->addModifier("<generated>");
+            ordinal->addModifier("const");
+            ordinal->addModifier("nonvirtual");
+            ordinal->addArgument(Variable("self", s.name));
+            ordinal->addToken(Token(tok_identifier, "self", s.name_token.location));
+            ordinal->addToken(Token(tok_as, "as", s.name_token.location));
+            ordinal->addToken(Token(tok_identifier, "const", s.name_token.location));
+            ordinal->addToken(Token(tok_identifier, "int", s.name_token.location));
+            ordinal->addToken(Token(tok_return, "return", s.name_token.location));
+            ordinal->force_add = true;
+            return ordinal;
         };
 
         for (const Struct& s : result.structs) {

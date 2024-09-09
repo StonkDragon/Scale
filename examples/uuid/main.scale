@@ -3,11 +3,11 @@ import std.math
 struct UUID
     decl bytes: [uint8]
 
-    function init(bytes: [uint8]): none
+    init(bytes: [uint8])
         [new<uint8>[16] do bytes[i]] => self.bytes
     end
 
-    function init(): none
+    init()
         [new<uint8>[16] do random] => self.bytes
     end
 

@@ -1,5 +1,5 @@
 # Formatted IO
-final static sealed struct ConsoleColor  
+final static struct ConsoleColor  
   function reset(): str   "\033[0m"  return end
   function black(): str   "\033[30m" return end
   function red(): str     "\033[31m" return end
@@ -12,7 +12,7 @@ final static sealed struct ConsoleColor
   function bold(): str    "\033[1m"  return end
 end
 
-final static sealed struct FmtIO
+final static struct FmtIO
   cdecl "printf"
   private expect foreign unsafe function __c_printf(:[int8], :varargs): int
 

@@ -35,7 +35,7 @@ namespace sclc {
         "transform",
     };
 
-    typedef void(*HandlerType)(std::vector<Token>&, Function*, std::vector<FPResult>&, std::vector<FPResult>&, std::ostream&, TPResult&);
+    typedef void(*HandlerType)(std::vector<Token>&, Function*, std::vector<FPResult>&, std::vector<FPResult>&, std::ostream&, TPResult&, size_t&);
 
     const std::unordered_map<TokenType, HandlerType> handleRefs = {
         std::pair(tok_await, handlerRef(Await)),
@@ -107,7 +107,6 @@ namespace sclc {
     std::unordered_map<std::string, std::vector<Method*>> vtables;
     StructTreeNode* structTree;
     int scopeDepth = 0;
-    size_t i = 0;
     size_t condCount = 0;
     std::vector<short> whatWasIt;
     std::vector<std::string> switchTypes;
@@ -189,7 +188,7 @@ namespace sclc {
                     }
                 }
                 append2(" __asm__(%s);\n", symbol.c_str());
-                if (UNLIKELY(function->has_export)) {
+                if (UNLIKELY(function->has_foreign)) {
                     if (UNLIKELY(function->member_type.size() && hasMethod(result, function->name, function->member_type))) {
                         FPResult res;
                         res.success = false;
@@ -393,11 +392,11 @@ namespace sclc {
                 while (super != Struct::Null) {
                     Method* other = getMethodByNameOnThisType(result, m->name, super.name);
                     if (!other) goto afterSealedCheck;
-                    if (other->has_sealed) {
+                    if (other->has_final) {
                         FPResult res;
                         Token t = m->name_token;
                         res.success = false;
-                        res.message = "Method '" + f->name + "' overrides 'sealed' method on '" + super.name + "'";
+                        res.message = "Method '" + f->name + "' overrides 'final' method on '" + super.name + "'";
                         res.location = t.location;
                         res.value = t.value;
                         res.type = t.type;
@@ -514,7 +513,7 @@ namespace sclc {
                 append("  %s Var_%s = _scl_args->_Var_%s;\n", sclTypeToCType(result, var.type).c_str(), var.name.c_str(), var.name.c_str());
             }
         } else if (UNLIKELY(function->has_lambda)) {
-            append("struct lm%d$%s {\n", function->lambdaIndex, function->container->name.c_str());
+            append("struct l$%s$%s {\n", function->lambdaName.c_str(), function->container->name.c_str());
             append("  scl_any func;\n");
             for (size_t i = 0; i < function->captures.size(); i++) {
                 append("  %s cap_%s;\n", sclTypeToCType(result, function->captures[i].type).c_str(), function->captures[i].name.c_str());
@@ -524,11 +523,11 @@ namespace sclc {
             }
             append("};\n");
             for (Variable cap : function->captures) {
-                append("  %s Var_%s = ((struct lm%d$%s*) Var_$data)->cap_%s;\n", sclTypeToCType(result, cap.type).c_str(), cap.name.c_str(), function->lambdaIndex, function->container->name.c_str(), cap.name.c_str());
+                append("  %s Var_%s = ((struct l$%s$%s*) Var_$data)->cap_%s;\n", sclTypeToCType(result, cap.type).c_str(), cap.name.c_str(), function->lambdaName.c_str(), function->container->name.c_str(), cap.name.c_str());
                 vars.push_back(cap);
             }
             for (Variable cap : function->ref_captures) {
-                append("  #define Var_%s (*(((struct lm%d$%s*) Var_$data)->ref_%s))\n", cap.name.c_str(), function->lambdaIndex, function->container->name.c_str(), cap.name.c_str());
+                append("  #define Var_%s (*(((struct l$%s$%s*) Var_$data)->ref_%s))\n", cap.name.c_str(), function->lambdaName.c_str(), function->container->name.c_str(), cap.name.c_str());
                 vars.push_back(cap);
             }
         }
@@ -563,7 +562,7 @@ namespace sclc {
             const std::string& superType = currentStruct.super;
             if (LIKELY(superType.size() > 0)) {
                 append("%s Var_super = (%s) %sVar_self;\n", sclTypeToCType(result, superType).c_str(), sclTypeToCType(result, superType).c_str(), function->args[function->args.size() - 1].type.front() == '@' ? "&" : "");
-                vars.push_back(Variable("super", "const " + superType));
+                vars.push_back(Variable("super", superType));
             }
         }
 
@@ -627,6 +626,7 @@ namespace sclc {
             vars.push_back(Variable("field", currentStruct.getMember(fieldName).type));
         }
 
+        size_t i = 0;
         if (function->has_operator) {
             functionCall(function, fp, result, warns, errors, body, i);
         } else {
@@ -722,14 +722,15 @@ namespace sclc {
             }
 
             const std::string& file = function->name_token.location.file;
-            if (!Main::options::noLinkScale && pathstarts(file, scaleFolder + DIR_SEP "Frameworks" DIR_SEP "Scale.framework") && !isTemplate && function->reified_parameters.empty()) {
+            if (
+                !Main::options::noLinkScale &&
+                !isTemplate &&
+                function->reified_parameters.empty() &&
+                !function->has_inline &&
+                pathstarts(file, scaleFolder + DIR_SEP "Frameworks" DIR_SEP "Scale.framework")
+            ) {
                 continue;
             }
-            // if (!isTemplate && !Main::options::noLinkScale && function->reified_parameters.size() == 0 && pathstarts(file, scaleFolder + DIR_SEP "Frameworks" DIR_SEP "Scale.framework") /* && !Main::options::noMain */) {
-            //     if (!pathcontains(file, DIR_SEP "compiler" DIR_SEP) && !pathcontains(file, DIR_SEP "macros" DIR_SEP) && !pathcontains(file, DIR_SEP "__")) {
-            //         continue;
-            //     }
-            // }
 
             typeStack.clear();
 
@@ -778,7 +779,7 @@ namespace sclc {
             }
 
             if (function->has_inline && !isMainFunction) {
-                append("_scl_always_inline\n");
+                append("_scl_always_inline inline\n");
             }
             if (isMainFunction) {
                 append("int ");
@@ -792,8 +793,8 @@ namespace sclc {
             }
 
             if (function->isMethod) {
-                if (UNLIKELY(!((Method*) function)->force_add && currentStruct.isSealed())) {
-                    transpilerErrorTok("Cannot add method '" + function->name + "' to sealed Struct '" + currentStruct.name + "'", function->name_token);
+                if (UNLIKELY(!((Method*) function)->force_add && !currentStruct.isOpen())) {
+                    transpilerErrorTok("Cannot add method '" + function->name + "' to closed Struct '" + currentStruct.name + "'", function->name_token);
                     errors.push_back(err);
                     continue;
                 }

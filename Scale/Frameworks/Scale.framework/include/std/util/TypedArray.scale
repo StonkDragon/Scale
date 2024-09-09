@@ -2,11 +2,11 @@ import std.util.Array
 import std.util.ReadOnlyArray
 
 template<T>
-final sealed struct TypedArrayIterator is Iterator
+final struct TypedArrayIterator is Iterator
   private decl array: TypedArray<T>
   private decl pos: int
 
-  function init(arr: TypedArray<T>): none
+  init(arr: TypedArray<T>)
     arr => self.array
     0 => self.pos
   end
@@ -22,7 +22,7 @@ final sealed struct TypedArrayIterator is Iterator
 end
 
 template<T>
-final sealed struct TypedArray: Array
+final struct TypedArray: Array
     overrides function [](index: int): T
         index self:get return
     end

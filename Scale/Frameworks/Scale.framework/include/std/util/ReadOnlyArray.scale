@@ -1,10 +1,10 @@
-final sealed struct IllegalStateException: Exception
-    function init(msg: str): none
+final struct IllegalStateException: Exception
+    init(msg: str)
         msg => self.msg
     end
 end
 
-final sealed struct ReadOnlyArray: Array
+final struct ReadOnlyArray: Array
     function sort(): none
         "Attempted to sort readonly array!"
         IllegalStateException::new throw

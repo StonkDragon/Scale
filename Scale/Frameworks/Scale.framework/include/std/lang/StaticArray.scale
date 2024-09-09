@@ -1,9 +1,9 @@
 template<Type, Size>
-final sealed struct StaticArrayIterator is Iterator
+final struct StaticArrayIterator is Iterator
     private decl arr: StaticArray<Type, Size>
     private decl pos: int
 
-    function init(arr: StaticArray<Type, Size>): none
+    init(arr: StaticArray<Type, Size>)
         arr => self.arr
         0 => self.pos
     end

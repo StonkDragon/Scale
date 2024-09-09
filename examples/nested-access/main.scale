@@ -1,7 +1,7 @@
 struct Foo
     decl bar: [Bar]
 
-    function init(b: Bar): none
+    init(b: Bar)
         any::default as [Bar] => self.bar
         b => self.@bar
     end

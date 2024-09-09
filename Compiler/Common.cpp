@@ -130,13 +130,12 @@ namespace sclc
         "self",
         "super",
         "bool",
-        "sealed",
+        "final",
+        "final",
         "static",
         "private",
-        "export",
         "expect",
         "unsafe",
-        "restrict",
         "const",
         "readonly",
         "try",
@@ -786,9 +785,6 @@ namespace sclc
     }
 
     bool isInitFunction(Function* f) {
-        if (strstarts(f->name, "__init__")) {
-            return true;
-        }
         if (f->isMethod) {
             Method* m = static_cast<Method*>(f);
             return m->has_constructor || strstarts(m->name, "init");
@@ -798,7 +794,7 @@ namespace sclc
     }
 
     bool isDestroyFunction(Function* f) {
-        return f->has_final || strstarts(f->name, "__destroy__");
+        return f->has_destructor;
     }
 
     bool memberOfStruct(const Variable* self, Function* f) {

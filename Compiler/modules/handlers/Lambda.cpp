@@ -8,17 +8,28 @@ namespace sclc {
     handler(Lambda) {
         noUnused;
         Function* f;
-        if (function->isMethod) {
-            f = new Function("$lambda$" + std::to_string(lambdaCount++) + "$" + function->member_type + "$$" + function->name, body[i]);
+        safeInc();
+        std::string name = "";
+        Token nameTok;
+        bool nameSet = false;
+        if (body[i].type == tok_identifier) {
+            name = body[i].value;
+            safeInc();
+            nameSet = true;
+            nameTok = body[i];
         } else {
-            f = new Function("$lambda$" + std::to_string(lambdaCount++) + "$" + function->name, body[i]);
+            name = std::to_string(lambdaCount++);
+        }
+        if (function->isMethod) {
+            f = new Function("$lambda$" + name + "$" + function->member_type + "$$" + function->name, body[i]);
+        } else {
+            f = new Function("$lambda$" + name + "$" + function->name, body[i]);
         }
         f->container = function;
-        f->lambdaIndex = lambdaCount - 1;
+        f->lambdaName = name;
         f->addModifier("<lambda>");
         f->addModifier(generateSymbolForFunction(function).substr(44));
         f->return_type = "none";
-        safeInc();
         if (body[i].type == tok_bracket_open) {
             while (body[i].type != tok_bracket_close) {
                 safeInc();
@@ -156,8 +167,8 @@ namespace sclc {
         append("_scl_push(scl_any, ({\n");
         scopeDepth++;
         const std::string sym = generateSymbolForFunction(f);
-        append("%s fn_$lambda%d$%s(%s) __asm__(%s);\n", sclTypeToCType(result, f->return_type).c_str(), lambdaCount - 1, function->name.c_str(), arguments.c_str(), sym.c_str());
-        append("struct lm%d$%s {\n", lambdaCount - 1, function->name.c_str());
+        append("%s fn_$%s$%s(%s) __asm__(%s);\n", sclTypeToCType(result, f->return_type).c_str(), name.c_str(), function->name.c_str(), arguments.c_str(), sym.c_str());
+        append("struct l$%s$%s {\n", name.c_str(), function->name.c_str());
         append("  scl_any func;\n");
         for (size_t i = 0; i < f->captures.size(); i++) {
             append("  %s cap_%s;\n", sclTypeToCType(result, f->captures[i].type).c_str(), f->captures[i].name.c_str());
@@ -176,12 +187,20 @@ namespace sclc {
         for (size_t i = 0; i < f->ref_captures.size(); i++) {
             append("tmp->ref_%s = &(Var_%s);\n", f->ref_captures[i].name.c_str(), f->ref_captures[i].name.c_str());
         }
-        append("tmp->func = fn_$lambda%d$%s;\n", lambdaCount - 1, function->name.c_str());
+        append("tmp->func = fn_$%s$%s;\n", name.c_str(), function->name.c_str());
         append("(scl_any) tmp;\n");
         scopeDepth--;
         append("}));\n");
 
         typeStack.push_back(lambdaType);
         result.functions.push_back(f);
+
+        if (nameSet) {
+            Variable v(name, typeStackTop);
+            vars.push_back(v);
+            std::string cType = sclTypeToCType(result, typeStackTop);
+            append("%s Var_%s = _scl_pop(%s);\n", cType.c_str(), name.c_str(), cType.c_str());
+            typeStack.pop_back();
+        }
     }
 } // namespace sclc

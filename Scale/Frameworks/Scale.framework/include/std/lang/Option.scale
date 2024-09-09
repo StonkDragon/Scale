@@ -14,16 +14,8 @@ function Option:expected(id: int): none
     )
 end
 
-function Option:isSome(): bool
-    self.__tag 1 == return
-end
-
-function Option:isNone(): bool
-    self.__tag 2 == return
-end
-
 function Option:toString(): str
-    if self:isSome then
+    if self.isSome then
         "Some {" self.Some:toString + "}" +
     else
         "None"
