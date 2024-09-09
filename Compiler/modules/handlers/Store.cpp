@@ -109,8 +109,8 @@ namespace sclc {
             checkShadow(body[i].value, body[i], function, result, warns);
             std::string name = body[i].value;
             std::string type = "any";
-            safeInc();
-            if (body[i].type == tok_column) {
+            if (i + 1 < body.size() && body[i + 1].type == tok_column) {
+                safeInc();
                 safeInc();
                 FPResult r = parseType(body, i);
                 if (!r.success) {
@@ -123,7 +123,6 @@ namespace sclc {
                 }
             } else {
                 type = typeStackTop;
-                i--;
             }
             Variable v(name, type);
             vars.push_back(v);
