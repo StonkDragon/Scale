@@ -78,6 +78,10 @@ final static struct float
     function fromBits(bits: any): float
         ref bits as [float] @ return
     end
+
+    function =>(x: int): float
+        x as float return
+    end
 end
 
 final static struct float32
@@ -154,6 +158,10 @@ final static struct float32
 
     function fromBits(bits: any): float32
         ref bits as [float32] @ return
+    end
+
+    function =>(x: int): float
+        x as float return
     end
 end
 

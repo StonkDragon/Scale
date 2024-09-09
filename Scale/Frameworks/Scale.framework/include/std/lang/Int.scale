@@ -47,6 +47,14 @@ macro! IntStruct(type) {
     function asReference(i: int): Int
       i Int::new return
     end
+
+    function =>(x: float): $type
+      x as $type return
+    end
+
+    function =>(x: float32): $type
+      x as $type return
+    end
   end
 }
 macro! UIntStruct(type) {
@@ -82,6 +90,14 @@ macro! UIntStruct(type) {
 
     function asReference(i: int): Int
       i Int::new return
+    end
+
+    function =>(x: float): $type
+      x as $type return
+    end
+
+    function =>(x: float32): $type
+      x as $type return
     end
   end
 }
