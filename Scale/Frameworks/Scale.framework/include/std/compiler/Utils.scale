@@ -108,12 +108,12 @@ struct Parser
     expect nonvirtual foreign function consume(): Token?
     expect nonvirtual foreign function getConfig(): Config
 
-    private init()end
+    private init() end
 end
 
 struct Config
     expect nonvirtual foreign function hasKey(key: str): bool
     expect nonvirtual foreign function getKey(key: str): str?
 
-    private init()end
+    private init() end
 end
