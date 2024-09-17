@@ -5,6 +5,19 @@
 #include "../../headers/Functions.hpp"
 
 namespace sclc {
+    static std::vector<std::string> modes{
+        "f",
+        "m",
+        "r",
+        "filter",
+        "map",
+        "reduce",
+        "count",
+        "each",
+        "also",
+        "transform",
+    };
+
     handler(Do) {
         noUnused;
     nextDoMode:

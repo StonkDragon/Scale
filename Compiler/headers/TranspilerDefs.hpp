@@ -129,12 +129,10 @@
         i += n;                                                          \
     } while (0)
 
-#define THIS_INCREMENT_IS_CHECKED ++i;
+#define THIS_INCREMENT_IS_CHECKED (++i)
 
 namespace sclc
 {
-    extern std::vector<std::string> cflags;
-    extern std::vector<std::string> modes;
     extern Function* currentFunction;
     extern Struct currentStruct;
     extern std::unordered_map<std::string, std::vector<Method *>> vtables;

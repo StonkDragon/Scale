@@ -22,18 +22,6 @@
 #endif
 
 namespace sclc {
-    std::vector<std::string> modes {
-        "f",
-        "m",
-        "r",
-        "filter",
-        "map",
-        "reduce",
-        "count",
-        "each",
-        "also",
-        "transform",
-    };
 
     typedef void(*HandlerType)(std::vector<Token>&, Function*, std::vector<FPResult>&, std::vector<FPResult>&, std::ostream&, TPResult&, size_t&);
 
