@@ -259,7 +259,7 @@ namespace sclc
     int isCharacter(char c) {
         return (c >= 'a' && c <= 'z') ||
             (c >= 'A' && c <= 'Z') ||
-            c == '_';
+            c == '_' || c < 0;
     }
 
     int isDigit(char c) {
@@ -864,7 +864,7 @@ namespace sclc
             handle(Token);
             safeInc("");
         }
-        append("_scl_pop(%s);\n", sclTypeToCType(result, typeStackTop).c_str());
+        append("scale_pop(%s);\n", sclTypeToCType(result, typeStackTop).c_str());
         scopeDepth--;
         append("})");
         fp.flush();
@@ -1072,9 +1072,9 @@ namespace sclc
                     }
 
                     if (getElem) {
-                        path = "_scl_checked_index(" + path + ", " + index + ")";
+                        path = "scale_checked_index(" + path + ", " + index + ")";
                     } else {
-                        path = "_scl_checked_write(" + path + ", " + index + ", ";
+                        path = "scale_checked_write(" + path + ", " + index + ", ";
                         std::vector<Function*> funcs;
                         for (auto&& f : result.functions) {
                             if (f->name_without_overload == v.type + "$operator$store" || f->name_without_overload == v.type + "$=>") {
@@ -1197,7 +1197,7 @@ namespace sclc
                 funcFound = true;
             }
             if (!funcFound) {
-                path = "_scl_putlocal(" + path + ", ";
+                path = "scale_putlocal(" + path + ", ";
                 // path += " = ";
                 if (currentType.front() == '@') {
                     path += "*";

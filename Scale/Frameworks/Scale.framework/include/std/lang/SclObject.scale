@@ -11,9 +11,9 @@ struct SclObject
         self:hashCode other as SclObject:hashCode == return
     end
 
-    expect foreign cdecl "_scl_atomic_clone" function clone(): SclObject
+    expect foreign cdecl "scale_atomic_clone" function clone(): SclObject
 
-    expect foreign cdecl "_scl_identity_hash" function hashCode(): int
+    expect foreign cdecl "scale_identity_hash" function hashCode(): int
 
     init() end
     deinit() end

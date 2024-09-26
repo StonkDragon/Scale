@@ -87,9 +87,9 @@ namespace sclc {
 
         std::string type = removeTypeModifiers(typeStackTop);
         if (type.size() > 2 && type.front() == '[' && type.back() == ']') {
-            append("%s %s = _scl_pop(%s);\n", sclTypeToCType(result, typeStackTop).c_str(), iterator_name.c_str(), sclTypeToCType(result, typeStackTop).c_str());
+            append("%s %s = scale_pop(%s);\n", sclTypeToCType(result, typeStackTop).c_str(), iterator_name.c_str(), sclTypeToCType(result, typeStackTop).c_str());
             typePop;
-            append("for (scl_int i = 0; i < _scl_array_size(%s); i++) {\n", iterator_name.c_str());
+            append("for (scale_int i = 0; i < scale_array_size(%s); i++) {\n", iterator_name.c_str());
             scopeDepth++;
 
             varScopePush();
@@ -102,10 +102,10 @@ namespace sclc {
             append("%s Var_%s = %s[i];\n", sclTypeToCType(result, iterType).c_str(), iter_var_tok.value.c_str(), iterator_name.c_str());
             if (index_var_tok.value.size()) {
                 vars.push_back(Variable(index_var_tok.value, "const int"));
-                append("scl_int Var_%s = i;\n", index_var_tok.value.c_str());
+                append("scale_int Var_%s = i;\n", index_var_tok.value.c_str());
             }
             if (typeSpecified) {
-                append("_scl_checked_cast(Var_%s, 0x%lxUL, \"%s\");\n", iter_var_tok.value.c_str(), id(iterType.c_str()), iterType.c_str());
+                append("scale_checked_cast(Var_%s, 0x%lxUL, \"%s\");\n", iter_var_tok.value.c_str(), id(iterType.c_str()), iterType.c_str());
             }
             pushOther();
             return;
@@ -131,7 +131,7 @@ namespace sclc {
             return;
         }
         methodCall(iterateMethod, fp, result, warns, errors, body, i);
-        append("%s %s = _scl_pop(%s);\n", sclTypeToCType(result, typeStackTop).c_str(), iterator_name.c_str(), sclTypeToCType(result, typeStackTop).c_str());
+        append("%s %s = scale_pop(%s);\n", sclTypeToCType(result, typeStackTop).c_str(), iterator_name.c_str(), sclTypeToCType(result, typeStackTop).c_str());
         type = typeStackTop;
         typePop;
         
@@ -156,29 +156,29 @@ namespace sclc {
         std::string cType = sclTypeToCType(result, getVar(iter_var_tok.value).type);
         if (index_var_tok.value.size()) {
             vars.push_back(Variable(index_var_tok.value, "const int"));
-            append("scl_int %s_ind = 0;\n", iterator_name.c_str());
+            append("scale_int %s_ind = 0;\n", iterator_name.c_str());
         }
         std::string iteratingType = sclTypeToCType(result, type);
         append("while (({\n");
         scopeDepth++;
-        append("_scl_push(%s, %s);\n", iteratingType.c_str(), iterator_name.c_str());
+        append("scale_push(%s, %s);\n", iteratingType.c_str(), iterator_name.c_str());
         typeStack.push_back(type);
         methodCall(hasNextMethod, fp, result, warns, errors, body, i);
-        append("_scl_pop(%s);\n", sclTypeToCType(result, typeStackTop).c_str());
+        append("scale_pop(%s);\n", sclTypeToCType(result, typeStackTop).c_str());
         typeStack.pop_back();
         scopeDepth--;
         append("})) {\n", iterator_name.c_str(), iterator_name.c_str());
         scopeDepth++;
-        append("_scl_push(%s, %s);\n", iteratingType.c_str(), iterator_name.c_str());
+        append("scale_push(%s, %s);\n", iteratingType.c_str(), iterator_name.c_str());
         typeStack.push_back(type);
         methodCall(nextMethod, fp, result, warns, errors, body, i);
-        append("%s Var_%s = _scl_pop(%s);\n", cType.c_str(), iter_var_tok.value.c_str(), sclTypeToCType(result, typeStackTop).c_str());
+        append("%s Var_%s = scale_pop(%s);\n", cType.c_str(), iter_var_tok.value.c_str(), sclTypeToCType(result, typeStackTop).c_str());
         typeStack.pop_back();
         if (iterType.size()) {
-            append("_scl_checked_cast(Var_%s, 0x%lxUL, \"%s\");\n", iter_var_tok.value.c_str(), id(iterType.c_str()), iterType.c_str());
+            append("scale_checked_cast(Var_%s, 0x%lxUL, \"%s\");\n", iter_var_tok.value.c_str(), id(iterType.c_str()), iterType.c_str());
         }
         if (index_var_tok.value.size()) {
-            append("scl_int Var_%s = %s_ind++;\n", index_var_tok.value.c_str(), iterator_name.c_str());
+            append("scale_int Var_%s = %s_ind++;\n", index_var_tok.value.c_str(), iterator_name.c_str());
         }
     }
 } // namespace sclc

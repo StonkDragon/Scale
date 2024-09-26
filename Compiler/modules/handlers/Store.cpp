@@ -67,20 +67,20 @@ namespace sclc {
             append("{\n");
             scopeDepth++;
             typePop;
-            append("%s tmp = _scl_pop(%s);\n", sclTypeToCType(result, type).c_str(), sclTypeToCType(result, type).c_str());
+            append("%s tmp = scale_pop(%s);\n", sclTypeToCType(result, type).c_str(), sclTypeToCType(result, type).c_str());
             if (m) {
                 std::string return_type = sclTypeToCType(result, m->return_type);
 
                 for (int i = targets.size() - 1; i >= 0; i--) {
-                    append("_scl_push(%s, mt_%s$%s(tmp, %d));\n", return_type.c_str(), type.c_str(), m->name.c_str(), i);
+                    append("scale_push(%s, mt_%s$%s(tmp, %d));\n", return_type.c_str(), type.c_str(), m->name.c_str(), i);
                     typeStack.push_back(m->return_type);
                 }
             } else {
                 std::string return_type = sclTypeToCType(result, type.substr(1, type.size() - 2));
-                append("scl_int size = _scl_array_size(tmp);\n");
-                append("_scl_assert_fast(size >= %zu, \"Array too small for destructuring\");\n", targets.size());
+                append("scale_int size = scale_array_size(tmp);\n");
+                append("scale_assert_fast(size >= %zu, \"Array too small for destructuring\");\n", targets.size());
                 for (int i = targets.size() - 1; i >= 0; i--) {
-                    append("_scl_push(%s, tmp[%d]);\n", return_type.c_str(), i);
+                    append("scale_push(%s, tmp[%d]);\n", return_type.c_str(), i);
                     typeStack.push_back(type.substr(1, type.size() - 2));
                 }
             }
@@ -149,9 +149,9 @@ namespace sclc {
             #define TYPEALIAS_CAN_BE_NIL(result, ta) (hasTypealias(result, ta) && typealiasCanBeNil(result, ta))
             if (!v.canBeNil && !TYPEALIAS_CAN_BE_NIL(result, v.type)) {
                 if (v.type.front() == '@' && typeStackTop.front() != '@') {
-                    append("_scl_assert_fast(_scl_top(scl_int), \"Tried dereferencing nil pointer!\");\n");
+                    append("scale_assert_fast(scale_top(scale_int), \"Tried dereferencing nil pointer!\");\n");
                 } else {
-                    append("_scl_assert_fast(_scl_top(scl_int), \"Nil cannot be stored in non-nil variable '%s'!\");\n", v.name.c_str());
+                    append("scale_assert_fast(scale_top(scale_int), \"Nil cannot be stored in non-nil variable '%s'!\");\n", v.name.c_str());
                 }
             }
             if (doCheckTypes && !typesCompatible(result, typeStackTop, v.type, true)) {
@@ -160,11 +160,11 @@ namespace sclc {
             }
             std::string ctype = sclTypeToCType(result, v.type);
             append("%s Var_%s;\n", ctype.c_str(), v.name.c_str());
-            append("_scl_putlocal(Var_%s, ", v.name.c_str());
+            append("scale_putlocal(Var_%s, ", v.name.c_str());
             if (v.type.front() == '@' && typeStackTop.front() != '@') {
-                append2("*_scl_pop(%s*)", ctype.c_str());
+                append2("*scale_pop(%s*)", ctype.c_str());
             } else {
-                append2("_scl_pop(%s)", ctype.c_str());
+                append2("scale_pop(%s)", ctype.c_str());
             }
             append2(");\n");
             typePop;
@@ -191,7 +191,7 @@ namespace sclc {
                         scopeDepth++;
                         std::string type = sclTypeToCType(result, typeStackTop);
                         typePop;
-                        append("%s _scl_value_to_store = _scl_pop(%s);\n", type.c_str(), type.c_str());
+                        append("%s scale_value_to_store = scale_pop(%s);\n", type.c_str(), type.c_str());
                         append("{\n");
                         scopeDepth++;
                         while (body[i].type != tok_paren_close) {
@@ -202,7 +202,7 @@ namespace sclc {
                         append("}\n");
                         type = sclTypeToCType(result, typeStackTop);
                         typePop;
-                        append("*_scl_pop(%s*) = _scl_value_to_store;\n", type.c_str());
+                        append("*scale_pop(%s*) = scale_value_to_store;\n", type.c_str());
                         scopeDepth--;
                         append("}\n");
                     } else {
@@ -294,9 +294,9 @@ namespace sclc {
                     errors.push_back(err);
                 }
                 if (!typeCanBeNil(currentType) && !TYPEALIAS_CAN_BE_NIL(result, currentType)) {
-                    append("_scl_assert_fast(_scl_top(scl_int), \"Nil cannot be stored in non-nil variable '%s'!\");\n", v.name.c_str());
+                    append("scale_assert_fast(scale_top(scale_int), \"Nil cannot be stored in non-nil variable '%s'!\");\n", v.name.c_str());
                 }
-                append("%s tmp = _scl_pop(%s);\n", sclTypeToCType(result, typeStackTop).c_str(), sclTypeToCType(result, typeStackTop).c_str());
+                append("%s tmp = scale_pop(%s);\n", sclTypeToCType(result, typeStackTop).c_str(), sclTypeToCType(result, typeStackTop).c_str());
                 append("%s;\n", path.c_str());
                 typePop;
             });

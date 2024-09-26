@@ -1,10 +1,10 @@
 import std.util.Range
 
 static struct List
-    cdecl "_scl_array_resize"
+    cdecl "scale_array_resize"
     expect foreign reified function resize<[T]>(size: int, arr: [T]): [T]
 
-    cdecl "_scl_array_size"
+    cdecl "scale_array_size"
     expect foreign reified function size<[T]>(arr: [T]): int
 
     function resizeToFit(arr: [int8]): [int8]

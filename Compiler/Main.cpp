@@ -54,8 +54,8 @@
 #define FRAMEWORK_VERSION_REQ "24.2.0"
 #endif
 
-#ifndef SCL_ROOT_DIR
-#define SCL_ROOT_DIR DIR_SEP "opt"
+#ifndef SCALE_ROOT_DIR
+#define SCALE_ROOT_DIR DIR_SEP "opt"
 #endif
 
 #define CONCAT(a, b) CONCAT_(a, b)
@@ -732,8 +732,8 @@ namespace sclc
 
         std::string outfile     = std::string(DEFAULT_OUTFILE);
         std::string compiler    = std::string(COMPILER);
-        scaleFolder             = std::string(SCL_ROOT_DIR) + DIR_SEP + std::string(SCALE_INSTALL_DIR) + DIR_SEP + std::string(VERSION);
-        scaleLatestFolder       = std::string(SCL_ROOT_DIR) + DIR_SEP + std::string(SCALE_INSTALL_DIR) + DIR_SEP "latest";
+        scaleFolder             = std::string(SCALE_ROOT_DIR) + DIR_SEP + std::string(SCALE_INSTALL_DIR) + DIR_SEP + std::string(VERSION);
+        scaleLatestFolder       = std::string(SCALE_ROOT_DIR) + DIR_SEP + std::string(SCALE_INSTALL_DIR) + DIR_SEP "latest";
 
         std::vector<std::string> frameworks;
         std::vector<std::string> tmpFlags;
@@ -909,7 +909,7 @@ namespace sclc
                 #endif
                 #endif
                 Main::options::noMain = true;
-                tmpFlags.push_back("-DSCL_COMPILER_NO_MAIN");
+                tmpFlags.push_back("-DSCALE_COMPILER_NO_MAIN");
                 if (!outFileSpecified)
                 #if defined(__APPLE__)
                     Main::options::outfile = outfile = "libout.dylib";
@@ -926,7 +926,7 @@ namespace sclc
                 Main::options::noScaleFramework = true;
                 Main::options::noLinkScale = true;
                 Main::options::embedded = true;
-                tmpFlags.push_back("-DSCL_EMBEDDED");
+                tmpFlags.push_back("-DSCALE_EMBEDDED");
             } else if (args[i] == "-verbose-linker") {
                 tmpFlags.push_back("-v");
             } else if (args[i] == "-create-framework") {
@@ -1258,9 +1258,9 @@ namespace sclc
             cflags.push_back(s);
         }
 
-        std::string code_file = "scl_code.c";
-        std::string types_file = "scl_types.c";
-        std::string headers_file = "scl_headers.h";
+        std::string code_file = "scale_code.c";
+        std::string types_file = "scale_types.c";
+        std::string headers_file = "scale_headers.h";
 
         DBG("Parsing");
         

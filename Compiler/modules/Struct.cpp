@@ -105,6 +105,7 @@ namespace sclc {
     Layout::Layout(std::string name, Token t) {
         this->name = name;
         this->name_token = t;
+        this->isExtern = false;
     }
     void Layout::addMember(Variable member) {
         members.push_back(member);

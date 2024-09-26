@@ -14,7 +14,7 @@ namespace sclc {
             return;
         }
         ID_t hash = id(str.c_str());
-        append("_scl_push(scl_str, _scl_static_string(\"%s\", 0x%lxUL));\n", body[i].value.c_str(), hash);
+        append("scale_push(scale_str, scale_static_string(\"%s\", 0x%lxUL));\n", body[i].value.c_str(), hash);
         typeStack.push_back("str");
     }
 } // namespace sclc

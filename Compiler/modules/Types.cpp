@@ -379,27 +379,27 @@ namespace sclc {
 
     std::string sclTypeToCType(TPResult& result, std::string t) {
         static std::unordered_map<std::string, std::string> cache = {
-            std::pair("any", "scl_any"),
+            std::pair("any", "scale_any"),
             std::pair("none", "void"),
-            std::pair("nothing", "_scl_no_return void"),
-            std::pair("int", "scl_int"),
-            std::pair("int8", "scl_int8"),
-            std::pair("[int8]", "scl_int8*"),
-            std::pair("[str]", "scl_str*"),
-            std::pair("SclObject", "scl_SclObject"),
-            std::pair("str", "scl_str"),
-            std::pair("int16", "scl_int16"),
-            std::pair("int32", "scl_int32"),
-            std::pair("int64", "scl_int64"),
-            std::pair("uint", "scl_uint"),
-            std::pair("uint8", "scl_uint8"),
-            std::pair("uint16", "scl_uint16"),
-            std::pair("uint32", "scl_uint32"),
-            std::pair("uint64", "scl_uint64"),
-            std::pair("float", "scl_float"),
-            std::pair("bool", "scl_bool"),
+            std::pair("nothing", "scale_no_return void"),
+            std::pair("int", "scale_int"),
+            std::pair("int8", "scale_int8"),
+            std::pair("[int8]", "scale_int8*"),
+            std::pair("[str]", "scale_str*"),
+            std::pair("SclObject", "scale_SclObject"),
+            std::pair("str", "scale_str"),
+            std::pair("int16", "scale_int16"),
+            std::pair("int32", "scale_int32"),
+            std::pair("int64", "scale_int64"),
+            std::pair("uint", "scale_uint"),
+            std::pair("uint8", "scale_uint8"),
+            std::pair("uint16", "scale_uint16"),
+            std::pair("uint32", "scale_uint32"),
+            std::pair("uint64", "scale_uint64"),
+            std::pair("float", "scale_float"),
+            std::pair("bool", "scale_bool"),
             std::pair("varargs", "..."),
-            std::pair("?", "scl_any"),
+            std::pair("?", "scale_any"),
         };
 
         std::string key = t;
@@ -410,36 +410,36 @@ namespace sclc {
         bool valueType = t.front() == '@';
         t = removeTypeModifiers(t);
 
-        if (strstarts(t, "async<")) cache[key] = ("scl_any");
-        else if (strstarts(t, "lambda(")) cache[key] = ("_scl_lambda");
+        if (strstarts(t, "async<")) cache[key] = ("scale_any");
+        else if (strstarts(t, "lambda(")) cache[key] = ("scale_lambda");
         else if (t.size() > 2 && t.front() == '[') {
             cache[key] = (sclTypeToCType(result, t.substr(1, t.size() - 2)) + "*");
         } else if (!(getStructByName(result, t) == Struct::Null)) {
             if (valueType) {
                 cache[key] = ("struct Struct_" + t);
             } else {
-                cache[key] = ("scl_" + t);
+                cache[key] = ("scale_" + t);
             }
         } else if (getInterfaceByName(result, t)) {
             if (Main::options::noScaleFramework) {
-                cache[key] = ("scl_any");
+                cache[key] = ("scale_any");
             } else if (valueType) {
                 cache[key] = ("struct Struct_SclObject");
             } else {
-                cache[key] = ("scl_SclObject");
+                cache[key] = ("scale_SclObject");
             }
         } else if (hasTypealias(result, t)) {
             cache[key] = ("ta_" + t);
         } else if (hasEnum(result, t)) {
-            cache[key] = ("scl_int");
+            cache[key] = ("scale_int");
         } else if (hasLayout(result, t)) {
             if (valueType) {
                 cache[key] = ("struct Layout_" + t);
             } else {
-                cache[key] = ("scl_" + t);
+                cache[key] = ("scale_" + t);
             }
         } else {
-            cache[key] = ("scl_any");
+            cache[key] = ("scale_any");
         }
 
         return cache[key];

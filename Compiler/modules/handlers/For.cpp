@@ -26,7 +26,7 @@ namespace sclc {
             v = getVar(var.value);
         } else {
             v = Variable(var.value, "int");
-            var_prefix = "scl_int ";
+            var_prefix = "scale_int ";
         }
         
         append("for (%sVar_%s = ({\n", var_prefix.c_str(), var.value.c_str());
@@ -41,7 +41,7 @@ namespace sclc {
             return;
         }
         safeInc();
-        append("_scl_pop(%s);\n", sclTypeToCType(result, v.type).c_str());
+        append("scale_pop(%s);\n", sclTypeToCType(result, v.type).c_str());
         typePop;
         scopeDepth--;
         append("}); Var_%s != ({\n", var.value.c_str());
@@ -51,7 +51,7 @@ namespace sclc {
             safeInc();
         }
         typePop;
-        append("_scl_pop(%s);\n", sclTypeToCType(result, v.type).c_str());
+        append("scale_pop(%s);\n", sclTypeToCType(result, v.type).c_str());
         scopeDepth--;
         
 
@@ -59,7 +59,7 @@ namespace sclc {
             safeInc();
             append("}); ({\n");
             scopeDepth++;
-            append("_scl_push(%s, Var_%s);\n", sclTypeToCType(result, v.type).c_str(), var.value.c_str());
+            append("scale_push(%s, Var_%s);\n", sclTypeToCType(result, v.type).c_str(), var.value.c_str());
             typeStack.push_back(v.type);
             while (body[i].type != tok_do) {
                 handle(Token);
@@ -72,7 +72,7 @@ namespace sclc {
                 return;
             }
             typePop;
-            append("Var_%s = _scl_pop(%s);\n", var.value.c_str(), sclTypeToCType(result, v.type).c_str());
+            append("Var_%s = scale_pop(%s);\n", var.value.c_str(), sclTypeToCType(result, v.type).c_str());
             scopeDepth--;
             append("})) {\n");
         } else {

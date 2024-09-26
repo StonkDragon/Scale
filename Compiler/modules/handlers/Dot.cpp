@@ -21,7 +21,7 @@ namespace sclc {
             }
             const Variable& v = l.getMember(member);
 
-            append("_scl_top(%s) = _scl_top(%s)->%s;\n", sclTypeToCType(result, v.type).c_str(), sclTypeToCType(result, l.name).c_str(), member.c_str());
+            append("scale_top(%s) = scale_top(%s)->%s;\n", sclTypeToCType(result, v.type).c_str(), sclTypeToCType(result, l.name).c_str(), member.c_str());
             typeStack.push_back(l.getMember(member).type);
             return;
         }
@@ -46,11 +46,11 @@ namespace sclc {
                 
                 append("{\n");
                 scopeDepth++;
-                append("scl_any tmp = _scl_pop(scl_any);\n");
+                append("scale_any tmp = scale_pop(scale_any);\n");
                 std::string t = type;
-                append("_scl_push(scl_str, _scl_create_string(\"%s\"));\n", body[i].value.c_str());
+                append("scale_push(scale_str, scale_create_string(\"%s\"));\n", body[i].value.c_str());
                 typeStack.push_back("str");
-                append("_scl_push(scl_any, tmp);\n");
+                append("scale_push(scale_any, tmp);\n");
                 typeStack.push_back(t);
                 scopeDepth--;
                 append("}\n");
@@ -61,7 +61,7 @@ namespace sclc {
             Method* m;
             if ((m = getMethodByName(result, body[i].value, s.name)) != nullptr) {
                 std::string lambdaType = "lambda(" + std::to_string(m->args.size()) + "):" + m->return_type;
-                append("_scl_push(scl_any, mt_%s$%s);\n", s.name.c_str(), m->name.c_str());
+                append("scale_push(scale_any, mt_%s$%s);\n", s.name.c_str(), m->name.c_str());
                 typeStack.push_back(lambdaType);
                 return;
             }
@@ -92,7 +92,7 @@ namespace sclc {
         if (m) {
             if (dot.value == "?.") {
                 if (deref) {
-                    append("_scl_top(%s) = _scl_top(scl_int) ? *(mt_%s$%s(_scl_top(%s))) : 0%s;\n", sclTypeToCType(result, m->return_type).c_str(), m->member_type.c_str(), m->name.c_str(), sclTypeToCType(result, m->member_type).c_str(), removeTypeModifiers(m->return_type) == "float" ? ".0" : "");
+                    append("scale_top(%s) = scale_top(scale_int) ? *(mt_%s$%s(scale_top(%s))) : 0%s;\n", sclTypeToCType(result, m->return_type).c_str(), m->member_type.c_str(), m->name.c_str(), sclTypeToCType(result, m->member_type).c_str(), removeTypeModifiers(m->return_type) == "float" ? ".0" : "");
                     std::string type = m->return_type;
                     if (type.size() > 2 && type.front() == '[' && type.back() == ']') {
                         type = type.substr(1, type.size() - 2);
@@ -101,12 +101,12 @@ namespace sclc {
                     }
                     typeStack.push_back(type);
                 } else {
-                    append("_scl_top(%s) = _scl_top(scl_int) ? mt_%s$%s(_scl_top(%s)) : 0%s;\n", sclTypeToCType(result, m->return_type).c_str(), m->member_type.c_str(), m->name.c_str(), sclTypeToCType(result, m->member_type).c_str(), removeTypeModifiers(m->return_type) == "float" ? ".0" : "");
+                    append("scale_top(%s) = scale_top(scale_int) ? mt_%s$%s(scale_top(%s)) : 0%s;\n", sclTypeToCType(result, m->return_type).c_str(), m->member_type.c_str(), m->name.c_str(), sclTypeToCType(result, m->member_type).c_str(), removeTypeModifiers(m->return_type) == "float" ? ".0" : "");
                     typeStack.push_back(m->return_type);
                 }
             } else {
                 if (deref) {
-                    append("_scl_top(%s) = *(mt_%s$%s(_scl_top(%s)));\n", sclTypeToCType(result, m->return_type).c_str(), m->member_type.c_str(), m->name.c_str(), sclTypeToCType(result, m->member_type).c_str());
+                    append("scale_top(%s) = *(mt_%s$%s(scale_top(%s)));\n", sclTypeToCType(result, m->return_type).c_str(), m->member_type.c_str(), m->name.c_str(), sclTypeToCType(result, m->member_type).c_str());
                     std::string type = m->return_type;
                     if (type.size() > 2 && type.front() == '[' && type.back() == ']') {
                         type = type.substr(1, type.size() - 2);
@@ -115,7 +115,7 @@ namespace sclc {
                     }
                     typeStack.push_back(type);
                 } else {
-                    append("_scl_top(%s) = mt_%s$%s(_scl_top(%s));\n", sclTypeToCType(result, m->return_type).c_str(), m->member_type.c_str(), m->name.c_str(), sclTypeToCType(result, m->member_type).c_str());
+                    append("scale_top(%s) = mt_%s$%s(scale_top(%s));\n", sclTypeToCType(result, m->return_type).c_str(), m->member_type.c_str(), m->name.c_str(), sclTypeToCType(result, m->member_type).c_str());
                     typeStack.push_back(m->return_type);
                 }
             }
@@ -123,15 +123,15 @@ namespace sclc {
         }
 
         if (dot.value == "?.") {
-            append("_scl_top(%s) = _scl_top(scl_int) ? _scl_top(%s)->%s : NULL;\n", sclTypeToCType(result, mem.type).c_str(), sclTypeToCType(result, s.name).c_str(), body[i].value.c_str());
+            append("scale_top(%s) = scale_top(scale_int) ? scale_top(%s)->%s : NULL;\n", sclTypeToCType(result, mem.type).c_str(), sclTypeToCType(result, s.name).c_str(), body[i].value.c_str());
         } else {
-            append("_scl_top(%s) = _scl_top(%s)->%s;\n", sclTypeToCType(result, mem.type).c_str(), sclTypeToCType(result, s.name).c_str(), body[i].value.c_str());
+            append("scale_top(%s) = scale_top(%s)->%s;\n", sclTypeToCType(result, mem.type).c_str(), sclTypeToCType(result, s.name).c_str(), body[i].value.c_str());
         }
         typeStack.push_back(mem.type);
         if (deref) {
             std::string path = dot.value + "@" + body[i].value;
-            append("_scl_assert_fast(_scl_top(scl_int), \"Tried dereferencing nil pointer '%s'!\");", path.c_str());
-            append("_scl_top(scl_any) = *_scl_top(scl_any*);\n");
+            append("scale_assert_fast(scale_top(scale_int), \"Tried dereferencing nil pointer '%s'!\");", path.c_str());
+            append("scale_top(scale_any) = *scale_top(scale_any*);\n");
             std::string type = typeStackTop;
             typePop;
             if (type.size() > 2 && type.front() == '[' && type.back() == ']') {

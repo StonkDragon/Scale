@@ -9,7 +9,7 @@ namespace sclc {
 
     handler(CharLiteral) {
         noUnused;
-        append("_scl_push(scl_int, %d & SCL_int8_MASK);\n", unquoteChar(body[i].value));
+        append("scale_push(scale_int, %d & SCALE_int8_MASK);\n", unquoteChar(body[i].value));
         typeStack.push_back("int8");
     }
 } // namespace sclc

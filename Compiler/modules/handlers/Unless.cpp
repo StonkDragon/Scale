@@ -30,7 +30,7 @@ namespace sclc {
             errors.push_back(err);
             return;
         }
-        append("!_scl_pop(scl_int);\n");
+        append("!scale_pop(scale_int);\n");
         scopeDepth--;
         append("})) {\n");
         scopeDepth++;

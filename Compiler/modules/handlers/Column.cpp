@@ -23,8 +23,8 @@ namespace sclc {
             std::string argTypes = "";
             std::string argGet = "";
             for (size_t argc = argAmount; argc; argc--) {
-                argTypes += "scl_any";
-                argGet += "_scl_positive_offset(" + std::to_string(argAmount - argc) + ", scl_any)";
+                argTypes += "scale_any";
+                argGet += "scale_positive_offset(" + std::to_string(argAmount - argc) + ", scale_any)";
                 if (argc > 1) {
                     argTypes += ", ";
                     argGet += ", ";
@@ -38,26 +38,26 @@ namespace sclc {
                 if (rType == "none" || rType == "nothing") {
                     if (argTypes.size()) {
                         append("void(*(*lambda))(%s, void*);\n", argTypes.c_str());
-                        append("lambda = _scl_pop(typeof(lambda));\n");
-                        append("_scl_popn(%zu);\n", argAmount);
+                        append("lambda = scale_pop(typeof(lambda));\n");
+                        append("scale_popn(%zu);\n", argAmount);
                         append("(*lambda)(%s, lambda);\n", argGet.c_str());
                     } else {
                         append("void(*(*lambda))(void*);\n");
-                        append("lambda = _scl_pop(typeof(lambda));\n");
-                        append("_scl_popn(%zu);\n", argAmount);
+                        append("lambda = scale_pop(typeof(lambda));\n");
+                        append("scale_popn(%zu);\n", argAmount);
                         append("(*lambda)(lambda);\n");
                     }
                 } else {
                     if (argTypes.size()) {
                         append("%s(*(*lambda))(%s, void*);\n", sclTypeToCType(result, returnType).c_str(), argTypes.c_str());
-                        append("lambda = _scl_pop(typeof(lambda));\n");
-                        append("_scl_popn(%zu);\n", argAmount);
-                        append("_scl_push(%s, (*lambda)(%s, lambda));\n", sclTypeToCType(result, returnType).c_str(), argGet.c_str());
+                        append("lambda = scale_pop(typeof(lambda));\n");
+                        append("scale_popn(%zu);\n", argAmount);
+                        append("scale_push(%s, (*lambda)(%s, lambda));\n", sclTypeToCType(result, returnType).c_str(), argGet.c_str());
                     } else {
                         append("%s(*(*lambda))(void*);\n", sclTypeToCType(result, returnType).c_str());
-                        append("lambda = _scl_pop(typeof(lambda));\n");
-                        append("_scl_popn(%zu);\n", argAmount);
-                        append("_scl_push(%s, (*lambda)(lambda));\n", sclTypeToCType(result, returnType).c_str());
+                        append("lambda = scale_pop(typeof(lambda));\n");
+                        append("scale_popn(%zu);\n", argAmount);
+                        append("scale_push(%s, (*lambda)(lambda));\n", sclTypeToCType(result, returnType).c_str());
                     }
                     typeStack.push_back(returnType);
                 }
@@ -107,7 +107,7 @@ namespace sclc {
             append("{\n");
             scopeDepth++;
 
-            append("%s tmp = _scl_pop(scl_any);\n", sclTypeToCType(result, container).c_str());
+            append("%s tmp = scale_pop(scale_any);\n", sclTypeToCType(result, container).c_str());
             typePop;
 
             if (typeStack.size() < argAmount) {
@@ -119,15 +119,15 @@ namespace sclc {
             std::string argTypes = "";
             std::string argGet = "";
             for (size_t argc = argAmount; argc; argc--) {
-                argTypes += "scl_any";
-                argGet += "_scl_positive_offset(" + std::to_string(argAmount - argc) + ", scl_any)";
+                argTypes += "scale_any";
+                argGet += "scale_positive_offset(" + std::to_string(argAmount - argc) + ", scale_any)";
                 if (argc > 1) {
                     argTypes += ", ";
                     argGet += ", ";
                 }
                 typePop;
             }
-            append("_scl_popn(%zu);\n", argAmount);
+            append("scale_popn(%zu);\n", argAmount);
             if (removeTypeModifiers(returnType) == "none" || removeTypeModifiers(returnType) == "nothing") {
                 if (argTypes.size()) {
                     append("void(*(*lambda))(%s, void*) = tmp->%s;\n", argTypes.c_str(), v.name.c_str());
@@ -139,10 +139,10 @@ namespace sclc {
             } else {
                 if (argTypes.size()) {
                     append("void(*(*lambda))(%s, void*) = tmp->%s;\n", argTypes.c_str(), v.name.c_str());
-                    append("_scl_push(%s, (*lambda)(%s, lambda));\n", sclTypeToCType(result, returnType).c_str(), argGet.c_str());
+                    append("scale_push(%s, (*lambda)(%s, lambda));\n", sclTypeToCType(result, returnType).c_str(), argGet.c_str());
                 } else {
                     append("void(*(*lambda))(void*) = tmp->%s;\n", v.name.c_str());
-                    append("_scl_push(%s, (*lambda)(lambda));\n", sclTypeToCType(result, returnType).c_str());
+                    append("scale_push(%s, (*lambda)(lambda));\n", sclTypeToCType(result, returnType).c_str());
                 }
                 typeStack.push_back(returnType);
             }
@@ -208,7 +208,7 @@ namespace sclc {
         if (s.name == "any") {
             objMethod = !Main::options::noScaleFramework ? getMethodByName(result, body[i].value, "SclObject") : nullptr;
             if (objMethod) {
-                append("if (_scl_is_instance(_scl_top(scl_any))) {\n");
+                append("if (scale_is_instance(scale_top(scale_any))) {\n");
                 scopeDepth++;
                 methodCall(objMethod, fp, result, warns, errors, body, i, true, false);
                 if (objMethod->return_type != "none" && objMethod->return_type != "nothing") {

@@ -5,7 +5,7 @@ cdecl "s_memset"
 expect foreign unsafe reified function memset<T,,>(ptr: T, val: int32, len: int): T
 cdecl "s_memcpy"
 expect foreign unsafe reified function memcpy<T,,>(dst: T, src: T, n: int): T
-cdecl "_scl_sleep"
+cdecl "scale_sleep"
 expect foreign function sleep(millis: int): none
 cdecl "system"
 private expect foreign unsafe function __c_system(:[int8]): int

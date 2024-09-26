@@ -62,17 +62,17 @@ namespace sclc {
             }
         }
         type = sclTypeToCType(result, type);
-        if (type == "scl_float" || type == "scl_float32") {
+        if (type == "scale_float" || type == "scale_float32") {
             append("%s Var_%s = 0.0;\n", type.c_str(), v.name.c_str());
         } else {
             if (s != Struct::Null && !s.isStatic() && m != nullptr) {
                 append("%s Var_%s = ALLOC(%s);\n", type.c_str(), v.name.c_str(), s.name.c_str());
-                append("_scl_push(%s, Var_%s);\n", type.c_str(), v.name.c_str());
+                append("scale_push(%s, Var_%s);\n", type.c_str(), v.name.c_str());
                 typeStack.push_back(removeTypeModifiers(v.type));
                 methodCall(m, fp, result, warns, errors, body, i);
             } else if (!l.name.empty() && m != nullptr) {
-                append("%s Var_%s = _scl_alloc(sizeof(struct Layout_%s));\n", type.c_str(), v.name.c_str(), l.name.c_str());
-                append("_scl_push(%s, Var_%s);\n", type.c_str(), v.name.c_str());
+                append("%s Var_%s = scale_alloc(sizeof(struct Layout_%s));\n", type.c_str(), v.name.c_str(), l.name.c_str());
+                append("scale_push(%s, Var_%s);\n", type.c_str(), v.name.c_str());
                 typeStack.push_back(removeTypeModifiers(v.type));
                 methodCall(m, fp, result, warns, errors, body, i);
             } else if (hasTypealias(result, type)) {

@@ -180,9 +180,9 @@ int real_main(int argc, char const *argv[]) {
     #define DIR_SEP "/"
     #endif
 
-    std::string scl_root_dir = is_root() ? ABS_ROOT_DIR : home;
+    std::string scale_root_dir = is_root() ? ABS_ROOT_DIR : home;
 
-    std::string path = scl_root_dir + DIR_SEP "Scale" DIR_SEP + STR(VERSION);
+    std::string path = scale_root_dir + DIR_SEP "Scale" DIR_SEP + STR(VERSION);
     std::string binary = "sclc" EXE_SUFF;
 
     std::cout << "Installing Scale to " << path << std::endl;
@@ -200,10 +200,10 @@ int real_main(int argc, char const *argv[]) {
             path,
             std::filesystem::perms::all
         );
-        std::filesystem::remove_all(scl_root_dir + DIR_SEP "Scale" DIR_SEP "latest");
-        std::filesystem::create_directory_symlink(std::filesystem::path(path), scl_root_dir + DIR_SEP "Scale" DIR_SEP "latest");
+        std::filesystem::remove_all(scale_root_dir + DIR_SEP "Scale" DIR_SEP "latest");
+        std::filesystem::create_directory_symlink(std::filesystem::path(path), scale_root_dir + DIR_SEP "Scale" DIR_SEP "latest");
         std::filesystem::permissions(
-            scl_root_dir + DIR_SEP "Scale" DIR_SEP "latest",
+            scale_root_dir + DIR_SEP "Scale" DIR_SEP "latest",
             std::filesystem::perms::all
         );
     }
@@ -347,7 +347,7 @@ int real_main(int argc, char const *argv[]) {
         return out;
     };
 
-    scl_root_dir = escape_backslashes(scl_root_dir);
+    scale_root_dir = escape_backslashes(scale_root_dir);
     #endif
 
     std::string compile_command = create_command({
@@ -355,7 +355,7 @@ int real_main(int argc, char const *argv[]) {
         "-fvisibility=default",
         ("-DVERSION=\\\"" STR(VERSION) "\\\""),
         ("-DC_VERSION=" STR(STR(C_VERSION))),
-        "-DSCL_ROOT_DIR=\\\"" + scl_root_dir + "\\\"",
+        "-DSCALE_ROOT_DIR=\\\"" + scale_root_dir + "\\\"",
         ("-std=" CXX_VERSION),
         "-Wall",
         "-Wextra",

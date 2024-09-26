@@ -195,20 +195,20 @@ namespace sclc
                     }
                 }
                 type = sclTypeToCType(result, type);
-                if (type == "scl_float" || type == "scl_float32") {
+                if (type == "scale_float" || type == "scale_float32") {
                     append("%s Var_%s", type.c_str(), v.name.c_str());
-                    append2(" __asm__(_scl_macro_to_string(__USER_LABEL_PREFIX__) \"%s\") = 0.0;\n", v.name.c_str());
+                    append2(" __asm__(scale_macro_to_string(__USER_LABEL_PREFIX__) \"%s\") = 0.0;\n", v.name.c_str());
                 } else {
                     if (s != Struct::Null && !s.isStatic()) {
                         append("%s Var_%s", type.c_str(), v.name.c_str());
-                        append2(" __asm__(_scl_macro_to_string(__USER_LABEL_PREFIX__) \"%s\") = {0};\n", v.name.c_str());
+                        append2(" __asm__(scale_macro_to_string(__USER_LABEL_PREFIX__) \"%s\") = {0};\n", v.name.c_str());
                         if (m != nullptr) {
                             Function* f = new Function("static_init$" + v.name, v.name_token);
                             f->return_type = "none";
                             initFuncs.push_back(f);
                             append("void fn_static_init$%s() {\n", v.name.c_str());
                             scopeDepth++;
-                            append("%s tmp = _scl_uninitialized_constant(%s);\n", type.c_str(), s.name.c_str());
+                            append("%s tmp = scale_uninitialized_constant(%s);\n", type.c_str(), s.name.c_str());
                             append("mt_%s$%s(tmp);\n", m->member_type.c_str(), m->name.c_str());
                             append("Var_%s = tmp;\n", v.name.c_str());
                             scopeDepth--;
@@ -216,10 +216,10 @@ namespace sclc
                         }
                     } else if (hasTypealias(result, type) || hasLayout(result, type)) {
                         append("%s Var_%s", type.c_str(), v.name.c_str());
-                        append2(" __asm__(_scl_macro_to_string(__USER_LABEL_PREFIX__) \"%s\");\n", v.name.c_str());
+                        append2(" __asm__(scale_macro_to_string(__USER_LABEL_PREFIX__) \"%s\");\n", v.name.c_str());
                     } else {
                         append("%s Var_%s", type.c_str(), v.name.c_str());
-                        append2(" __asm__(_scl_macro_to_string(__USER_LABEL_PREFIX__) \"%s\") = 0;\n", v.name.c_str());
+                        append2(" __asm__(scale_macro_to_string(__USER_LABEL_PREFIX__) \"%s\") = 0;\n", v.name.c_str());
                     }
                 }
             }
@@ -235,9 +235,12 @@ namespace sclc
         #endif
 
         append("\n");
-        append("_scl_constructor void init_this%llx() {\n", rand);
+        if (Main::options::embedded) {
+            append("scale_constructor void scale_setup(void) {}\n");
+        }
+        append("scale_constructor void init_this%llx() {\n", rand);
         scopeDepth++;
-        append("_scl_setup();\n");
+        append("scale_setup();\n");
         for (auto&& f : initFuncs) {
             const std::string& file = f->name_token.location.file;
             if (!Main::options::noLinkScale && pathstarts(file, scaleFolder + DIR_SEP "Frameworks" DIR_SEP "Scale.framework") && !strstarts(f->name_without_overload, "$T")) {
@@ -250,7 +253,7 @@ namespace sclc
         append("}\n");
 
         append("\n");
-        append("_scl_destructor void destroy_this%llx() {\n", rand);
+        append("scale_destructor void destroy_this%llx() {\n", rand);
         if (destroyFuncs.size()) {
             scopeDepth++;
             for (auto&& f : destroyFuncs) {
@@ -271,10 +274,16 @@ namespace sclc
             structTree->forEach([&fp](StructTreeNode* node) {
                 append("\n");
                 const Struct& s = node->s;
-                if (s.isExtern()) {
-                    append("extern expect const TypeInfo _scl_ti_%s __asm__(\"__T%s\");\n", s.name.c_str(), s.name.c_str());
-                }
-                if (s.isStatic() || s.isExtern()) {
+                bool isTemplate = isTemplate = strstarts(s.name, "$T");
+
+                const std::string& file = s.name_token.location.file;
+                if (
+                    s.isExtern() ||
+                    (!Main::options::noLinkScale && !isTemplate && !s.isStatic() && strstarts(file, scaleFolder + DIR_SEP "Frameworks" DIR_SEP "Scale.framework"))
+                ) {
+                    append("extern expect const TypeInfo $I%s;\n", s.name.c_str(), s.name.c_str());
+                    return;
+                } else if (s.isStatic()) {
                     return;
                 }
 
@@ -282,13 +291,13 @@ namespace sclc
                 if (vtable == vtables.end()) {
                     return;
                 }
-                append("static const _scl_methodinfo_t _scl_vtable_info_%s = {\n", vtable->first.c_str());
+                append("static const scale_methodinfo_t $M%s = {\n", vtable->first.c_str());
                 scopeDepth++;
                 append(".layout = {\n");
                 scopeDepth++;
-                append(".size = %zu * sizeof(struct _scl_methodinfo),\n", vtable->second.size());
+                append(".size = %zu * sizeof(struct scale_methodinfo),\n", vtable->second.size());
                 append(".flags = MEM_FLAG_ARRAY,\n");
-                append(".array_elem_size = sizeof(struct _scl_methodinfo)\n");
+                append(".array_elem_size = sizeof(struct scale_methodinfo)\n");
                 scopeDepth--;
                 append("},\n");
                 append(".infos = {\n");
@@ -297,7 +306,7 @@ namespace sclc
                 for (auto&& m : vtable->second) {
                     std::string signature = argsToRTSignature(m);
                     std::string friendlyName = sclFunctionNameToFriendlyString(m->name);
-                    append("(struct _scl_methodinfo) { // %s\n", friendlyName.c_str());
+                    append("(struct scale_methodinfo) { // %s\n", friendlyName.c_str());
                     scopeDepth++;
                     append(".pure_name = 0x%lxUL, // %s\n", id(friendlyName.c_str()), friendlyName.c_str());
                     append(".signature = 0x%lxUL, // %s\n", id(signature.c_str()), signature.c_str());
@@ -310,19 +319,19 @@ namespace sclc
                 scopeDepth--;
                 append("};\n");
                 
-                append("static const _scl_vtable _scl_vtable_%s = {\n", s.name.c_str());
+                append("static const scale_vtable $V%s = {\n", s.name.c_str());
                 scopeDepth++;
                 append(".layout = {\n");
                 scopeDepth++;
-                append(".size = %zu * sizeof(_scl_function),\n", vtable->second.size());
+                append(".size = %zu * sizeof(scale_function),\n", vtable->second.size());
                 append(".flags = MEM_FLAG_ARRAY,\n");
-                append(".array_elem_size = sizeof(_scl_function)\n");
+                append(".array_elem_size = sizeof(scale_function)\n");
                 scopeDepth--;
                 append("},\n");
                 append(".funcs = {\n");
                 scopeDepth++;
                 for (auto&& m : vtable->second) {
-                    append("(const _scl_function) mt_%s$%s,\n", m->member_type.c_str(), m->name.c_str());
+                    append("(const scale_function) mt_%s$%s,\n", m->member_type.c_str(), m->name.c_str());
                 }
                 append("0\n");
                 scopeDepth--;
@@ -330,14 +339,14 @@ namespace sclc
                 scopeDepth--;
                 append("};\n");
 
-                append("const TypeInfo _scl_ti_%s __asm__(\"__T%s\") = {\n", s.name.c_str(), s.name.c_str());
+                append("const TypeInfo $I%s = {\n", s.name.c_str(), s.name.c_str());
                 scopeDepth++;
                 append(".type = 0x%lxUL,\n", id(s.name.c_str()));
                 append(".type_name = \"%s\",\n", retemplate(s.name).c_str());
-                append(".vtable_info = (&_scl_vtable_info_%s)->infos,\n", s.name.c_str());
-                append(".vtable = (&_scl_vtable_%s)->funcs,\n", s.name.c_str());
+                append(".vtable_info = (&$M%s)->infos,\n", s.name.c_str());
+                append(".vtable = (&$V%s)->funcs,\n", s.name.c_str());
                 if (s.super.size()) {
-                    append(".super = &_scl_ti_%s,\n", s.super.c_str());
+                    append(".super = &$I%s,\n", s.super.c_str());
                 } else {
                     append(".super = 0,\n");
                 }

@@ -13,7 +13,7 @@ namespace sclc {
         safeInc();
         append("{\n");
         scopeDepth++;
-        append("scl_uint64* begin_stack_size = _local_stack_ptr;\n");
+        append("scale_uint64* begin_stack_size = _local_stack_ptr;\n");
         while (body[i].type != tok_paren_close) {
             if (body[i].type == tok_comma) {
                 commas++;
@@ -38,11 +38,11 @@ namespace sclc {
                     }
                     append("{\n");
                     scopeDepth++;
-                    append("scl_Range tmp = ALLOC(Range);\n");
-                    append("_scl_push(scl_Range, tmp);\n");
+                    append("scale_Range tmp = ALLOC(Range);\n");
+                    append("scale_push(scale_Range, tmp);\n");
                     typeStack.push_back("Range");
                     methodCall(getMethodByName(result, "init", "Range"), fp, result, warns, errors, body, i);
-                    append("_scl_push(scl_Range, tmp);\n");
+                    append("scale_push(scale_Range, tmp);\n");
                     typeStack.push_back("Range");
                     scopeDepth--;
                     append("}\n");
@@ -74,11 +74,11 @@ namespace sclc {
                     }
                     append("{\n");
                     scopeDepth++;
-                    append("scl_UnboundRange tmp = ALLOC(UnboundRange);\n");
-                    append("_scl_push(scl_UnboundRange, tmp);\n");
+                    append("scale_UnboundRange tmp = ALLOC(UnboundRange);\n");
+                    append("scale_push(scale_UnboundRange, tmp);\n");
                     typeStack.push_back("UnboundRange");
                     methodCall(getMethodByName(result, "init", "UnboundRange"), fp, result, warns, errors, body, i);
-                    append("_scl_push(scl_UnboundRange, tmp);\n");
+                    append("scale_push(scale_UnboundRange, tmp);\n");
                     typeStack.push_back("UnboundRange");
                     scopeDepth--;
                     append("}\n");
@@ -92,10 +92,10 @@ namespace sclc {
                 if (typeStack.size() > stackSizeHere) {
                     std::string returns = typeStackTop;
                     std::string ctype = sclTypeToCType(result, returns);
-                    append("%s return_value = _scl_pop(%s);\n", ctype.c_str(), ctype.c_str());
+                    append("%s return_value = scale_pop(%s);\n", ctype.c_str(), ctype.c_str());
                     append("_local_stack_ptr = begin_stack_size;\n");
                     typeStack.erase(typeStack.begin() + stackSizeHere, typeStack.end());
-                    append("_scl_push(%s, return_value);\n", ctype.c_str());
+                    append("scale_push(%s, return_value);\n", ctype.c_str());
                     typeStack.push_back(returns);
                 }
             }
@@ -108,11 +108,11 @@ namespace sclc {
             }
             append("{\n");
             scopeDepth++;
-            append("scl_Pair tmp = ALLOC(Pair);\n");
-            append("_scl_push(scl_Pair, tmp);\n");
+            append("scale_Pair tmp = ALLOC(Pair);\n");
+            append("scale_push(scale_Pair, tmp);\n");
             typeStack.push_back("Pair");
             methodCall(getMethodByName(result, "init", "Pair"), fp, result, warns, errors, body, i);
-            append("_scl_push(scl_Pair, tmp);\n");
+            append("scale_push(scale_Pair, tmp);\n");
             typeStack.push_back("Pair");
             scopeDepth--;
             append("}\n");
@@ -125,11 +125,11 @@ namespace sclc {
             }
             append("{\n");
             scopeDepth++;
-            append("scl_Triple tmp = ALLOC(Triple);\n");
-            append("_scl_push(scl_Triple, tmp);\n");
+            append("scale_Triple tmp = ALLOC(Triple);\n");
+            append("scale_push(scale_Triple, tmp);\n");
             typeStack.push_back("Triple");
             methodCall(getMethodByName(result, "init", "Triple"), fp, result, warns, errors, body, i);
-            append("_scl_push(scl_Triple, tmp);\n");
+            append("scale_push(scale_Triple, tmp);\n");
             typeStack.push_back("Triple");
             scopeDepth--;
             append("}\n");

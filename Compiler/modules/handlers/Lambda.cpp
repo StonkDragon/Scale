@@ -164,12 +164,12 @@ namespace sclc {
 
         std::string lambdaType = "lambda(" + std::to_string(f->args.size() - 1) + "):" + f->return_type;
 
-        append("_scl_push(scl_any, ({\n");
+        append("scale_push(scale_any, ({\n");
         scopeDepth++;
         const std::string sym = generateSymbolForFunction(f);
         append("%s fn_$%s$%s(%s) __asm__(%s);\n", sclTypeToCType(result, f->return_type).c_str(), name.c_str(), function->name.c_str(), arguments.c_str(), sym.c_str());
         append("struct l$%s$%s {\n", name.c_str(), function->name.c_str());
-        append("  scl_any func;\n");
+        append("  scale_any func;\n");
         for (size_t i = 0; i < f->captures.size(); i++) {
             append("  %s cap_%s;\n", sclTypeToCType(result, f->captures[i].type).c_str(), f->captures[i].name.c_str());
             f->modifiers.push_back(f->captures[i].type);
@@ -180,7 +180,7 @@ namespace sclc {
             f->modifiers.push_back(f->ref_captures[i].type);
             f->modifiers.push_back(f->ref_captures[i].name);
         }
-        append("}* tmp = (typeof(tmp)) _scl_alloc(sizeof(*tmp));\n");
+        append("}* tmp = (typeof(tmp)) scale_alloc(sizeof(*tmp));\n");
         for (size_t i = 0; i < f->captures.size(); i++) {
             append("tmp->cap_%s = Var_%s;\n", f->captures[i].name.c_str(), f->captures[i].name.c_str());
         }
@@ -188,7 +188,7 @@ namespace sclc {
             append("tmp->ref_%s = &(Var_%s);\n", f->ref_captures[i].name.c_str(), f->ref_captures[i].name.c_str());
         }
         append("tmp->func = fn_$%s$%s;\n", name.c_str(), function->name.c_str());
-        append("(scl_any) tmp;\n");
+        append("(scale_any) tmp;\n");
         scopeDepth--;
         append("}));\n");
 
@@ -199,7 +199,7 @@ namespace sclc {
             Variable v(name, typeStackTop);
             vars.push_back(v);
             std::string cType = sclTypeToCType(result, typeStackTop);
-            append("%s Var_%s = _scl_pop(%s);\n", cType.c_str(), name.c_str(), cType.c_str());
+            append("%s Var_%s = scale_pop(%s);\n", cType.c_str(), name.c_str(), cType.c_str());
             typeStack.pop_back();
         }
     }

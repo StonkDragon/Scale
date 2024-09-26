@@ -104,8 +104,8 @@ namespace sclc {
                 errors.push_back(err);
                 return;
             }
-            append("_scl_push(scl_any, ({\n");
-            append("  scl_any* tmp = _scl_alloc(sizeof(scl_any));\n");
+            append("scale_push(scale_any, ({\n");
+            append("  scale_any* tmp = scale_alloc(sizeof(scale_any));\n");
             append("  *tmp = fn_%s;\n", f->name.c_str());
             append("  tmp;\n");
             append("}));\n");
@@ -221,8 +221,8 @@ namespace sclc {
                             errors.push_back(err);
                             return;
                         }
-                        append("_scl_push(scl_any, ({\n");
-                        append("  scl_any* tmp = _scl_alloc(sizeof(scl_any));\n");
+                        append("scale_push(scale_any, ({\n");
+                        append("  scale_any* tmp = scale_alloc(sizeof(scale_any));\n");
                         append("  *tmp = mt_%s$%s;\n", f->member_type.c_str(), f->name.c_str());
                         append("  tmp;\n");
                         append("}));\n");
@@ -333,8 +333,8 @@ namespace sclc {
                         errors.push_back(err);
                         return;
                     }
-                    append("_scl_push(scl_any, ({\n");
-                    append("  scl_any* tmp = _scl_alloc(sizeof(scl_any));\n");
+                    append("scale_push(scale_any, ({\n");
+                    append("  scale_any* tmp = scale_alloc(sizeof(scale_any));\n");
                     append("  *tmp = mt_%s$%s;\n", f->member_type.c_str(), f->name.c_str());
                     append("  tmp;\n");
                     append("}));\n");
@@ -354,7 +354,7 @@ namespace sclc {
             v = getVar(body[i].value);
         }
         makePath(result, v, false, body, i, errors, false, function, warns, fp, [&](auto path, auto lastType) {
-            append("_scl_push(typeof(&(%s)), &(%s));\n", path.c_str(), path.c_str());
+            append("scale_push(typeof(&(%s)), &(%s));\n", path.c_str(), path.c_str());
             typeStack.push_back("[" + lastType + "]");
         });
     }

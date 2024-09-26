@@ -44,7 +44,7 @@ final struct ReadOnlyArray: Array
         arr.capacity ReadOnlyArray::new => out
         unsafe
             c!
-                for (scl_int i = 0; i < (*arr)->capacity; i++) {
+                for (scale_int i = 0; i < (*arr)->capacity; i++) {
                     (*out)->values[i] = (*arr)->values[i];
                 }
             end
@@ -56,7 +56,7 @@ final struct ReadOnlyArray: Array
         count ReadOnlyArray::new => out
         unsafe
             c!
-                for (scl_int i = 0; i < (*count); i++) {
+                for (scale_int i = 0; i < (*count); i++) {
                     (*out)->values[i] = (*values)[i];
                 }
             end

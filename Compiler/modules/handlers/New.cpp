@@ -8,7 +8,7 @@ namespace sclc {
     handler(New) {
         noUnused;
         safeInc();
-        std::string elemSize = "sizeof(scl_any)";
+        std::string elemSize = "sizeof(scale_any)";
         std::string typeString = "any";
         if (body[i].type == tok_identifier && body[i].value == "<") {
             safeInc();
@@ -42,7 +42,7 @@ namespace sclc {
                     }
                 }
             } else {
-                append("_scl_push(scl_any, _scl_new_array_by_size(0, %s));\n", elemSize.c_str());
+                append("scale_push(scale_any, scale_new_array_by_size(0, %s));\n", elemSize.c_str());
                 typeStack.push_back("[" + typeString + "]");
                 scopeDepth--;
                 append("}\n");
@@ -61,18 +61,18 @@ namespace sclc {
                 return;
             }
             dimensions = 1;
-            append("scl_int len = %zu;\n", nelems);
+            append("scale_int len = %zu;\n", nelems);
             std::string ctype = sclTypeToCType(result, typeString);
-            append("%s* arr = (%s*) _scl_new_array_by_size(len, %s);\n", ctype.c_str(), ctype.c_str(), elemSize.c_str());
-            append("for (scl_int index = 0; index < len; index++) {\n");
+            append("%s* arr = (%s*) scale_new_array_by_size(len, %s);\n", ctype.c_str(), ctype.c_str(), elemSize.c_str());
+            append("for (scale_int index = 0; index < len; index++) {\n");
             scopeDepth++;
-            append("arr[len - index - 1] = _scl_pop(%s);\n", ctype.c_str());
+            append("arr[len - index - 1] = scale_pop(%s);\n", ctype.c_str());
             for (size_t i = 0; i < nelems; i++) {
                 typePop;
             }
             scopeDepth--;
             append("}\n");
-            append("_scl_push(%s*, arr);\n", ctype.c_str());
+            append("scale_push(%s*, arr);\n", ctype.c_str());
 
             scopeDepth--;
             append("}\n");
@@ -108,15 +108,15 @@ namespace sclc {
             return;
         }
         if (dimensions == 1) {
-            append("_scl_top(scl_any) = _scl_new_array_by_size(_scl_top(scl_int), %s);\n", elemSize.c_str());
+            append("scale_top(scale_any) = scale_new_array_by_size(scale_top(scale_int), %s);\n", elemSize.c_str());
         } else {
             append("{\n");
             scopeDepth++;
             std::string dims = "";
             for (int i = dimensions - 1; i >= 0; i--) {
-                append("scl_int _scl_dim%d = _scl_pop(scl_int);\n", i);
+                append("scale_int scale_dim%d = scale_pop(scale_int);\n", i);
                 if (dimensions - i - 1) dims += ", ";
-                dims += "_scl_dim" + std::to_string(dimensions - i - 1);
+                dims += "scale_dim" + std::to_string(dimensions - i - 1);
                 if (!isPrimitiveIntegerType(typeStackTop)) {
                     transpilerError("Array size must be an integer, but got '" + removeTypeModifiers(typeStackTop) + "'", startingOffsets[i]);
                     errors.push_back(err);
@@ -125,8 +125,8 @@ namespace sclc {
                 typePop;
             }
 
-            append("scl_int tmp[] = {%s};\n", dims.c_str());
-            append("_scl_push(scl_any, _scl_multi_new_array_by_size(%d, tmp, %s));\n", dimensions, elemSize.c_str());
+            append("scale_int tmp[] = {%s};\n", dims.c_str());
+            append("scale_push(scale_any, scale_multi_new_array_by_size(%d, tmp, %s));\n", dimensions, elemSize.c_str());
             scopeDepth--;
             append("}\n");
         }

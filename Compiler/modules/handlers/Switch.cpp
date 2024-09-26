@@ -14,14 +14,14 @@ namespace sclc {
         if (s.super == "Union") {
             append("{\n");
             scopeDepth++;
-            append("scl_Union union_switch = _scl_pop(scl_Union);\n");
+            append("scale_Union union_switch = scale_pop(scale_Union);\n");
             append("switch (union_switch->__tag) {\n");
             scopeDepth++;
             varScopePush();
             pushSwitch2();
             return;
         }
-        append("switch (_scl_pop(scl_int)) {\n");
+        append("switch (scale_pop(scale_int)) {\n");
         scopeDepth++;
         varScopePush();
         pushSwitch();

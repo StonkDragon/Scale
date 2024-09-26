@@ -15,11 +15,11 @@ namespace sclc {
         }
         std::string type = res.value;
         if (isPrimitiveType(type)) {
-            append("_scl_top(scl_int) = !_scl_is_instance(_scl_top(scl_any));\n");
+            append("scale_top(scale_int) = !scale_is_instance(scale_top(scale_any));\n");
         } else if (type.size() > 2 && type.front() == '[' && type.back() == ']') {
-            append("_scl_top(scl_int) = _scl_is_array(_scl_top(scl_any));\n");
+            append("scale_top(scale_int) = scale_is_array(scale_top(scale_any));\n");
         } else if (hasLayout(result, type)) {
-            append("_scl_top(scl_int) = _scl_sizeof(_scl_top(scl_any)) >= sizeof(struct Layout_%s);", type.c_str());
+            append("scale_top(scale_int) = scale_sizeof(scale_top(scale_any)) >= sizeof(struct Layout_%s);", type.c_str());
         } else {
             const Struct& s = getStructByName(result, type);
             Interface* iface = getInterfaceByName(result, type);
@@ -29,16 +29,16 @@ namespace sclc {
                 return;
             } else if (s != Struct::Null) {
                 if (!s.isStatic()) {
-                    append("_scl_top(scl_int) = _scl_top(scl_any) && _scl_is_instance_of(_scl_top(scl_any), 0x%lxUL);\n", id(type.c_str()));
+                    append("scale_top(scale_int) = scale_top(scale_any) && scale_is_instance_of(scale_top(scale_any), 0x%lxUL);\n", id(type.c_str()));
                 } else {
-                    append("_scl_top(scl_int) = 0;\n");
+                    append("scale_top(scale_int) = 0;\n");
                 }
             } else {
                 const Struct& stackStruct = getStructByName(result, typeStackTop);
                 if (stackStruct == Struct::Null || stackStruct.isStatic()) {
-                    append("_scl_top(scl_int) = 0;\n");
+                    append("scale_top(scale_int) = 0;\n");
                 } else {
-                    append("_scl_top(scl_int) = _scl_top(scl_any) && %d;\n", stackStruct.implements(iface->name));
+                    append("scale_top(scale_int) = scale_top(scale_any) && %d;\n", stackStruct.implements(iface->name));
                 }
             }
         }

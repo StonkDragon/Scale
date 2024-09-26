@@ -54,7 +54,7 @@ namespace sclc {
         else if (suffix == "u64") typeStack.push_back("uint64");
         else typeStack.push_back("int");
 
-        append("_scl_push(%s, 0x%llx & SCL_%s_MASK);\n", sclTypeToCType(result, typeStackTop).c_str(), val.u, typeStackTop.c_str());
+        append("scale_push(%s, 0x%llx & SCALE_%s_MASK);\n", sclTypeToCType(result, typeStackTop).c_str(), val.u, typeStackTop.c_str());
     }
 } // namespace sclc
 

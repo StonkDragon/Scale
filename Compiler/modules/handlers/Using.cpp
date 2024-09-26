@@ -61,7 +61,7 @@ namespace sclc {
         checkShadow(name, body[i], function, result, warns);
         vars.push_back(Variable(name, type));
         type = sclTypeToCType(result, type);
-        append("%s Var_%s = _scl_pop(%s);\n", type.c_str(), name.c_str(), type.c_str());
+        append("%s Var_%s = scale_pop(%s);\n", type.c_str(), name.c_str(), type.c_str());
         usingNames.push_back(name);
         popOther();
         pushUsing();

@@ -47,7 +47,7 @@ namespace sclc {
                 lambdaType = typeStackTop;
                 typePop;
 
-                append("%s executor = _scl_pop(%s);\n", sclTypeToCType(result, lambdaType).c_str(), sclTypeToCType(result, lambdaType).c_str());
+                append("%s executor = scale_pop(%s);\n", sclTypeToCType(result, lambdaType).c_str(), sclTypeToCType(result, lambdaType).c_str());
             } else {
                 std::string variablePrefix = "";
                 Variable v = Variable::emptyVar();
@@ -69,7 +69,7 @@ namespace sclc {
                             lambdaType = typeStackTop;
                             typePop;
 
-                            append("%s executor = _scl_pop(%s);\n", sclTypeToCType(result, lambdaType).c_str(), sclTypeToCType(result, lambdaType).c_str());
+                            append("%s executor = scale_pop(%s);\n", sclTypeToCType(result, lambdaType).c_str(), sclTypeToCType(result, lambdaType).c_str());
                             goto done;
                         }
                         if (!hasVar(s.name + "$" + body[i].value)) {
@@ -130,7 +130,7 @@ namespace sclc {
             
             std::string argTypes = "";
             for (size_t argc = args; argc; argc--) {
-                argTypes += "scl_any";
+                argTypes += "scale_any";
                 if (argc > 1) {
                     argTypes += ", ";
                 }
@@ -142,7 +142,7 @@ namespace sclc {
             std::string typeDef = "typedef " + sclTypeToCType(result, returnType) + "(*" + typedefName + ")(" + argTypes + ")";
             append("%s;\n", typeDef.c_str());
 
-            append("%s executor = _scl_pop(%s);\n", typedefName.c_str(), typedefName.c_str());
+            append("%s executor = scale_pop(%s);\n", typedefName.c_str(), typedefName.c_str());
         } else {
             transpilerError("Expected identifier, but got '" + body[i].value + "'", i);
             errors.push_back(err);
@@ -153,7 +153,7 @@ namespace sclc {
         std::string arrayType = removeTypeModifiers(typeStackTop);
         typePop;
 
-        append("%s array = _scl_pop(%s);\n", sclTypeToCType(result, arrayType).c_str(), sclTypeToCType(result, arrayType).c_str());
+        append("%s array = scale_pop(%s);\n", sclTypeToCType(result, arrayType).c_str(), sclTypeToCType(result, arrayType).c_str());
         if (mode == "m") mode = "map";
         else if (mode == "f") mode = "filter";
         else if (mode == "r") mode = "reduce";
@@ -171,9 +171,9 @@ namespace sclc {
             return;
         }
 
-        append("_scl_push(%s, array);\n", sclTypeToCType(result, arrayType).c_str());
+        append("scale_push(%s, array);\n", sclTypeToCType(result, arrayType).c_str());
         typeStack.push_back(arrayType);
-        append("_scl_push(%s, executor);\n", sclTypeToCType(result, lambdaType).c_str());
+        append("scale_push(%s, executor);\n", sclTypeToCType(result, lambdaType).c_str());
         typeStack.push_back(lambdaType);
 
         functionCall(f, fp, result, warns, errors, body, i);

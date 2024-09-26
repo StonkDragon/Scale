@@ -7,7 +7,7 @@
 namespace sclc {
     handler(CurlyOpen) {
         noUnused;
-        append("_scl_push(scl_any, ({\n");
+        append("scale_push(scale_any, ({\n");
         scopeDepth++;
         safeInc();
         int n = 0;
@@ -23,7 +23,7 @@ namespace sclc {
                 didPush = true;
             }
             if (didPush) {
-                append("scl_any tmp%d = _scl_pop(scl_any);\n", n);
+                append("scale_any tmp%d = scale_pop(scale_any);\n", n);
                 n++;
                 typePop;
             }
@@ -44,7 +44,7 @@ namespace sclc {
             }
         }
         std::string ctype = sclTypeToCType(result, type);
-        append("%s* tmp = (%s*) _scl_new_array_by_size(%d, sizeof(%s));\n", ctype.c_str(), ctype.c_str(), n, ctype.c_str());
+        append("%s* tmp = (%s*) scale_new_array_by_size(%d, sizeof(%s));\n", ctype.c_str(), ctype.c_str(), n, ctype.c_str());
         for (int i = 0; i < n; i++) {
             append("tmp[%d] = *(%s*) &tmp%d;\n", i, ctype.c_str(), i);
         }

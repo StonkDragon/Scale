@@ -1,10 +1,10 @@
 typealias __c_file "FILE*"
 
-cdecl "_scl_get_stdin"
+cdecl "scale_get_stdin"
 private expect foreign unsafe function __c_stdin(): __c_file
-cdecl "_scl_get_stdout"
+cdecl "scale_get_stdout"
 private expect foreign unsafe function __c_stdout(): __c_file
-cdecl "_scl_get_stderr"
+cdecl "scale_get_stderr"
 private expect foreign unsafe function __c_stderr(): __c_file
 cdecl "strlen"
 private expect foreign unsafe function __c_strlen(cstr: [int8]): int

@@ -23,7 +23,7 @@
     {                                                                                                                                  \
         std::string ctype = sclTypeToCType(result, type);                                                                              \
         const Struct& s = getStructByName(result, type);                                                                               \
-        append("_scl_push_value(%s, %s, %s);\n", ctype.c_str(), (s != Struct::Null ? "MEM_FLAG_INSTANCE" : "0"), path.c_str());        \
+        append("scale_push_value(%s, %s, %s);\n", ctype.c_str(), (s != Struct::Null ? "MEM_FLAG_INSTANCE" : "0"), path.c_str());        \
         typeStack.push_back(type.substr(1));                                                                                           \
     }                                                                                                                                  \
     else                                                                                                                               \
@@ -31,11 +31,11 @@
         std::string ctype = sclTypeToCType(result, type);                                                                              \
         if (isPrimitiveIntegerType(type))                                                                                              \
         {                                                                                                                              \
-            append("_scl_push(scl_int, %s);\n", path.c_str());                                                                         \
+            append("scale_push(scale_int, %s);\n", path.c_str());                                                                         \
         }                                                                                                                              \
         else                                                                                                                           \
         {                                                                                                                              \
-            append("_scl_push(%s, %s);\n", ctype.c_str(), path.c_str());                                                               \
+            append("scale_push(%s, %s);\n", ctype.c_str(), path.c_str());                                                               \
         }                                                                                                                              \
         typeStack.push_back(type);                                                                                                     \
     }
@@ -97,7 +97,7 @@
     (void)fp;       \
     (void)result;   \
     (void)i
-#define debugDump(_var) std::cout << __func__ << ":" << std::to_string(__LINE__) << ": " << #_var << ": " << _var << std::endl
+#define debugDump(_var) std::cout << __func__ << ":" << std::to_string(__LINE__) << ": " << #_var << ": " << (_var) << std::endl
 #define typePop                   \
     do                            \
     {                             \

@@ -27,7 +27,7 @@ namespace sclc {
             safeInc();
             return;
         }
-        append("for (scl_int %c = 0; %c < (scl_int) %s; %c++) {\n",
+        append("for (scale_int %c = 0; %c < (scale_int) %s; %c++) {\n",
             'a' + repeat_depth,
             'a' + repeat_depth,
             body[i].value.c_str(),

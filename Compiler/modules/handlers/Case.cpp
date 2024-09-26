@@ -19,19 +19,19 @@ namespace sclc {
         } else {
             const Struct& s = getStructByName(result, switchTypes.back());
             if (s.super == "Union") {
-                size_t index = 2;
                 const Variable& v = s.getMember(body[i].value);
                 if (v.name.empty()) {
                     transpilerError("Unknown member '" + body[i].value + "' in union '" + s.name + "'", i);
                     errors.push_back(err);
                     return;
                 }
+                size_t index = 0;
                 for (; index < s.members.size(); index++) {
-                    if (s.members[index].name == body[i].value) {
+                    if (s.members[index].isVirtual && s.members[index].name == body[i].value) {
                         break;
                     }
                 }
-                append("case %zu: {\n", index - 1);
+                append("case %zu: {\n", index / 2);
                 scopeDepth++;
                 varScopePush();
                 if (i + 1 < body.size() && body[i + 1].type == tok_paren_open) {
@@ -60,7 +60,7 @@ namespace sclc {
                     }
                     const Struct& requested = getStructByName(result, res.value);
                     if (requested != Struct::Null && !requested.isStatic()) {
-                        append("_scl_checked_cast(union_switch->__value, 0x%lxUL, \"%s\");\n", id(res.value.c_str()), res.value.c_str());
+                        append("scale_checked_cast(union_switch->__value, 0x%lxUL, \"%s\");\n", id(res.value.c_str()), res.value.c_str());
                     }
                     append("%s Var_%s = *(%s*) &(union_switch->__value);\n", sclTypeToCType(result, res.value).c_str(), name.c_str(), sclTypeToCType(result, res.value).c_str());
                     vars.push_back(Variable(name, res.value));

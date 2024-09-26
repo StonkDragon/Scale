@@ -11,7 +11,7 @@ namespace sclc {
             std::string name = usingNames.back();
             usingNames.pop_back();
             const Variable& v = getVar(name);
-            append("_scl_push(%s, Var_%s);\n", sclTypeToCType(result, v.type).c_str(), v.name.c_str());
+            append("scale_push(%s, Var_%s);\n", sclTypeToCType(result, v.type).c_str(), v.name.c_str());
             typeStack.push_back(v.type);
             Method* closeMethod = getMethodByName(result, "close", v.type);
             if (closeMethod == nullptr) {
@@ -25,7 +25,7 @@ namespace sclc {
         scopeDepth--;
         if (wasCatch()) {
             append("} else {\n");
-            append("  fn_throw((scl_Exception) _scl_exception_handler.exception);\n");
+            append("  fn_throw((scale_Exception) scale_exception_handler.exception);\n");
             append("}\n");
             scopeDepth--;
         }

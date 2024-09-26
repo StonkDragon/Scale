@@ -1,7 +1,7 @@
 import std.io
 import std.runtime.Process
 
-cdecl "_scl_throw"
+cdecl "scale_throw"
 expect foreign function throw(ex: Exception): nothing
 
 cdecl "raise"
@@ -81,7 +81,7 @@ function sysPrettyString(): str
   new<int8>[40] => decl sPtr: [int8]
   unsafe
     c!
-      snprintf((*sPtr), 40, "%s %s", SCL_OS_NAME, SCL_SYSTEM);
+      snprintf((*sPtr), 40, "%s %s", SCALE_OS_NAME, SCALE_SYSTEM);
     end
   end
   sPtr str::new return

@@ -33,7 +33,7 @@ namespace sclc {
                 errors.push_back(err);
                 return;
             }
-            append("} else if (_scl_is_instance_of(_scl_exception_handler.exception, 0x%lxUL)) {\n", id(body[i].value.c_str()));
+            append("} else if (scale_is_instance_of(scale_exception_handler.exception, 0x%lxUL)) {\n", id(body[i].value.c_str()));
         } else {
             i--;
             {
@@ -53,7 +53,7 @@ namespace sclc {
         }
         scopeDepth++;
         vars.push_back(Variable(exName, ex));
-        append("scl_%s Var_%s = (scl_%s) _scl_exception_handler.exception;\n", ex.c_str(), exName.c_str(), ex.c_str());
+        append("scale_%s Var_%s = (scale_%s) scale_exception_handler.exception;\n", ex.c_str(), exName.c_str(), ex.c_str());
     }
 } // namespace sclc
 

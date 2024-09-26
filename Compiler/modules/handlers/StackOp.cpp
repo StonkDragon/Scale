@@ -11,13 +11,13 @@ namespace sclc {
             std::string b = typeStackTop; typePop;
             typeStack.push_back(a);
             typeStack.push_back(b);
-            append("_scl_swap();\n");
+            append("scale_swap();\n");
         } else if (body[i].value == "dup") {
             std::string a = typeStackTop;
             typeStack.push_back(a);
-            append("_scl_dup();\n");
+            append("scale_dup();\n");
         } else if (body[i].value == "drop") {
-            append("_scl_drop();\n");
+            append("scale_drop();\n");
             typePop;
         } else if (body[i].value == "over") {
             std::string a = typeStackTop; typePop;
@@ -26,14 +26,14 @@ namespace sclc {
             typeStack.push_back(a);
             typeStack.push_back(b);
             typeStack.push_back(c);
-            append("_scl_over();\n");
+            append("scale_over();\n");
         } else if (body[i].value == "sdup2") {
             std::string a = typeStackTop; typePop;
             std::string b = typeStackTop; typePop;
             typeStack.push_back(b);
             typeStack.push_back(a);
             typeStack.push_back(b);
-            append("_scl_sdup2();\n");
+            append("scale_sdup2();\n");
         } else if (body[i].value == "swap2") {
             std::string a = typeStackTop; typePop;
             std::string b = typeStackTop; typePop;
@@ -41,7 +41,7 @@ namespace sclc {
             typeStack.push_back(b);
             typeStack.push_back(c);
             typeStack.push_back(a);
-            append("_scl_swap2();\n");
+            append("scale_swap2();\n");
         } else if (body[i].value == "rot") {
             std::string a = typeStackTop; typePop;
             std::string b = typeStackTop; typePop;
@@ -49,7 +49,7 @@ namespace sclc {
             typeStack.push_back(b);
             typeStack.push_back(a);
             typeStack.push_back(c);
-            append("_scl_rot();\n");
+            append("scale_rot();\n");
         } else if (body[i].value == "unrot") {
             std::string a = typeStackTop; typePop;
             std::string b = typeStackTop; typePop;
@@ -57,7 +57,7 @@ namespace sclc {
             typeStack.push_back(a);
             typeStack.push_back(c);
             typeStack.push_back(b);
-            append("_scl_unrot();\n");
+            append("scale_unrot();\n");
         }
     }
 } // namespace sclc

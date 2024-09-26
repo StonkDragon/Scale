@@ -20,16 +20,16 @@ namespace sclc {
         if (!typeCanBeNil(function->return_type) && function->return_type != "none") {
             transpilerError("Return-if-nil operator '?' behaves like assert-not-nil operator '!!' in not-nil returning function.", i);
             warns.push_back(err);
-            append("_scl_assert_fast((_scl_top(scl_int)), \"Not nil assertion failed!\");\n");
+            append("scale_assert_fast((scale_top(scale_int)), \"Not nil assertion failed!\");\n");
         } else {
             if (function->return_type == "none") {
                 if (!function->isMethod && !Main::options::noMain && function->name == "main") {
-                    append("if ((_scl_top(scl_int)) == 0) return 0;\n");
+                    append("if ((scale_top(scale_int)) == 0) return 0;\n");
                 } else {
-                    append("if ((_scl_top(scl_int)) == 0) return;\n");
+                    append("if ((scale_top(scale_int)) == 0) return;\n");
                 }
             } else {
-                append("if ((_scl_top(scl_int)) == 0) return 0;\n");
+                append("if ((scale_top(scale_int)) == 0) return 0;\n");
             }
         }
     }

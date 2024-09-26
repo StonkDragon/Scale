@@ -37,12 +37,12 @@ namespace sclc {
             } else {
                 if (function->return_type.front() == '@') {
                     if (!function->has_async) {
-                        append("%s retVal = *_scl_pop(%s*);\n", sclTypeToCType(result, function->return_type).c_str(), sclTypeToCType(result, function->return_type).c_str());
+                        append("%s retVal = *scale_pop(%s*);\n", sclTypeToCType(result, function->return_type).c_str(), sclTypeToCType(result, function->return_type).c_str());
                     } else {
-                        append("%s* retVal = _scl_pop(%s*);\n", sclTypeToCType(result, function->return_type).c_str(), sclTypeToCType(result, function->return_type).c_str());
+                        append("%s* retVal = scale_pop(%s*);\n", sclTypeToCType(result, function->return_type).c_str(), sclTypeToCType(result, function->return_type).c_str());
                     }
                 } else {
-                    append("%s retVal = _scl_pop(%s);\n", sclTypeToCType(result, function->return_type).c_str(), sclTypeToCType(result, function->return_type).c_str());
+                    append("%s retVal = scale_pop(%s);\n", sclTypeToCType(result, function->return_type).c_str(), sclTypeToCType(result, function->return_type).c_str());
                 }
             }
             if (function->return_type.front() != '@' && function->has_async) {
@@ -74,7 +74,7 @@ namespace sclc {
                             errors.push_back(err);
                         }
                     }
-                    append("_scl_assert_fast(REINTERPRET_CAST(scl_int, retVal), \"Tried returning nil from function returning not-nil type '%s'!\");\n", function->return_type.c_str());
+                    append("scale_assert_fast(REINTERPRET_CAST(scale_int, retVal), \"Tried returning nil from function returning not-nil type '%s'!\");\n", function->return_type.c_str());
                 }
             }
             append("retVal;\n");

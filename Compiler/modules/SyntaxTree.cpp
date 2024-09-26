@@ -731,8 +731,8 @@ namespace sclc {
         void* (*Result$getOk)(void* res) = nullptr;
         long (*Result$isErr)(void* res) = nullptr;
         long (*Result$isOk)(void* res) = nullptr;
-        void* (*scl_migrate_array)(void* arr, size_t size, size_t elem_size) = nullptr;
-        size_t (*scl_array_size)(void* arr) = nullptr;
+        void* (*scale_migrate_array)(void* arr, size_t size, size_t elem_size) = nullptr;
+        size_t (*scale_array_size)(void* arr) = nullptr;
         void* (*alloc)(size_t) = nullptr;
         void* (*str$of)(char*) = nullptr;
         char* (*str$view)(void* str) = nullptr;
@@ -789,9 +789,9 @@ namespace sclc {
             Result$getOk = getFunction<typeof(Result$getOk)>(this->lib, "_M6Result5getOka");
             Result$isErr = getFunction<typeof(Result$isErr)>(this->lib, "_M6Result5isErrl");
             Result$isOk = getFunction<typeof(Result$isOk)>(this->lib, "_M6Result4isOkl");
-            scl_migrate_array = getFunction<typeof(scl_migrate_array)>(this->lib, "_scl_migrate_foreign_array");
-            scl_array_size = getFunction<typeof(scl_array_size)>(this->lib, "_scl_array_size");
-            alloc = getFunction<typeof(alloc)>(this->lib, "_scl_alloc");
+            scale_migrate_array = getFunction<typeof(scale_migrate_array)>(this->lib, "scale_migrate_foreign_array");
+            scale_array_size = getFunction<typeof(scale_array_size)>(this->lib, "scale_array_size");
+            alloc = getFunction<typeof(alloc)>(this->lib, "scale_alloc");
             str$of = getFunction<typeof(str$of)>(this->lib, "_F3str14operator$storecE");
             str$view = getFunction<typeof(str$view)>(this->lib, "_M3str4viewc");
         }
@@ -837,7 +837,7 @@ namespace sclc {
             }
 
             CToken** theTokens = (CToken**) Result$getOk(result);
-            size_t numTokens = scl_array_size(theTokens);
+            size_t numTokens = scale_array_size(theTokens);
             if (!numTokens) {
                 return;
             }
@@ -873,7 +873,7 @@ namespace sclc {
         std::vector<Enum> enums;
         std::vector<Function*> functions;
         std::unordered_map<std::string, std::pair<std::string, bool>> typealiases;
-        std::unordered_map<std::string, std::pair<std::string, bool>> scl_typealiases;
+        std::unordered_map<std::string, std::pair<std::string, bool>> scale_typealiases;
 
         uses.reserve(16);
         nextAttributes.reserve(16);
@@ -884,7 +884,7 @@ namespace sclc {
         enums.reserve(16);
         functions.reserve(128);
         typealiases.reserve(16);
-        scl_typealiases.reserve(16);
+        scale_typealiases.reserve(16);
 
         Variable& lastDeclaredVariable = Variable::emptyVar();
 
@@ -1079,7 +1079,7 @@ namespace sclc {
             Function* builtinIdentityHash = new Function("builtinIdentityHash", Token(tok_identifier, "builtinIdentityHash"));
             builtinIdentityHash->addModifier("expect");
             builtinIdentityHash->addModifier("cdecl");
-            builtinIdentityHash->addModifier("_scl_identity_hash");
+            builtinIdentityHash->addModifier("scale_identity_hash");
             
             builtinIdentityHash->addArgument(Variable("obj", "any"));
             
@@ -1089,7 +1089,7 @@ namespace sclc {
             Function* builtinAtomicClone = new Function("builtinAtomicClone", Token(tok_identifier, "builtinAtomicClone"));
             builtinAtomicClone->addModifier("expect");
             builtinAtomicClone->addModifier("cdecl");
-            builtinAtomicClone->addModifier("_scl_atomic_clone");
+            builtinAtomicClone->addModifier("scale_atomic_clone");
             
             builtinAtomicClone->addArgument(Variable("obj", "any"));
             
@@ -1099,7 +1099,7 @@ namespace sclc {
             Function* builtinTypeEquals = new Function("builtinTypeEquals", Token(tok_identifier, "builtinTypeEquals"));
             builtinTypeEquals->addModifier("expect");
             builtinTypeEquals->addModifier("cdecl");
-            builtinTypeEquals->addModifier("_scl_is_instance_of");
+            builtinTypeEquals->addModifier("scale_is_instance_of");
 
             builtinTypeEquals->addArgument(Variable("obj", "any"));
             builtinTypeEquals->addArgument(Variable("type_id", "int32"));
@@ -1110,7 +1110,7 @@ namespace sclc {
             Function* builtinIsInstance = new Function("builtinIsInstance", Token(tok_identifier, "builtinIsInstance"));
             builtinIsInstance->addModifier("expect");
             builtinIsInstance->addModifier("cdecl");
-            builtinIsInstance->addModifier("_scl_is_instance");
+            builtinIsInstance->addModifier("scale_is_instance");
 
             builtinIsInstance->addArgument(Variable("obj", "any"));
 
@@ -1120,7 +1120,7 @@ namespace sclc {
             Function* builtinIsArray = new Function("builtinIsArray", Token(tok_identifier, "builtinIsArray"));
             builtinIsArray->addModifier("expect");
             builtinIsArray->addModifier("cdecl");
-            builtinIsArray->addModifier("_scl_is_array");
+            builtinIsArray->addModifier("scale_is_array");
 
             builtinIsArray->addArgument(Variable("obj", "any"));
 
@@ -1366,6 +1366,7 @@ namespace sclc {
 
             for (auto&& t : templates) {
                 if (tokens[i] == t.name) {
+                    SourceLocation where = tokens[i].location;
                     size_t start = i;
                     i++;
                     if (tokens[i].type != tok_identifier || tokens[i].value != "<") {
@@ -1405,7 +1406,7 @@ namespace sclc {
 
                     tokens.reserve(max(tokens.capacity(), tokens.size() + 2));
                     std::string id = ti.identifier();
-                    tokens.insert(tokens.begin() + i + 1, Token(tok_identifier, id, ti.templ.name.location));
+                    tokens.insert(tokens.begin() + i + 1, Token(tok_identifier, id, where));
 
                     if (contains(initialized, id)) {
                         continue;
@@ -1417,7 +1418,7 @@ namespace sclc {
                             if (tok.type != tok_identifier) {
                                 toks.push_back(tok);
                             } else if (tok == ti.templ.name && tok.location == ti.templ.name.location) {
-                                toks.push_back(Token(tok_identifier, id, tok.location));
+                                toks.push_back(Token(tok_identifier, id, where));
                             } else {
                                 bool found = false;
                                 for (auto&& x : ti.expansions) {
@@ -1430,7 +1431,9 @@ namespace sclc {
                                     }
                                 }
                                 if (!found) {
-                                    toks.push_back(tok);
+                                    Token t(tok);
+                                    t.location = where;
+                                    toks.push_back(t);
                                 }
                             }
                         }
@@ -1530,14 +1533,14 @@ namespace sclc {
                         if (name == "init") {
                             FPResult result;
                             result.message = "Instance initializers should not be declared like functions.";
-                            result.location = tokens[i].location;
-                            result.type = tokens[i].type;
+                            result.location = func.location;
+                            result.type = func.type;
                             result.success = false;
                             warns.push_back(result);
                             FPResult hint;
                             hint.message = "Remove 'function' keyword and return type";
-                            hint.location = tokens[i].location;
-                            hint.type = tokens[i].type;
+                            hint.location = func.location;
+                            hint.type = func.type;
                             hint.success = false;
                             hint.isNote = true;
                             warns.push_back(hint);
@@ -1586,14 +1589,14 @@ namespace sclc {
                         if (name == "init") {
                             FPResult result;
                             result.message = "Instance initializers should not be declared like functions.";
-                            result.location = tokens[i].location;
-                            result.type = tokens[i].type;
+                            result.location = func.location;
+                            result.type = func.type;
                             result.success = false;
                             warns.push_back(result);
                             FPResult hint;
                             hint.message = "Remove 'function' keyword and return type";
-                            hint.location = tokens[i].location;
-                            hint.type = tokens[i].type;
+                            hint.location = func.location;
+                            hint.type = func.type;
                             hint.success = false;
                             hint.isNote = true;
                             warns.push_back(hint);
@@ -1666,14 +1669,14 @@ namespace sclc {
                         if (name == "init") {
                             FPResult result;
                             result.message = "Instance initializers should not be declared like functions.";
-                            result.location = tokens[i].location;
-                            result.type = tokens[i].type;
+                            result.location = func.location;
+                            result.type = func.type;
                             result.success = false;
                             warns.push_back(result);
                             FPResult hint;
                             hint.message = "Remove 'function' keyword and return type";
-                            hint.location = tokens[i].location;
-                            hint.type = tokens[i].type;
+                            hint.location = func.location;
+                            hint.type = func.type;
                             hint.success = false;
                             hint.isNote = true;
                             warns.push_back(hint);
@@ -1894,6 +1897,7 @@ namespace sclc {
 
                     Method* getter = new Method(unionName, name, v.name_token);
                     getter->return_type = v.type;
+                    getter->force_add = true;
                     getter->addModifier("@getter");
                     getter->addModifier(varName);
                     getter->addArgument(Variable("self", unionName));
@@ -1924,6 +1928,7 @@ namespace sclc {
                     
                     Method* getter = new Method(unionName, name, v.name_token);
                     getter->return_type = v.type;
+                    getter->force_add = true;
                     getter->addModifier("@getter");
                     getter->addModifier(varName);
                     getter->addArgument(Variable("self", unionName));
@@ -1997,7 +2002,6 @@ namespace sclc {
                     v.name_token = tokens[start];
                     v.isConst = true;
                     v.isVirtual = true;
-                    currentStruct->addMember(v);
                     Variable isv = Variable("is" + capitalize(name), "const bool");
                     isv.name_token = tokens[start];
                     isv.isConst = true;
@@ -2472,6 +2476,7 @@ namespace sclc {
                     }
                     Method* getter = new Method(currentLayout.name, "get" + capitalize(name), currentLayout.name_token);
                     getter->return_type = v.type;
+                    getter->force_add = true;
                     getter->addModifier("nonvirtual");
                     getter->addModifier("@getter");
                     getter->addModifier(v.name);
@@ -2658,6 +2663,7 @@ namespace sclc {
                         }
                         Method* getter = new Method(currentStructs.back()->name, "get" + capitalize(name), name_token);
                         getter->return_type = v.type;
+                        getter->force_add = true;
                         getter->addModifier("@getter");
                         getter->addModifier(v.name);
                         getter->addArgument(Variable("self", currentStructs.back()->name));
@@ -2733,6 +2739,7 @@ namespace sclc {
 
                         Method* getter = new Method(container, name, getToken);
                         getter->return_type = lastDeclaredVariable.type;
+                        getter->force_add = true;
                         getter->addModifier("@getter");
                         getter->addModifier(varName);
                         getter->addArgument(Variable("self", container));
@@ -2762,6 +2769,7 @@ namespace sclc {
 
                         Method* setter = new Method(container, name, setToken);
                         setter->return_type = "none";
+                        setter->force_add = true;
                         setter->addModifier("@setter");
                         setter->addModifier(varName);
                         setter->addArgument(Variable(argName, lastDeclaredVariable.type));
@@ -2995,23 +3003,24 @@ namespace sclc {
             }
             std::string retemplate(std::string type);
             std::string stringify = retemplate(s.name) + " {";
+            for (size_t i = 0; i < s.members.size(); i++) {
+                auto member = s.members[i];
+                if (i) {
+                    stringify += ", ";
+                }
+                stringify += member.name + ": %s";
+            }
+            stringify += "}";
             toString->return_type = "str";
             toString->addModifier("<generated>");
             toString->addModifier("const");
             toString->addArgument(Variable("self", s.name));
             toString->addToken(Token(tok_string_literal, stringify, s.name_token.location));
-
-            size_t membersAdded = 0;
-
+            toString->addToken(Token(tok_varargs, "varargs", s.name_token.location));
+            
             for (size_t i = 0; i < s.members.size(); i++) {
                 auto member = s.members[i];
-                if (member.name.front() == '$') continue;
-                if (membersAdded) {
-                    toString->addToken(Token(tok_string_literal, ", ", s.name_token.location));
-                    toString->addToken(Token(tok_identifier, "+", s.name_token.location));
-                }
-                membersAdded++;
-
+                
                 auto emitMember = [&](const Variable& member) {
                     toString->addToken(Token(tok_identifier, "self", s.name_token.location));
                     toString->addToken(Token(tok_dot, ".", s.name_token.location));
@@ -3033,30 +3042,36 @@ namespace sclc {
                 };
 
                 if (strcontains(member.name, "$BACKER0")) {
-                    toString->addToken(Token(tok_string_literal, member.name.substr(0, member.name.find('$')) + ": [", s.name_token.location));
-                    toString->addToken(Token(tok_identifier, "+", s.name_token.location));
+                    toString->addToken(Token(tok_identifier, "self", s.name_token.location));
+                    toString->addToken(Token(tok_dot, ".", s.name_token.location));
+                    toString->addToken(Token(tok_identifier, member.name.substr(member.name.find('$')), s.name_token.location));
+                    toString->addToken(Token(tok_column, ":", s.name_token.location));
+                    toString->addToken(Token(tok_identifier, "toString", s.name_token.location));
                     
-                    size_t count = 0;
-                    for (member = s.members[i++]; strcontains(member.name, "$BACKER") && i < s.members.size(); member = s.members[i++]) {
-                        if (count) {
-                            toString->addToken(Token(tok_string_literal, ", ", s.name_token.location));
-                            toString->addToken(Token(tok_identifier, "+", s.name_token.location));
-                        }
-                        emitMember(member);
-                        toString->addToken(Token(tok_identifier, "+", s.name_token.location));
-                        count++;
+                    while (i < s.members.size() && strcontains(s.members[i].name, "$BACKER")) {
+                        i++;
                     }
-                    toString->addToken(Token(tok_string_literal, "]", s.name_token.location));
-                    toString->addToken(Token(tok_identifier, "+", s.name_token.location));
+
+                    // size_t count = 0;
+                    // for (member = s.members[i++]; strcontains(member.name, "$BACKER") && i < s.members.size(); member = s.members[i++]) {
+                    //     if (count) {
+                    //         toString->addToken(Token(tok_string_literal, ", ", s.name_token.location));
+                    //         toString->addToken(Token(tok_identifier, "+", s.name_token.location));
+                    //     }
+                    //     emitMember(member);
+                    //     toString->addToken(Token(tok_identifier, "+", s.name_token.location));
+                    //     count++;
+                    // }
+                    // toString->addToken(Token(tok_string_literal, "]", s.name_token.location));
+                    // toString->addToken(Token(tok_identifier, "+", s.name_token.location));
+                    // toString->addToken(Token(tok_paren_close, ")", s.name_token.location));
                 } else {
-                    toString->addToken(Token(tok_string_literal, member.name + ": ", s.name_token.location));
-                    toString->addToken(Token(tok_identifier, "+", s.name_token.location));
                     emitMember(member);
-                    toString->addToken(Token(tok_identifier, "+", s.name_token.location));
                 }
             }
-            toString->addToken(Token(tok_string_literal, "}", s.name_token.location));
-            toString->addToken(Token(tok_identifier, "+", s.name_token.location));
+            toString->addToken(Token(tok_identifier, "str", s.name_token.location));
+            toString->addToken(Token(tok_double_column, "::", s.name_token.location));
+            toString->addToken(Token(tok_identifier, "format", s.name_token.location));
             toString->addToken(Token(tok_return, "return", s.name_token.location));
             toString->force_add = true;
             return toString;
@@ -3069,24 +3084,25 @@ namespace sclc {
             }
             std::string retemplate(std::string type);
             std::string stringify = retemplate(s.name) + " {";
+            for (size_t i = 0; i < s.members.size(); i++) {
+                auto member = s.members[i];
+                if (i) {
+                    stringify += ", ";
+                }
+                stringify += member.name + ": %s";
+            }
+            stringify += "}";
             toString->return_type = "str";
             toString->addModifier("<generated>");
             toString->addModifier("const");
             toString->addModifier("nonvirtual");
             toString->addArgument(Variable("self", s.name));
             toString->addToken(Token(tok_string_literal, stringify, s.name_token.location));
-
-            size_t membersAdded = 0;
-
+            toString->addToken(Token(tok_varargs, "varargs", s.name_token.location));
+            
             for (size_t i = 0; i < s.members.size(); i++) {
                 auto member = s.members[i];
-                if (member.name.front() == '$') continue;
-                if (membersAdded) {
-                    toString->addToken(Token(tok_string_literal, ", ", s.name_token.location));
-                    toString->addToken(Token(tok_identifier, "+", s.name_token.location));
-                }
-                membersAdded++;
-
+                
                 auto emitMember = [&](const Variable& member) {
                     toString->addToken(Token(tok_identifier, "self", s.name_token.location));
                     toString->addToken(Token(tok_dot, ".", s.name_token.location));
@@ -3108,30 +3124,36 @@ namespace sclc {
                 };
 
                 if (strcontains(member.name, "$BACKER0")) {
-                    toString->addToken(Token(tok_string_literal, member.name.substr(0, member.name.find('$')) + ": [", s.name_token.location));
-                    toString->addToken(Token(tok_identifier, "+", s.name_token.location));
+                    toString->addToken(Token(tok_identifier, "self", s.name_token.location));
+                    toString->addToken(Token(tok_dot, ".", s.name_token.location));
+                    toString->addToken(Token(tok_identifier, member.name.substr(member.name.find('$')), s.name_token.location));
+                    toString->addToken(Token(tok_column, ":", s.name_token.location));
+                    toString->addToken(Token(tok_identifier, "toString", s.name_token.location));
                     
-                    size_t count = 0;
-                    for (member = s.members[i++]; strcontains(member.name, "$BACKER") && i < s.members.size(); member = s.members[i++]) {
-                        if (count) {
-                            toString->addToken(Token(tok_string_literal, ", ", s.name_token.location));
-                            toString->addToken(Token(tok_identifier, "+", s.name_token.location));
-                        }
-                        emitMember(member);
-                        toString->addToken(Token(tok_identifier, "+", s.name_token.location));
-                        count++;
+                    while (i < s.members.size() && strcontains(s.members[i].name, "$BACKER")) {
+                        i++;
                     }
-                    toString->addToken(Token(tok_string_literal, "]", s.name_token.location));
-                    toString->addToken(Token(tok_identifier, "+", s.name_token.location));
+
+                    // size_t count = 0;
+                    // for (member = s.members[i++]; strcontains(member.name, "$BACKER") && i < s.members.size(); member = s.members[i++]) {
+                    //     if (count) {
+                    //         toString->addToken(Token(tok_string_literal, ", ", s.name_token.location));
+                    //         toString->addToken(Token(tok_identifier, "+", s.name_token.location));
+                    //     }
+                    //     emitMember(member);
+                    //     toString->addToken(Token(tok_identifier, "+", s.name_token.location));
+                    //     count++;
+                    // }
+                    // toString->addToken(Token(tok_string_literal, "]", s.name_token.location));
+                    // toString->addToken(Token(tok_identifier, "+", s.name_token.location));
+                    // toString->addToken(Token(tok_paren_close, ")", s.name_token.location));
                 } else {
-                    toString->addToken(Token(tok_string_literal, member.name + ": ", s.name_token.location));
-                    toString->addToken(Token(tok_identifier, "+", s.name_token.location));
                     emitMember(member);
-                    toString->addToken(Token(tok_identifier, "+", s.name_token.location));
                 }
             }
-            toString->addToken(Token(tok_string_literal, "}", s.name_token.location));
-            toString->addToken(Token(tok_identifier, "+", s.name_token.location));
+            toString->addToken(Token(tok_identifier, "str", s.name_token.location));
+            toString->addToken(Token(tok_double_column, "::", s.name_token.location));
+            toString->addToken(Token(tok_identifier, "format", s.name_token.location));
             toString->addToken(Token(tok_return, "return", s.name_token.location));
             toString->force_add = true;
             return toString;
@@ -3142,6 +3164,7 @@ namespace sclc {
             if (s.isExtern) {
                 toString->addModifier("expect");
             }
+            std::string retemplate(std::string);
             toString->return_type = "str";
             toString->addModifier("<generated>");
             toString->addModifier("const");
@@ -3155,7 +3178,7 @@ namespace sclc {
                 toString->addToken(Token(tok_identifier, s.name, s.name_token.location));
                 toString->addToken(Token(tok_double_column, "::", s.name_token.location));
                 toString->addToken(Token(tok_identifier, member.first, s.name_token.location));
-                toString->addToken(Token(tok_string_literal, member.first, s.name_token.location));
+                toString->addToken(Token(tok_string_literal, retemplate(s.name) + "::" + member.first, s.name_token.location));
                 toString->addToken(Token(tok_return, "return", s.name_token.location));
                 toString->addToken(Token(tok_esac, "esac", s.name_token.location));
             }

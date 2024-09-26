@@ -19,13 +19,13 @@ namespace sclc {
                         errors.push_back(err);
                         return;
                     }
-                    append("_scl_array_check_bounds_or_throw(_scl_top(scl_any*), %s);\n", body[i - 1].value.c_str());
+                    append("scale_array_check_bounds_or_throw(scale_top(scale_any*), %s);\n", body[i - 1].value.c_str());
                     typePop;
                     typeStack.push_back(type.substr(1, type.size() - 2));
                     if (isPrimitiveIntegerType(typeStackTop)) {
-                        append("_scl_top(scl_int) = _scl_top(%s)[%s];\n", sclTypeToCType(result, type).c_str(), body[i - 1].value.c_str());
+                        append("scale_top(scale_int) = scale_top(%s)[%s];\n", sclTypeToCType(result, type).c_str(), body[i - 1].value.c_str());
                     } else {
-                        append("_scl_top(%s) = _scl_top(%s)[%s];\n", sclTypeToCType(result, typeStackTop).c_str(), sclTypeToCType(result, type).c_str(), body[i - 1].value.c_str());
+                        append("scale_top(%s) = scale_top(%s)[%s];\n", sclTypeToCType(result, typeStackTop).c_str(), sclTypeToCType(result, type).c_str(), body[i - 1].value.c_str());
                     }
                     return;
                 }
@@ -38,7 +38,7 @@ namespace sclc {
             }
             append("{\n");
             scopeDepth++;
-            append("%s tmp = _scl_pop(%s);\n", sclTypeToCType(result, type).c_str(), sclTypeToCType(result, type).c_str());
+            append("%s tmp = scale_pop(%s);\n", sclTypeToCType(result, type).c_str(), sclTypeToCType(result, type).c_str());
             typePop;
             varScopePush();
             while (body[i].type != tok_bracket_close) {
@@ -53,9 +53,9 @@ namespace sclc {
             }
             typePop;
             typeStack.push_back(type.substr(1, type.size() - 2));
-            append("scl_int index = _scl_pop(scl_int);\n");
-            append("_scl_array_check_bounds_or_throw((scl_any*) tmp, index);\n");
-            append("_scl_push(%s, tmp[index]);\n", sclTypeToCType(result, typeStackTop).c_str());
+            append("scale_int index = scale_pop(scale_int);\n");
+            append("scale_array_check_bounds_or_throw((scale_any*) tmp, index);\n");
+            append("scale_push(%s, tmp[index]);\n", sclTypeToCType(result, typeStackTop).c_str());
             scopeDepth--;
             append("}\n");
         } else if (hasMethod(result, "[]", typeStackTop)) {
@@ -73,7 +73,7 @@ namespace sclc {
             }
             append("{\n");
             scopeDepth++;
-            append("scl_any instance = _scl_pop(scl_any);\n");
+            append("scale_any instance = scale_pop(scale_any);\n");
             std::string indexType = typeStackTop;
             typePop;
 
@@ -94,7 +94,7 @@ namespace sclc {
                 errors.push_back(err);
                 return;
             }
-            append("_scl_push(scl_any, instance);\n");
+            append("scale_push(scale_any, instance);\n");
             typeStack.push_back(type);
             methodCall(m, fp, result, warns, errors, body, i);
             scopeDepth--;
@@ -135,7 +135,7 @@ namespace sclc {
                         errors.push_back(err);
                         return;
                     }
-                    append("scl_int array_size = %s;\n", body[i].value.c_str());
+                    append("scale_int array_size = %s;\n", body[i].value.c_str());
                     safeIncN(2);
                 } else {
                     while (body[i].type != tok_do) {
@@ -152,9 +152,9 @@ namespace sclc {
                         return;
                     }
                     if (existingArrayUsed) {
-                        append("scl_int array_size = _scl_array_size(_scl_top(scl_any*));\n");
+                        append("scale_int array_size = scale_array_size(scale_top(scale_any*));\n");
                     } else {
-                        append("scl_int array_size = _scl_pop(scl_int);\n");
+                        append("scale_int array_size = scale_pop(scale_int);\n");
                         typePop;
                     }
                     safeInc();
@@ -201,15 +201,15 @@ namespace sclc {
                     } else {
                         elementType = "any";
                     }
-                    append("%s* array = _scl_pop(%s*);\n", sclTypeToCType(result, elementType).c_str(), sclTypeToCType(result, elementType).c_str());
+                    append("%s* array = scale_pop(%s*);\n", sclTypeToCType(result, elementType).c_str(), sclTypeToCType(result, elementType).c_str());
                 } else {
-                    append("scl_int* array = (scl_int*) _scl_new_array_by_size(array_size, sizeof(%s));\n", sclTypeToCType(result, elementType).c_str());
+                    append("scale_int* array = (scale_int*) scale_new_array_by_size(array_size, sizeof(%s));\n", sclTypeToCType(result, elementType).c_str());
                 }
-                append("for (scl_int i = 0; i < array_size; i++) {\n");
+                append("for (scale_int i = 0; i < array_size; i++) {\n");
                 scopeDepth++;
                 varScopePush();
                 if (!iterator_var_name.empty()) {
-                    append("const scl_int Var_%s = i;\n", iterator_var_name.c_str());
+                    append("const scale_int Var_%s = i;\n", iterator_var_name.c_str());
                     vars.push_back(Variable(iterator_var_name, "const int"));
                 }
                 size_t typeStackSize = typeStack.size();
@@ -233,11 +233,11 @@ namespace sclc {
                 }
                 varScopePop();
                 if (diff) {
-                    append("array[i] = _scl_pop(scl_int);\n");
+                    append("array[i] = scale_pop(scale_int);\n");
                 }
                 scopeDepth--;
                 append("}\n");
-                append("_scl_push(scl_any, array);\n");
+                append("scale_push(scale_any, array);\n");
                 typeStack.push_back(arrayType);
                 scopeDepth--;
                 append("}\n");

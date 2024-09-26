@@ -6,7 +6,7 @@ cdecl "read"
 private expect foreign unsafe function __c_read(:int, :[int8], :int): int32
 cdecl "fputs"
 private expect foreign unsafe function __c_fputs(:[int8], :any): none
-cdecl "_scl_get_stderr"
+cdecl "scale_get_stderr"
 private expect foreign unsafe function __c_get_stderr(): any
 cdecl "getchar"
 private expect foreign unsafe function __c_getchar(): int8
@@ -20,7 +20,7 @@ function puts(value: [int8]): none
 end
 
 reified function puts<T>(value: T): none
-    value:toString.data puts
+    value:toString.data puts::<[int8]>
 end
 
 function eputs(value: [int8]): none
@@ -30,5 +30,5 @@ function eputs(value: [int8]): none
 end
 
 reified function eputs<T>(value: T): none
-    value:toString.data eputs
+    value:toString.data eputs::<[int8]>
 end

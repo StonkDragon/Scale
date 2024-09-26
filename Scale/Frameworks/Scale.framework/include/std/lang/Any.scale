@@ -1,30 +1,30 @@
-private expect foreign unsafe function _scl_realloc(ptr: any, size: int): any
-private expect foreign unsafe function _scl_alloc(size: int): any
-private expect foreign unsafe function _scl_free(ptr: any): none
-private expect foreign unsafe function _scl_sizeof(ptr: any): int
+private expect foreign unsafe function scale_realloc(ptr: any, size: int): any
+private expect foreign unsafe function scale_alloc(size: int): any
+private expect foreign unsafe function scale_free(ptr: any): none
+private expect foreign unsafe function scale_sizeof(ptr: any): int
 
 final static struct any
     function new(sz: int): any
         unsafe
-            sz _scl_alloc return
+            sz scale_alloc return
         end
     end
 
     function delete(ptr: any): none
         unsafe
-            ptr _scl_free return
+            ptr scale_free return
         end
     end
     
     function size(ptr: any): int
         unsafe
-            ptr _scl_sizeof return
+            ptr scale_sizeof return
         end
     end
 
     function resize(newSize: int, ptr: any): any
         unsafe
-            ptr newSize _scl_realloc return
+            ptr newSize scale_realloc return
         end
     end
 
