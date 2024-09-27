@@ -207,6 +207,9 @@ void Thread$start0(scale_Thread self) {
 
 void Thread$stop0(scale_Thread self) {
 	SCALE_BACKTRACE("Thread:stop0(): none");
+	if (self->function == nil) {
+		scale_IllegalStateException e = ALLOC(IllegalStateException);
+		virtual_call(e, "init(s;)V;", void, str_of_exact("Cannot call join on main thread!"));
 		scale_throw(e);
 	}
 	scale_thread_finish(self->nativeThread);
