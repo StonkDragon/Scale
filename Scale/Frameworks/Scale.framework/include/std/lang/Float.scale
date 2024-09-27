@@ -160,8 +160,8 @@ final static struct float32
         ref bits as [float32] @ return
     end
 
-    function =>(x: int): float
-        x as float return
+    function =>(x: int): float32
+        x as float32 return
     end
 end
 

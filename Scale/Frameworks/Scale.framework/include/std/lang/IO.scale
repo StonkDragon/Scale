@@ -1,15 +1,9 @@
 import std.fs
 
-cdecl "write"
-private expect foreign unsafe function __c_write(:int, :[int8], :int): int32
-cdecl "read"
-private expect foreign unsafe function __c_read(:int, :[int8], :int): int32
 cdecl "fputs"
 private expect foreign unsafe function __c_fputs(:[int8], :any): none
 cdecl "scale_get_stderr"
 private expect foreign unsafe function __c_get_stderr(): any
-cdecl "getchar"
-private expect foreign unsafe function __c_getchar(): int8
 cdecl "puts"
 private expect foreign unsafe function __c_puts(:[int8]): none
 
