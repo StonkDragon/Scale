@@ -111,7 +111,9 @@ void go_rebuild_yourself(int argc, char const *argv[]) {
         #endif
         });
         exec_command(cmd);
-        exec_command(create_command(std::vector<std::string>(argv, argv + argc)));
+        std::vector<std::string> command(argv, argv + argc);
+        command.push_back("-noinc");
+        exec_command(create_command(command));
         exit(0);
     }
 }

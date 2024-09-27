@@ -1271,24 +1271,20 @@ namespace sclc {
         std::string ret = "";
         const char* s = type.c_str();
         while (*s) {
-            if (strncmp(s, "$$B", 3) == 0) {
-                ret += "<";
-                s += 3;
-            } else if (strncmp(s, "$$E", 3) == 0) {
-                ret += ">";
-                s += 3;
-            } else if (strncmp(s, "$x", 2) == 0) {
-                s += 2;
-                const char data[] = {
-                    s[0],
-                    s[1],
-                    0
-                };
-                s += 2;
-                ret += (char) std::strtol(data, nullptr, 16);
-            } else if (*s == '$') {
-                ret += "::";
+            if (*s == '$') {
                 s++;
+                if (*s == 'x') {
+                    s++;
+                    const char data[] = {
+                        s[0],
+                        s[1],
+                        0
+                    };
+                    s += 2;
+                    ret += (char) std::strtol(data, nullptr, 16);
+                } else {
+                    ret += "::";
+                }
             } else {
                 ret += *s;
                 s++;
@@ -1305,7 +1301,7 @@ namespace sclc {
             name = retemplate(f->member_type) + ":" + name;
         } else if (!f->member_type.empty()) {
             name = retemplate(f->member_type) + "::" + name.substr(f->member_type.size() + 1);
-        } else if (strcontains(name, "$$B")) {
+        } else if (strstarts(name, "$T")) {
             name = retemplate(name);
         }
         if (f->has_lambda) {
