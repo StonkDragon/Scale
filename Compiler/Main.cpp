@@ -281,7 +281,6 @@ namespace sclc
                         for (size_t i = 0; excludedFiles != nullptr && i < excludedFiles->size(); i++) {
                             std::string x = excludedFiles->getString(i)->getValue();
                             if (file.string().find(x) != std::string::npos) {
-                                std::cout << "Excluding file " << file.string() << std::endl;
                                 goto after;
                             }
                         }
