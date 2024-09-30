@@ -982,6 +982,9 @@ void scale_setup(void) {
 	}
 #endif
 
+// #if defined(__APPLE__) || defined(_WIN32)
+// 	GC_use_threads_discovery();
+// #endif
 	GC_INIT();
 	GC_set_oom_fn((GC_oom_func) &scale_oom);
 

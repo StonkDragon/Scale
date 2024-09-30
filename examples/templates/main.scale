@@ -25,7 +25,7 @@ struct Foo
 end
 
 function main(): none
-    Foo<Int, str>::new => decl f: Foo<Int, str>
+    Foo<Box<int>, str>::new => decl f: Foo<Box<int>, str>
 
     # reference here because value types result in
     # undefined behavior

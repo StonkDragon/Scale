@@ -61,29 +61,29 @@ namespace sclc {
         interfaces.insert(interface);
     }
     bool Struct::isOpen() const {
-        return (flags & 0b00000100) != 0;
+        return (flags & 0x04) != 0;
     }
     bool Struct::isStatic() const {
-        return (flags & 0b00010000) != 0;
+        return (flags & 0x10) != 0;
     }
     bool Struct::isFinal() const {
-        return (flags & 0b00100000) != 0;
+        return (flags & 0x20) != 0;
     }
     bool Struct::isExtern() const {
-        return (flags & 0b00000010) != 0;
+        return (flags & 0x02) != 0;
     }
     void Struct::toggleFinal() {
-        flags ^= 0b00100000;
+        flags ^= 0x20;
     }
     void Struct::addModifier(std::string m) {
         if (m == "final") {
-            flags |= 0b00100000;
+            flags |= 0x20;
         } else if (m == "open") {
-            flags |= 0b00000100;
+            flags |= 0x04;
         } else if (m == "static") {
-            flags |= 0b00010000;
+            flags |= 0x10;
         } else if (m == "expect") {
-            flags |= 0b00000010;
+            flags |= 0x02;
         }
     }
     bool Struct::operator==(const Struct& other) const {

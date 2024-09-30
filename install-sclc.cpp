@@ -28,8 +28,23 @@ void depends_on(std::string command, const char* error) {
 #endif
     if (result != 0) {
         std::cerr << error << std::endl;
-        std::exit(1);
+        exit(1);
     }
+}
+
+void depend_on_any(std::vector<std::string> commands, const char* error) {
+    for (auto&& command : commands) {
+    #ifdef _WIN32
+        int result = std::system((command + " > nul 2>&1").c_str());
+    #else
+        int result = std::system((command + " > /dev/null 2>&1").c_str());
+    #endif
+        if (result == 0) {
+            return;
+        }
+    }
+    std::cerr << error << std::endl;
+    exit(1);
 }
 
 #define STR_(x) #x
@@ -121,13 +136,8 @@ void go_rebuild_yourself(int argc, char const *argv[]) {
 int real_main(int argc, char const *argv[]) {
     go_rebuild_yourself(argc, argv);
 
-    depends_on("clang --version", "clang is required!");
-    depends_on("clang++ --version", "clang++ is required!");
-// #if !defined(_WIN32)
-//     depends_on("make --version", "make is required!");
-// #else
-//     depends_on("nmake /?", "nmake is required!");
-// #endif
+#define TO_STRING(x) TO_STRING_(x)
+#define TO_STRING_(x) #x
 
 #define CONCAT(a, b) CONCAT_(a, b)
 #define CONCAT_(a, b) a ## b
@@ -150,6 +160,9 @@ int real_main(int argc, char const *argv[]) {
 
 #define LIB_SCALE_FILENAME    LIB_PREF LIB_SCALE_NAME LIB_SUFF
 #define SCALE_STDLIB_FILENAME LIB_PREF SCALE_STDLIB_NAME LIB_SUFF
+
+    depends_on(TO_STRING(CC) " --version", TO_STRING(CC) " is required!");
+    depends_on(TO_STRING(CXX) " --version", TO_STRING(CXX) " is required!");
 
     bool isDevBuild = false;
     bool fullRebuild = false;
@@ -212,7 +225,7 @@ int real_main(int argc, char const *argv[]) {
 
     std::filesystem::copy("Scale", path, std::filesystem::copy_options::recursive | std::filesystem::copy_options::overwrite_existing);
 
-    if (!isDevBuild) {
+    // if (!isDevBuild) {
         if (std::filesystem::exists("bdwgc")) {
             std::filesystem::remove_all("bdwgc");
         }
@@ -228,40 +241,63 @@ int real_main(int argc, char const *argv[]) {
         exec_command(create_command({"git", "clone", "--depth=1", "https://github.com/ivmai/libatomic_ops.git", "libatomic_ops"}));
         #endif
 
-        std::filesystem::create_directories("out");
-        std::filesystem::current_path("out");
-
+        // /*
         exec_command(create_command({
-            "cmake",
-            "-DBUILD_SHARED_LIBS=OFF",
-            "-Denable_cplusplus=OFF",
-            "-Denable_threads=ON",
-            "-Dbuild_cord=OFF",
-            "-Denable_docs=OFF",
-            "-Denable_atomic_uncollectable=OFF",
-            "-Dinstall_headers=OFF",
-            "-DCMAKE_INSTALL_PREFIX=" + path + DIR_SEP "Internal",
-        #ifndef _WIN32
-            "-DCFLAGS_EXTRA=-fPIC",
+            "clang",
+            "-c",
+            "-I",
+            "include",
+            "-O3",
+            "-DGC_DLL",
+            "-DGC_THREADS",
+            "-DALL_INTERIOR_POINTERS",
+            "-DNO_EXECUTE_PERMISSION",
+            "-DPARALLEL_MARK",
+            "-DGC_BUILTIN_ATOMIC",
+            "-DDONT_USE_USER32_DLL",
+            // "-UGC_NO_THREADS_DISCOVERY",
+        #if defined(__APPLE__) || defined(_WIN32)
+            // "-DGC_DISCOVER_TASK_THREADS",
         #endif
-            ".."
+            "-fno-strict-aliasing",
+            "-march=native",
+            "-Wall",
+            "extra" DIR_SEP "gc.c",
+            "-o",
+            path + DIR_SEP "Internal" DIR_SEP "gc.o"
         }));
-        exec_command(create_command({
-            "cmake",
-            "--build",
-            ".",
-            "--target",
-            "install"
-        }));
+        // */
 
-        std::filesystem::current_path(std::filesystem::current_path().parent_path());
+        // exec_command(create_command({
+        //     "cmake",
+        //     "-DBUILD_SHARED_LIBS=OFF",
+        //     "-Denable_cplusplus=OFF",
+        //     "-Denable_threads=ON",
+        //     "-Dbuild_cord=OFF",
+        //     "-Denable_docs=OFF",
+        //     "-Denable_atomic_uncollectable=OFF",
+        //     "-Dinstall_headers=OFF",
+        //     "-DCMAKE_INSTALL_PREFIX=" + path + DIR_SEP "Internal",
+        // #ifndef _WIN32
+        //     "-DCFLAGS_EXTRA=-fPIC",
+        // #endif
+        //     ".."
+        // }));
+        // exec_command(create_command({
+        //     "cmake",
+        //     "--build",
+        //     ".",
+        //     "--target",
+        //     "install"
+        // }));
 
         std::filesystem::create_directories(path + DIR_SEP "Internal" DIR_SEP "include");
+        std::filesystem::create_directories(path + DIR_SEP "Internal" DIR_SEP "lib");
         std::filesystem::copy("include", path + DIR_SEP "Internal" DIR_SEP "include", std::filesystem::copy_options::overwrite_existing | std::filesystem::copy_options::recursive);
 
         std::filesystem::current_path(std::filesystem::current_path().parent_path());
         std::filesystem::remove_all("bdwgc");
-    }
+    // }
 
     auto scale_runtime = create_command({
         "clang",
@@ -323,11 +359,12 @@ int real_main(int argc, char const *argv[]) {
     #endif
         path + DIR_SEP "Internal" DIR_SEP "scale_runtime.o",
         path + DIR_SEP "Internal" DIR_SEP "scale_cxx.o",
-        "-L" + path + DIR_SEP "Internal" DIR_SEP "lib",
-    #ifdef __APPLE__
-        "-Wl,-rpath," + path + DIR_SEP "Internal" DIR_SEP "lib",
-    #endif
-        "-lgc",
+        path + DIR_SEP "Internal" DIR_SEP "gc.o",
+    //     "-L" + path + DIR_SEP "Internal" DIR_SEP "lib",
+    // #ifdef __APPLE__
+    //     "-Wl,-rpath," + path + DIR_SEP "Internal" DIR_SEP "lib",
+    // #endif
+    //     "-lgc",
         "-o",
         path + DIR_SEP "Internal" DIR_SEP "lib" DIR_SEP "" LIB_SCALE_FILENAME
     });
@@ -455,6 +492,7 @@ int real_main(int argc, char const *argv[]) {
 
     std::filesystem::remove(path + DIR_SEP "Internal" DIR_SEP "scale_runtime.o");
     std::filesystem::remove(path + DIR_SEP "Internal" DIR_SEP "scale_cxx.o");
+    std::filesystem::remove(path + DIR_SEP "Internal" DIR_SEP "gc.o");
 
     std::filesystem::path symlinked_path;
     if (is_root()) {

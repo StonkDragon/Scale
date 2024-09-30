@@ -339,9 +339,9 @@ typedef struct {
 	scale_int32 array_elem_size:24 scale_packed;
 } memory_layout_t;
 
-#define MEM_FLAG_INSTANCE	0b00000001
-#define MEM_FLAG_ARRAY		0b00000010
-#define MEM_FLAG_STATIC		0b00000100
+#define MEM_FLAG_INSTANCE	0x01
+#define MEM_FLAG_ARRAY		0x02
+#define MEM_FLAG_STATIC		0x04
 
 struct scale_methodinfo {
 	const ID_t							pure_name;

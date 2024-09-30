@@ -1375,40 +1375,40 @@ namespace sclc
 
     bool checkUTF8(const std::string& str) {
         for (size_t i = 0; i < str.size(); i++) {
-            if ((str[i] & 0b10000000) == 0b00000000) {
+            if ((str[i] & 0x80) == 0x00) {
                 if (!isAllowed1ByteChar(str[i])) {
                     return false;
                 }
-            } else if ((str[i] & 0b11100000) == 0b11000000) {
+            } else if ((str[i] & 0xe0) == 0xc0) {
                 if (i + 1 >= str.size()) {
                     return false;
                 }
-                if ((str[i + 1] & 0b11000000) != 0b10000000) {
+                if ((str[i + 1] & 0xc0) != 0x80) {
                     return false;
                 }
                 i++;
-            } else if ((str[i] & 0b11110000) == 0b11100000) {
+            } else if ((str[i] & 0xf0) == 0xe0) {
                 if (i + 2 >= str.size()) {
                     return false;
                 }
-                if ((str[i + 1] & 0b11000000) != 0b10000000) {
+                if ((str[i + 1] & 0xc0) != 0x80) {
                     return false;
                 }
-                if ((str[i + 2] & 0b11000000) != 0b10000000) {
+                if ((str[i + 2] & 0xc0) != 0x80) {
                     return false;
                 }
                 i += 2;
-            } else if ((str[i] & 0b11111000) == 0b11110000) {
+            } else if ((str[i] & 0xf8) == 0xf0) {
                 if (i + 3 >= str.size()) {
                     return false;
                 }
-                if ((str[i + 1] & 0b11000000) != 0b10000000) {
+                if ((str[i + 1] & 0xc0) != 0x80) {
                     return false;
                 }
-                if ((str[i + 2] & 0b11000000) != 0b10000000) {
+                if ((str[i + 2] & 0xc0) != 0x80) {
                     return false;
                 }
-                if ((str[i + 3] & 0b11000000) != 0b10000000) {
+                if ((str[i + 3] & 0xc0) != 0x80) {
                     return false;
                 }
                 i += 3;

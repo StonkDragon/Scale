@@ -1,2 +1,2 @@
 hello
-42
+Box<int> {value: 42}

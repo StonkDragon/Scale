@@ -313,7 +313,9 @@ namespace sclc
                 }
                 if (std::filesystem::exists(path + DIR_SEP + framework + ".framework" DIR_SEP + LIB_PREF + framework + LIB_SUFF)) {
                     tmpFlags.push_back("-L" + path + DIR_SEP + framework + ".framework");
-                    #if !defined(__APPLE__) && !defined(_WIN32)
+                    #if defined(__APPLE__)
+                        tmpFlags.push_back("-Wl,-rpath," + path + DIR_SEP + framework + ".framework");
+                    #elif !defined(_WIN32)
                         tmpFlags.push_back("-Wl,-R");
                         tmpFlags.push_back("-Wl," + path + DIR_SEP + framework + ".framework");
                     #endif
@@ -1445,7 +1447,7 @@ namespace sclc
             cflags.push_back("-lm");
         #endif
             cflags.push_back("-lScaleRuntime");
-            cflags.push_back("-lgc");
+            // cflags.push_back("-lgc");
         }
 
         std::string cmd = "";
