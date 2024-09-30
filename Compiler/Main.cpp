@@ -293,7 +293,6 @@ namespace sclc
                     }
 
                     std::cout << Color::GREEN << "Compiling framework '" << framework << "' (" << libraryName << ")" << Color::RESET << std::endl;
-                    std::cout << cmd << std::endl;
                     Main::frameworkPaths.push_back(path + DIR_SEP + framework + ".framework");
 
                     setenv("SCALE_COMPILE_FRAMEWORK", framework.c_str(), 1);
@@ -308,7 +307,6 @@ namespace sclc
 
                 auto s = getenv("SCALE_COMPILE_FRAMEWORK");
                 auto libFile = path + DIR_SEP + framework + ".framework" DIR_SEP + build->getStringOrDefault("outfile", LIB_PREF + framework + LIB_SUFF)->getValue();
-                std::cout << "Checking framework " << framework << " at " << libFile << std::endl;
                 if (build != nullptr && !std::filesystem::exists(std::filesystem::absolute(libFile))) {
                     if (s == nullptr || s != framework) {
                         compileFramework(framework, path, headerDir, build);
