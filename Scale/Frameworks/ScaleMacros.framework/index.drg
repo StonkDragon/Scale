@@ -1,0 +1,19 @@
+framework: {
+    version: "24.2.0";
+    headerDir: "include";
+    implDir: "impl";
+    implementers: [];
+    implHeaderDir: "impl";
+    implHeaders: [];
+    docfile: "Docs.scldoc";
+    docfile-format: "scldoc";
+    build: {
+        files: [
+            "impl/macro_entry.scale";
+        ];
+        outfile: "macros.scl";
+        exclude: [
+            "std";
+        ];
+    };
+};

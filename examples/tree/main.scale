@@ -12,16 +12,14 @@ struct Node
     decl left: Node?
     decl right: Node?
 
-    static function ofTriple(t: Triple?): Node?
-        Node::new => decl n: Node
-        if t as int nil == then
-            nil return
-        fi
-        
-        t?.a Node::ofTriple => n.left
-        t?.b => n.data
-        t?.c Node::ofTriple => n.right
-        n return
+    static function ofTriple(maybeT: Triple?): Node?
+        maybeT? => decl t: Triple
+
+        Node {
+            (t.a Node::ofTriple) => left
+            (t.c Node::ofTriple) => right
+            t.b => data
+        } return
     end
 end
 

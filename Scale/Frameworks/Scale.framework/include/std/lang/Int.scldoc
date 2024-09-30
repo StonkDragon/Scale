@@ -164,28 +164,8 @@ Returns a hexadecimal string representation of `x`.
 ### static function int::parse(s: str): int
 Parses `s` as an int and returns the result.
 
-### static function int::asReference(i: int): Int
-Returns a new instance of `Int` that represents the value `i`.
-
-### struct Int
-The struct `Int` is the reference type that represents the `int` type.
-Declared Fields:
-- `value: readonly int` - The value of the `Int` instance.
-
-### static function Int::valueOf(x: int): Int
-Returns a new instance of `Int` that represents the value `x`.
-
-### function Int:equals(other: any): bool
-Returns true if `self` and `other` represent the same value.
-
-### function Int:==(other: any): bool
-Returns true if `self` and `other` represent the same value.
-
-### function Int:@(): int
-Returns the int value of this `Int` instance.
-
-### function Int:toString(): str
-Returns a string representation of this `Int` instance.
+### static function int::asReference(i: int): Box<int>
+Returns a new instance of `Box<int>` that represents the value `i`.
 
 ### function isnil(x: any): bool
 Returns true if `x` is nil.

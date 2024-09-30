@@ -352,9 +352,9 @@ scale_no_return void scale_runtime_error(int code, const scale_int8* msg, ...) {
 }
 
 scale_any scale_cvarargs_to_array(va_list args, scale_int count) {
-	scale_any* arr = (scale_any*) scale_new_array_by_size(count, sizeof(scale_any));
+	scale_uint64* arr = (scale_uint64*) scale_new_array_by_size(count, sizeof(scale_uint64));
 	for (scale_int i = 0; i < count; i++) {
-		arr[i] = *va_arg(args, scale_any*);
+		arr[i] = va_arg(args, scale_uint64);
 	}
 	return arr;
 }

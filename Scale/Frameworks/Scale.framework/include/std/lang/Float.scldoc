@@ -35,8 +35,8 @@ Returns true if `x` is finite.
 ### static function float::isNotNaN(x: float): bool
 Returns true if `x` is not NaN.
 
-### static function float::asReference(f: float): Float
-Returns a new instance of `Float` that represents the value `f`.
+### static function float::asReference(f: float): Box<float>
+Returns a new instance of `Box<float>` that represents the value `f`.
 
 ### static function float::fromBits(bits: any): float
 Returns a float from the bits `bits`.
@@ -74,31 +74,8 @@ Returns true if `x` is finite.
 ### static function float32::isNotNaN(x: float32): bool
 Returns true if `x` is not NaN.
 
-### static function float32::asReference(f: float32): Float
-Returns a new instance of `Float` that represents the value `f`.
+### static function float32::asReference(f: float32): Box<float32>
+Returns a new instance of `Box<float32>` that represents the value `f`.
 
 ### static function float32::fromBits(bits: any): float32
 Returns a float32 from the bits `bits`.
-
-### struct Float
-The struct `Float` is the reference type that represents the `float` type.
-Declared Fields:
-- `value: readonly float` - The value of the `Float` instance.
-
-### static function Float::valueOf(x: float): Float
-Returns a new instance of `Float` that represents the value `x`.
-
-### function Float:equals(other: any): bool
-Returns true if `self` and `other` represent the same value.
-
-### function Float:==(other: any): bool
-Returns true if `self` and `other` represent the same value.
-
-### function Float:!=(other: any): bool
-Returns true if `self` and `other` do not represent the same value.
-
-### function Float:@(): float
-Returns the float value of this `Float` instance.
-
-### function Float:toString(): str
-Returns a string representation of this `Float` instance.

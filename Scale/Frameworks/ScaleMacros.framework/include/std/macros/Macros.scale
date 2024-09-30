@@ -1,0 +1,3 @@
+macro! expand() in "ScaleMacros.framework/macros.scl"
+macro! quote() in "ScaleMacros.framework/macros.scl"
+macro! config() in "ScaleMacros.framework/macros.scl"

@@ -40,7 +40,7 @@ namespace sclc {
         } else if (hasFunction(result, body[i].value)) {
             Function* f = getFunctionByName(result, body[i].value);
             std::string lambdaType = "lambda(" + std::to_string(f->args.size()) + "):" + f->return_type;
-            append("scale_push(scl_str, scale_create_string(\"%s\"));\n", lambdaType.c_str());
+            append("scale_push(scale_str, scale_create_string(\"%s\"));\n", lambdaType.c_str());
         } else if (body[i].type == tok_paren_open) {
             append("{\n");
             scopeDepth++;

@@ -70,6 +70,9 @@ Removes all occurrences of `val` from `self`.
 ### function Array:map(x: lambda(any): none): none
 Applies `x` to each value in `self`.
 
+### function Array:mapIndexed(x: lambda(any, int): none): none
+Applies `x` to each value and index in `self`.
+
 ### function Array:filter(x: lambda(any): bool): Array
 Returns a new array containing the values of `self` for which `x` returns true.
 

@@ -660,43 +660,30 @@ namespace sclc {
     };
 
     struct SclParser {
+        SclConfig* config;
         std::vector<Token>& tokens;
         size_t& i;
         void* (*str$of)(char*) = nullptr;
         void* (*alloc)(size_t) = nullptr;
-        SclConfig* config;
 
         static CToken* peek(SclParser* parser) __asm__(TO_STRING(__USER_LABEL_PREFIX__) "Parser$peek");
         static CToken* consume(SclParser* parser) __asm__(TO_STRING(__USER_LABEL_PREFIX__) "Parser$consume");
-        static SclConfig* getConfig(SclParser* parser) __asm__(TO_STRING(__USER_LABEL_PREFIX__) "Parser$getConfig");
     };
 
-#ifdef _WIN32
-    extern "C" CToken* SclParser$peek(SclParser* parser) {
-        return SclParser::peek(parser);
-    }
-    extern "C" CToken* SclParser$consume(SclParser* parser) {
-        return SclParser::consume(parser);
-    }
-    extern "C" SclConfig* SclParser$getConfig(SclParser* parser) {
-        return SclParser::getConfig(parser);
-    }
-    extern "C" void* SclConfig$getKey(SclConfig* parser, void* key) {
-        return SclConfig::getKey(parser, key);
-    }
-    extern "C" long long SclConfig$hasKey(SclConfig* parser, void* key) {
-        return SclConfig::hasKey(parser, key);
-    }
-#endif
-
-    CToken* SclParser::peek(SclParser* parser) {
+    #ifdef _WIN32
+    __declspec(dllexport)
+    #endif
+    extern "C" CToken* SclParser::peek(SclParser* parser) {
         if (parser->i >= parser->tokens.size()) {
             return nullptr;
         }
         return parser->tokens[parser->i].toC(parser->alloc, parser->str$of);
     }
 
-    CToken* SclParser::consume(SclParser* parser) {
+    #ifdef _WIN32
+    __declspec(dllexport)
+    #endif
+    extern "C" CToken* SclParser::consume(SclParser* parser) {
         if (parser->i >= parser->tokens.size()) {
             return nullptr;
         }
@@ -705,16 +692,18 @@ namespace sclc {
         return t;
     }
 
-    SclConfig* SclParser::getConfig(SclParser* parser) {
-        return parser->config;
-    }
-
-    void* SclConfig::getKey(SclConfig* conf, void* arg) {
+    #ifdef _WIN32
+    __declspec(dllexport)
+    #endif
+    extern "C" void* SclConfig::getKey(SclConfig* conf, void* arg) {
         auto s = Main::config->getStringByPath(conf->str$view(arg));
         return s ? conf->str$of((char*) s->getValue().c_str()) : nullptr;
     }
     
-    long long SclConfig::hasKey(SclConfig* conf, void* arg) {
+    #ifdef _WIN32
+    __declspec(dllexport)
+    #endif
+    extern "C" long long SclConfig::hasKey(SclConfig* conf, void* arg) {
         return SclConfig::getKey(conf, arg) != nullptr;
     }
 
@@ -765,7 +754,7 @@ namespace sclc {
             }
             return lib;
         #else
-            library_type lib = dlopen(name, RTLD_LAZY);
+            library_type lib = dlopen(name, RTLD_LAZY | RTLD_GLOBAL);
             if (!lib) {
                 std::cout << "Failed to load library '" << name << "': " << dlerror() << std::endl;
                 exit(1);
@@ -787,12 +776,12 @@ namespace sclc {
             func = getFunction<typeof(func)>(this->lib, name.c_str());
             Result$getErr = getFunction<typeof(Result$getErr)>(this->lib, "_M6Result6getErra");
             Result$getOk = getFunction<typeof(Result$getOk)>(this->lib, "_M6Result5getOka");
-            Result$isErr = getFunction<typeof(Result$isErr)>(this->lib, "_M6Result5isErrl");
-            Result$isOk = getFunction<typeof(Result$isOk)>(this->lib, "_M6Result4isOkl");
+            Result$isErr = getFunction<typeof(Result$isErr)>(this->lib, "_M6Result8getIsErrg");
+            Result$isOk = getFunction<typeof(Result$isOk)>(this->lib, "_M6Result7getIsOkg");
             scale_migrate_array = getFunction<typeof(scale_migrate_array)>(this->lib, "scale_migrate_foreign_array");
             scale_array_size = getFunction<typeof(scale_array_size)>(this->lib, "scale_array_size");
             alloc = getFunction<typeof(alloc)>(this->lib, "scale_alloc");
-            str$of = getFunction<typeof(str$of)>(this->lib, "_F3str14operator$storecE");
+            str$of = getFunction<typeof(str$of)>(this->lib, "_F3str2ofcE");
             str$view = getFunction<typeof(str$view)>(this->lib, "_M3str4viewc");
         }
 
@@ -816,11 +805,11 @@ namespace sclc {
 
             SclParser* parser = (SclParser*) alloc(sizeof(SclParser));
             parser = new (parser) SclParser{
+                config,
                 otherTokens,
                 i,
                 str$of,
-                alloc,
-                config
+                alloc
             };
 
             CSourceLocation* loc = macroTok.location.toC(alloc, str$of);
@@ -1008,25 +997,19 @@ namespace sclc {
                 }
                 #endif
                 macros[name] = macro;
-            } else if (tokens[i].value == "delmacro!") {
-                i++;
-                if (tokens[i].type != tok_identifier) {
-                    errors.push_back(MacroError("Expected macro name"));
-                    continue;
-                }
-                std::string name = tokens[i].value;
-                if (macros.find(name) == macros.end()) {
-                    errors.push_back(MacroError("Macro '" + name + "' not defined"));
-                    continue;
-                }
-                DBG("Deleting macro %s", name.c_str());
-                macros.erase(name);
+            }
+        }
+
+        for (size_t i = 0; i < tokens.size(); i++) {
+            if (tokens[i].type != tok_identifier) {
                 continue;
-            } else if (
-                macros.find(tokens[i].value) != macros.end() &&
+            }
+
+            if (
                 i + 1 < tokens.size() &&
+                tokens[i + 1].location.line == tokens[i].location.line &&
                 tokens[i + 1].value == "!" &&
-                tokens[i + 1].location.line == tokens[i].location.line
+                macros.find(tokens[i].value) != macros.end()
             ) {
                 Macro* macro = macros[tokens[i].value];
                 DBG("Expanding macro %s with %zu tokens", tokens[i].value.c_str(), macro->tokens.size());
@@ -1047,6 +1030,8 @@ namespace sclc {
                 i--;
             }
         }
+
+        DBG("Done expanding macros");
 
         if (errors.size()) {
             result.errors = errors;
@@ -1271,6 +1256,8 @@ namespace sclc {
         std::vector<NewTemplateInstance> inst;
         std::vector<NewTemplate> templates;
 
+        DBG("Parsing templates");
+
         for (size_t i = 0; i < tokens.size(); i++) {
             if (tokens[i].type != tok_identifier || tokens[i].value != "template") continue;
 
@@ -1355,17 +1342,21 @@ namespace sclc {
             }
 
             tokens.erase(tokens.begin() + start, tokens.begin() + i);
+            tokens.insert(tokens.begin() + start, Token(tok_eof, t.name.value));
             i = start - 1;
             templates.push_back(t);
         }
 
         std::vector<std::string> initialized;
 
+        DBG("Instantiating templates");
+
         for (size_t i = 0; i < tokens.size(); i++) {
             if (tokens[i].type != tok_identifier) continue;
 
             for (auto&& t : templates) {
                 if (tokens[i] == t.name) {
+                    DBG("Instantiating template %s", t.name.value.c_str());
                     SourceLocation where = tokens[i].location;
                     size_t start = i;
                     i++;
@@ -1385,18 +1376,33 @@ namespace sclc {
 
                     for (auto&& arg : t.params) {
                         std::vector<Token> params;
+                        DBG("  arg: %s", arg.c_str());
 
                         int scope = 0;
-                        while (scope > 0 || (tokens[i].type != tok_comma && (tokens[i].type != tok_identifier || tokens[i].value != ">"))) {
+                        while (
+                            i < tokens.size() &&
+                            (
+                                scope > 0 ||
+                                (
+                                    tokens[i].type != tok_comma &&
+                                    (
+                                        tokens[i].type != tok_identifier ||
+                                        tokens[i].value != ">"
+                                    )
+                                )
+                            )
+                        ) {
                             if (tokens[i].type == tok_curly_open || tokens[i].type == tok_paren_open || tokens[i].type == tok_bracket_open || (tokens[i].type == tok_identifier && tokens[i].value == "<")) scope++;
                             if (tokens[i].type == tok_curly_close || tokens[i].type == tok_paren_close || tokens[i].type == tok_bracket_close || (tokens[i].type == tok_identifier && tokens[i].value == ">")) scope--;
                             params.push_back(tokens[i]);
+                            DBG("    param: %s", tokens[i].value.c_str());
                             i++;
                         }
                         ti.expansions.push_back({arg, params});
                         i++;
                     }
 
+                    DBG("Erasing instatiating tokens");
                     tokens.erase(tokens.begin() + start, tokens.begin() + i);
                     i = start - 1;
 
@@ -1404,11 +1410,13 @@ namespace sclc {
                         return x > y ? x : y;
                     };
 
+                    DBG("Resolving template %s", t.name.value.c_str());
                     tokens.reserve(max(tokens.capacity(), tokens.size() + 2));
                     std::string id = ti.identifier();
                     tokens.insert(tokens.begin() + i + 1, Token(tok_identifier, id, where));
 
                     if (contains(initialized, id)) {
+                        DBG("Template %s already initialized, skipping", t.name.value.c_str());
                         continue;
                     }
 
@@ -1418,7 +1426,7 @@ namespace sclc {
                             if (tok.type != tok_identifier) {
                                 toks.push_back(tok);
                             } else if (tok == ti.templ.name && tok.location == ti.templ.name.location) {
-                                toks.push_back(Token(tok_identifier, id, where));
+                                toks.push_back(Token(tok_identifier, id, tok.location));
                             } else {
                                 bool found = false;
                                 for (auto&& x : ti.expansions) {
@@ -1431,19 +1439,27 @@ namespace sclc {
                                     }
                                 }
                                 if (!found) {
-                                    Token t(tok);
-                                    t.location = where;
-                                    toks.push_back(t);
+                                    // Token t(tok);
+                                    // t.location = where;
+                                    toks.push_back(tok);
                                 }
                             }
                         }
                         return toks;
                     };
 
+                    DBG("Expanding template %s", t.name.value.c_str());
                     std::vector<Token> toks = expand();
                     tokens.reserve(tokens.size() + toks.size());
-                    tokens.insert(tokens.end(), toks.begin(), toks.end());
+                    auto it = tokens.begin();
+                    for (; it != tokens.end(); ++it) {
+                        if (it->type == tok_eof && it->value == t.name.value) {
+                            break;
+                        }
+                    }
+                    tokens.insert(it, toks.begin(), toks.end());
                     initialized.push_back(id);
+                    i = 0;
                 }
             }
         }
@@ -1469,12 +1485,16 @@ namespace sclc {
             tokens.insert(tokens.begin() + i, Token(tok_identifier, val, begin));
         }
 
+        DBG("Fixing tokens");
+
         for (size_t i = 0; i < tokens.size(); i++) {
             if (tokens[i].type == tok_eof) {
                 tokens.erase(tokens.begin() + i);
                 i--;
             }
         }
+
+        DBG("Parsing tokens");
 
         for (size_t i = 0; i < tokens.size(); i++) {
             Token& token = tokens[i];

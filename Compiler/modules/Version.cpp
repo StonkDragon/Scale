@@ -57,11 +57,11 @@ namespace sclc {
     }
     Version::~Version() {}
 
-    bool Version::operator==(Version& v) const {
+    bool Version::operator==(const Version& v) const {
         return (major == v.major) && (minor == v.minor) && (patch == v.patch);
     }
 
-    bool Version::operator>(Version& v) const {
+    bool Version::operator>(const Version& v) const {
         if (major > v.major) {
             return true;
         } else if (major == v.major) {
@@ -78,23 +78,23 @@ namespace sclc {
         return false;
     }
 
-    bool Version::operator>=(Version& v) const {
+    bool Version::operator>=(const Version& v) const {
         return ((*this) > v) || ((*this) == v);
     }
 
-    bool Version::operator<=(Version& v) const {
+    bool Version::operator<=(const Version& v) const {
         return !((*this) > v);
     }
 
-    bool Version::operator<(Version& v) const {
+    bool Version::operator<(const Version& v) const {
         return !((*this) >= v);
     }
 
-    bool Version::operator!=(Version& v) const {
+    bool Version::operator!=(const Version& v) const {
         return !((*this) == v);
     }
 
-    std::string Version::asString() {
+    std::string Version::asString() const {
         return std::to_string(this->major) + "." + std::to_string(this->minor) + "." + std::to_string(this->patch);
     }
 } // namespace sclc

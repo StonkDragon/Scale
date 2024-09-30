@@ -1,5 +1,5 @@
-cdecl "sprintf"
-private expect foreign unsafe function __c_sprintf(:[int8], :[int8], :varargs): int
+cdecl "snprintf"
+private expect foreign unsafe function __c_snprintf(:[int8], :int, :[int8], :varargs): int
 cdecl "atof"
 private expect foreign unsafe function __c_atof(:[int8]): float
 
@@ -8,35 +8,17 @@ final static struct float
     (-1022) => decl minExponent: const int
 
     function toString(x: float): str
-        if x:isNaN then
-            "nan" return
-        elif x:isInfinite then
-            if x 0 < then
-                "-inf" return
-            else
-                "inf" return
-            fi
-        fi
-        new<int8>[100] => decl out: [int8]
+        new<int8>[64] => decl out: [int8]
         unsafe
-            out c"%f" varargs x __c_sprintf drop
+            out 63 c"%f" varargs x __c_snprintf drop
         end
         out str::new return
     end
 
     function toPrecisionString(x: float): str
-        if x:isNaN then
-            "nan" return
-        elif x:isInfinite then
-            if x 0 < then
-                "-inf" return
-            else
-                "inf" return
-            fi
-        fi
-        new<int8>[100] => decl out: [int8]
+        new<int8>[64] => decl out: [int8]
         unsafe
-            out c"%.17f" varargs x __c_sprintf drop
+            out 63 c"%.17f" varargs x __c_snprintf drop
         end
         out str::new return
     end
@@ -44,7 +26,7 @@ final static struct float
     function toHexString(x: float): str
         new<int8>[19] => decl out: [int8]
         unsafe
-            out "0x%016lx" varargs x:bits __c_sprintf drop
+            out 18 c"0x%016lx" varargs x:bits __c_snprintf drop
         end
         out str::new return
     end
@@ -71,8 +53,10 @@ final static struct float
         x float::isNaN ! return
     end
 
-    function asReference(f: float): Float
-        f Float::new return
+    function asReference(f: float): Box<float>
+        Box<float> {
+            f => value
+        } return
     end
 
     function fromBits(bits: any): float
@@ -89,35 +73,17 @@ final static struct float32
     (-126) => decl minExponent: const int
 
     function toString(x: float32): str
-        if x:isNaN then
-            "nan" return
-        elif x:isInfinite then
-            if x 0 < then
-                "-inf" return
-            else
-                "inf" return
-            fi
-        fi
-        new<int8>[100] => decl out: [int8]
+        new<int8>[64] => decl out: [int8]
         unsafe
-            out c"%f" varargs x __c_sprintf drop
+            out 63 c"%f" varargs x __c_snprintf drop
         end
         out str::new return
     end
 
     function toPrecisionString(x: float32): str
-        if x:isNaN then
-            "nan" return
-        elif x:isInfinite then
-            if x 0 < then
-                "-inf" return
-            else
-                "inf" return
-            fi
-        fi
-        new<int8>[100] => decl out: [int8]
+        new<int8>[64] => decl out: [int8]
         unsafe
-            out c"%.17f" varargs x __c_sprintf drop
+            out 63 c"%.17f" varargs x __c_snprintf drop
         end
         out str::new return
     end
@@ -125,7 +91,7 @@ final static struct float32
     function toHexString(x: float32): str
         new<int8>[19] => decl out: [int8]
         unsafe
-            out "0x%016lx" varargs x:bits __c_sprintf drop
+            out 18 c"0x%016lx" varargs x:bits __c_snprintf drop
         end
         out str::new return
     end
@@ -152,8 +118,10 @@ final static struct float32
         x float32::isNaN ! return
     end
 
-    function asReference(f: float32): Float
-        f as float Float::new return
+    function asReference(f: float32): Box<float32>
+        Box<float32> {
+            f => value
+        } return
     end
 
     function fromBits(bits: any): float32
@@ -162,41 +130,5 @@ final static struct float32
 
     function =>(x: int): float32
         x as float32 return
-    end
-end
-
-final struct Float
-    decl value: readonly float
-
-    static function valueOf(x: float): Float
-        x Float::new return
-    end
-
-    init(x: float)
-        x => self.value
-    end
-    function equals(other: any): bool
-        other self == return
-    end
-    function ==(other: any): bool
-        if other is Float then
-            other as Float.value self.value == return
-        else
-            ref other as [float] @ self.value == return
-        fi
-    end
-    function !=(other: any): none
-        if other is Float then
-            other as Float.value self.value != return
-        else
-            ref other as [float] @ self.value != return
-        fi
-    end
-    function @(): float
-        self.value return
-    end
-
-    const function toString(): str
-        self.value:toString return
     end
 end

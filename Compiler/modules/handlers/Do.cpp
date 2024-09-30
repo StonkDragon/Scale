@@ -16,6 +16,7 @@ namespace sclc {
         "each",
         "also",
         "transform",
+        "mapIndexed",
     };
 
     handler(Do) {

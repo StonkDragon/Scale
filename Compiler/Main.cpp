@@ -9,6 +9,7 @@
 #include <map>
 #include <fstream>
 #include <optional>
+#include <fstream>
 
 #include <signal.h>
 #include <errno.h>
@@ -89,22 +90,29 @@ namespace sclc
         std::cout << "Usage: " << programName << " <filename> [args]" << std::endl;
         std::cout << std::endl;
         std::cout << "Accepted Flags:" << std::endl;
-        std::cout << "  -t, --transpile      Transpile only" << std::endl;
-        std::cout << "  -h, --help           Show this help" << std::endl;
-        std::cout << "  -v, --version        Show version information" << std::endl;
-        std::cout << "  -o <filename>        Specify Output file" << std::endl;
-        std::cout << "  -f <framework>       Use Scale Framework" << std::endl;
-        std::cout << "  -no-main             Do not check for main Function" << std::endl;
-        std::cout << "  -compiler <comp>     Use comp as the compiler instead of " << std::string(COMPILER) << std::endl;
-        std::cout << "  -feat <feature>      Enables the specified language feature" << std::endl;
-        std::cout << "  -makelib             Compile as a library (implies -no-main)" << std::endl;
-        std::cout << "  -cflags              Print c compiler flags and exit" << std::endl;
-        std::cout << "  -no-error-location   Do not print an overview of the file on error" << std::endl;
-        std::cout << "  -verbose-linker      Tells the linker to run in verbose mode for debugging purposes" << std::endl;
-        std::cout << "  -nowarn <regex>      Do not print any diagnostics where the message matches the given regular expression" << std::endl;
-        std::cout << "  -doc                 Print documentation" << std::endl;
-        std::cout << "  -doc-for <framework> Print documentation for Framework" << std::endl;
-        std::cout << "  -stack-size <sz>     Sets the starting stack size. Must be a multiple of 2" << std::endl;
+        std::cout << "  -t, --transpile             Transpile only" << std::endl;
+        std::cout << "  -h, --help                  Show this help" << std::endl;
+        std::cout << "  -v, --version               Show version information" << std::endl;
+        std::cout << "  -o <filename>               Specify Output file" << std::endl;
+        std::cout << "  -f <framework>              Use Scale Framework" << std::endl;
+        std::cout << "  -I <path>                   Add path to include path" << std::endl;
+        std::cout << "  -no-main                    Do not check for main Function" << std::endl;
+        std::cout << "  -compiler <comp>            Use comp as the compiler instead of " << std::string(COMPILER) << std::endl;
+        std::cout << "  -feat <feature>             Enables the specified language feature" << std::endl;
+        std::cout << "  -makelib                    Compile as a library (implies -no-main)" << std::endl;
+        std::cout << "  -cflags                     Print c compiler flags and exit" << std::endl;
+        std::cout << "  -no-error-location          Do not print an overview of the file on error" << std::endl;
+        std::cout << "  -verbose-linker             Tells the linker to run in verbose mode for debugging purposes" << std::endl;
+        std::cout << "  -nowarn <regex>             Do not print any diagnostics where the message matches the given regular expression" << std::endl;
+        std::cout << "  -doc                        Print documentation" << std::endl;
+        std::cout << "  -doc-for <framework>        Print documentation for Framework" << std::endl;
+        std::cout << "  -stack-size <sz>            Sets the starting stack size. Must be a multiple of 2" << std::endl;
+        std::cout << "  -no-scale-std               Do not depend on Scale.framework" << std::endl;
+        std::cout << "  -no-link-scale              Do not dynamically link to Scale.framework library" << std::endl;
+        std::cout << "  -embedded                   Compile in embedded mode, no dynamic libraries, implies -no-scale-std and -no-link-scale" << std::endl;
+        std::cout << "  -verbose-linker             Tells the linker to run in verbose mode for debugging purposes" << std::endl;
+        std::cout << "  -create-framework <name>    Create a new framework with the given name" << std::endl;
+        std::cout << "  --                          Stop parsing flags" << std::endl;
         std::cout << std::endl;
         std::cout << "  Any other options are passed directly to " << std::string(COMPILER) << " (or compiler specified by -compiler)" << std::endl;
     }
@@ -161,7 +169,21 @@ namespace sclc
         return tk.tokens;
     }
 
-    bool checkFramework(std::string& framework, std::vector<std::string>& tmpFlags, std::vector<std::string>& frameworks, bool& hasCppFiles, Version& FrameworkMinimumVersion) {
+    auto listFiles(const std::filesystem::path& dir, std::string ext) -> std::vector<std::filesystem::path> {
+        std::vector<std::filesystem::path> files;
+        for (auto child : std::filesystem::directory_iterator(dir)) {
+            if (child.path().extension() == ext) {
+                files.push_back(child.path());
+            } else if (child.is_directory()) {
+                auto x = listFiles(child.path(), ext);
+                files.insert(files.end(), x.begin(), x.end());
+            }
+            
+        }
+        return files;
+    }
+
+    bool checkFramework(std::string& framework, std::vector<std::string>& tmpFlags, std::vector<std::string>& frameworks, bool& hasCppFiles, const Version& FrameworkMinimumVersion) {
         for (auto path : Main::options::includePaths) {
             if (std::filesystem::exists(path + DIR_SEP + framework + ".framework" DIR_SEP "index.drg")) {
                 DragonConfig::ConfigParser parser;
@@ -176,6 +198,7 @@ namespace sclc
                 DragonConfig::ListEntry* implHeaders = root->getList("implHeaders");
                 DragonConfig::ListEntry* depends = root->getList("depends");
                 DragonConfig::ListEntry* compilerFlags = root->getList("compilerFlags");
+                DragonConfig::CompoundEntry* build = root->getCompound("build");
                 DragonConfig::CompoundEntry* config = root->getCompound("config");
 
                 DragonConfig::StringEntry* versionTag = root->getString("version");
@@ -227,6 +250,79 @@ namespace sclc
                 }
 
                 Main::frameworks.push_back(framework);
+
+                auto compileFramework = [](const std::string& framework, const std::string& path, const std::string& includePath, DragonConfig::CompoundEntry* build) {
+                    if (build == nullptr) {
+                        return;
+                    }
+
+                    auto curPath = std::filesystem::current_path();
+                    std::filesystem::current_path(path + DIR_SEP + framework + ".framework");
+
+                    DragonConfig::ListEntry* excludedFiles = build->getList("exclude");
+                    DragonConfig::ListEntry* includedFiles = build->getList("files");
+                    DragonConfig::ListEntry* arguments = build->getList("arguments");
+                    auto libraryName = std::filesystem::absolute(build->getStringOrDefault("outfile", path + DIR_SEP + framework + ".framework" DIR_SEP + LIB_PREF + framework + LIB_SUFF)->getValue());
+
+                    std::string cmd =
+                        "sclc -makelib -o " +
+                        libraryName.string() +
+                        " -I " +
+                        std::filesystem::absolute(path + DIR_SEP + framework + ".framework").string() +
+                        " -I " +
+                        std::filesystem::absolute(path + DIR_SEP + framework + ".framework" DIR_SEP + includePath).string();
+
+                    for (size_t i = 0; arguments != nullptr && i < arguments->size(); i++) {
+                        cmd += " " + arguments->getString(i)->getValue();
+                    }
+
+                    auto files = listFiles(std::filesystem::current_path() / includePath, ".scale");
+                    for (auto file : files) {
+                        for (size_t i = 0; excludedFiles != nullptr && i < excludedFiles->size(); i++) {
+                            std::string x = excludedFiles->getString(i)->getValue();
+                            if (file.string().find(x) != std::string::npos) {
+                                std::cout << "Excluding file " << file.string() << std::endl;
+                                goto after;
+                            }
+                        }
+                        cmd += " " + std::filesystem::absolute(file).string();
+                        after: (void)0;
+                    }
+                    for (size_t i = 0; includedFiles != nullptr && i < includedFiles->size(); i++) {
+                        cmd += " " + std::filesystem::absolute(includedFiles->getString(i)->getValue()).string();
+                    }
+
+                    std::cout << Color::GREEN << "Compiling framework '" << framework << "' (" << libraryName << ")" << Color::RESET << std::endl;
+                    std::cout << cmd << std::endl;
+                    Main::frameworkPaths.push_back(path + DIR_SEP + framework + ".framework");
+
+                    setenv("SCALE_COMPILE_FRAMEWORK", framework.c_str(), 1);
+                    int compile_command = system(cmd.c_str());
+                    setenv("SCALE_COMPILE_FRAMEWORK", "", 1);
+
+                    if (compile_command) {
+                        std::cout << Color::RED << "Compilation of framework '" + framework + "' failed with error code " << compile_command << Color::RESET << std::endl;
+                        std::exit(compile_command);
+                    }
+                };
+
+                auto s = getenv("SCALE_COMPILE_FRAMEWORK");
+                auto libFile = path + DIR_SEP + framework + ".framework" DIR_SEP + build->getStringOrDefault("outfile", LIB_PREF + framework + LIB_SUFF)->getValue();
+                std::cout << "Checking framework " << framework << " at " << libFile << std::endl;
+                if (build != nullptr && !std::filesystem::exists(std::filesystem::absolute(libFile))) {
+                    if (s == nullptr || s != framework) {
+                        compileFramework(framework, path, headerDir, build);
+                    }
+                }
+                if (std::filesystem::exists(path + DIR_SEP + framework + ".framework" DIR_SEP + LIB_PREF + framework + LIB_SUFF)) {
+                    tmpFlags.push_back("-L" + path + DIR_SEP + framework + ".framework");
+                    #if !defined(__APPLE__) && !defined(_WIN32)
+                        tmpFlags.push_back("-Wl,-R");
+                        tmpFlags.push_back("-Wl," + path + DIR_SEP + framework + ".framework");
+                    #endif
+                    tmpFlags.push_back("-l" + framework);
+                    Main::frameworkPaths.push_back(path + DIR_SEP + framework + ".framework");
+                }
 
                 if (headerDir.size() > 0) {
                     Main::options::includePaths.push_back(path + DIR_SEP + framework + ".framework" DIR_SEP + headerDir);
@@ -787,6 +883,10 @@ namespace sclc
                     for (size_t i = 0; i < scaleConfig->getList("frameworks")->size(); i++)
                         frameworks.push_back(scaleConfig->getList("frameworks")->getString(i)->getValue());
 
+                if (scaleConfig->hasMember("arguments"))
+                    for (size_t i = 0; i < scaleConfig->getList("arguments")->size(); i++)
+                        args.push_back(scaleConfig->getList("arguments")->getString(i)->getValue());
+
                 if (scaleConfig->hasMember("compilerFlags"))
                     for (size_t i = 0; i < scaleConfig->getList("compilerFlags")->size(); i++)
                         tmpFlags.push_back(scaleConfig->getList("compilerFlags")->getString(i)->getValue());
@@ -798,6 +898,21 @@ namespace sclc
                 if (scaleConfig->hasMember("featureFlags"))
                     for (size_t i = 0; i < scaleConfig->getList("featureFlags")->size(); i++)
                         Main::options::features.push_back(scaleConfig->getList("featureFlags")->getString(i)->getValue());
+                
+                if (scaleConfig->hasMember("includePaths"))
+                    for (size_t i = 0; i < scaleConfig->getList("includePaths")->size(); i++)
+                        Main::options::includePaths.push_back(scaleConfig->getList("includePaths")->getString(i)->getValue());
+                
+                if (scaleConfig->hasMember("files"))
+                    for (size_t i = 0; i < scaleConfig->getList("files")->size(); i++) {
+                        if (!std::filesystem::exists(args[i])) {
+                            continue;
+                        }
+                        std::string file = std::filesystem::absolute(args[i]).string();
+                        if (!contains(Main::options::files, file)) {
+                            Main::options::files.push_back(file);
+                        }
+                    }
 
                 DragonConfig::CompoundEntry* config = scaleConfig->getCompound("config");
                 if (config) {
@@ -966,29 +1081,29 @@ namespace sclc
                 }
             } else if (args[i] == "--") {
                 break;
+            } else if (args[i] == "-I") {
+                if (i + 1 < args.size()) {
+                    Main::options::includePaths.push_back(args[i + 1]);
+                    i++;
+                } else {
+                    std::cerr << "Error: -I requires an argument" << std::endl;
+                    return 1;
+                }
+            } else if (args[i] == "-c") {
+                Main::options::dontSpecifyOutFile = true;
+            } else if (args[i] == "-Werror") {
+                Main::options::Werror = true;
+            } else if (strstarts(args[i], "-ferror-limit=")) {
+                if (args[i].size() == 15) {
+                    std::cerr << "Error: -ferror-limit requires an argument" << std::endl;
+                    return 1;
+                }
+                Main::options::errorLimit = std::atol(args[i].substr(15).c_str());
             } else {
-                if (args[i].size() >= 2 && args[i][0] == '-' && args[i][1] == 'I') {
+                if (args[i].size() > 2 && args[i][0] == '-' && args[i][1] == 'I') {
                     Main::options::includePaths.push_back(std::string(args[i].c_str() + 2));
-                } else if (args[i] == "-I") {
-                    if (i + 1 < args.size()) {
-                        Main::options::includePaths.push_back(args[i + 1]);
-                        i++;
-                    } else {
-                        std::cerr << "Error: -I requires an argument" << std::endl;
-                        return 1;
-                    }
-                } else if (args[i].size() >= 2 && args[i][0] == '-' && args[i][1] == 'O') {
+                } else if (args[i].size() > 2 && args[i][0] == '-' && args[i][1] == 'O') {
                     optimizer = std::string(args[i].c_str() + 1);
-                } else if (args[i] == "-c") {
-                    Main::options::dontSpecifyOutFile = true;
-                } else if (args[i] == "-Werror") {
-                    Main::options::Werror = true;
-                } else if (strstarts(args[i], "-ferror-limit=")) {
-                    if (args[i].size() == 15) {
-                        std::cerr << "Error: -ferror-limit requires an argument" << std::endl;
-                        return 1;
-                    }
-                    Main::options::errorLimit = std::atol(args[i].substr(15).c_str());
                 }
                 tmpFlags.push_back(args[i]);
             }
@@ -1041,21 +1156,16 @@ namespace sclc
         cflags.push_back("-lucrt");
 #endif
         
-        if (Main::options::noScaleFramework) goto skipScaleFramework;
-        for (auto f : frameworks) {
-            if (f == "Scale") {
-                goto skipScaleFramework;
+        if (!Main::options::noScaleFramework) {
+            if (std::find(frameworks.begin(), frameworks.end(), "Scale") == frameworks.end()) {
+                frameworks.push_back("Scale");
             }
         }
-        frameworks.push_back("Scale");
-    skipScaleFramework:
 
         DBG("Checking frameworks");
 
-        Version FrameworkMinimumVersion = Version(std::string(FRAMEWORK_VERSION_REQ));
-
         for (std::string& framework : frameworks) {
-            checkFramework(framework, tmpFlags, frameworks, hasCppFiles, FrameworkMinimumVersion);
+            checkFramework(framework, tmpFlags, frameworks, hasCppFiles, Version(std::string(FRAMEWORK_VERSION_REQ)));
         }
 
         #ifdef _WIN32
@@ -1327,6 +1437,8 @@ namespace sclc
 #if !defined(__APPLE__) && !defined(_WIN32)
         cflags.push_back("-Wl,-R");
         cflags.push_back("-Wl," + scaleFolder + DIR_SEP "Internal" DIR_SEP "lib");
+        cflags.push_back("-Wl,-R");
+        cflags.push_back("-Wl," + scaleFolder);
 #endif
 #if defined(__APPLE__)
         cflags.push_back("-Wl,-w");
@@ -1337,9 +1449,6 @@ namespace sclc
         #endif
             cflags.push_back("-lScaleRuntime");
             cflags.push_back("-lgc");
-        }
-        if (!Main::options::noLinkScale) {
-            cflags.push_back("-lScale");
         }
 
         std::string cmd = "";

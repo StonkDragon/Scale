@@ -121,7 +121,14 @@ namespace sclc {
             std::string nextType = typeStackTop;
             typeStack.pop_back();
             std::string ctype = sclTypeToCType(result, nextType);
-            append("%s vararg%ld = scale_pop(%s);\n", ctype.c_str(), i, ctype.c_str());
+            nextType = removeTypeModifiers(nextType);
+            if (isPrimitiveIntegerType(nextType, false)) {
+                append("scale_int vararg%ld = scale_pop(%s);\n", i, ctype.c_str());
+            } else if (nextType == "float" || nextType == "float32") {
+                append("scale_float vararg%ld = scale_pop(%s);\n", i, ctype.c_str());
+            } else {
+                append("%s vararg%ld = scale_pop(%s);\n", ctype.c_str(), i, ctype.c_str());
+            }
         }
 
         if (f->varArgsParam().name.size()) {
@@ -134,7 +141,7 @@ namespace sclc {
         for (size_t i = 0; i < amountOfVarargs; i++) {
             args += ", ";
             if (f->varArgsParam().name.size()) {
-                args += "&";
+                args += "*(scale_uint64*) &";
             }
             args += "vararg" + std::to_string(i);
         }

@@ -9,6 +9,11 @@ Provides compatibility with `do 'filter`.
 Returns a new array containing the results of applying `fn` to each element of `arr`.
 Provides compatibility with `do 'map`.
 
+### static function List::mapIndexed<[T], lambda(T, int): U>(arr: [T], fn: lambda(T, int): U): [U]
+Returns a new array containing the results of applying `fn` to each element of `arr` and its index.
+The index is the second argument to `fn`.
+Provides compatibility with `do 'mapIndexed`.
+
 ### static function List::reduce<[T], >(arr: [T], fn: lambda(T, T): T): T
 Returns the result of applying `fn` to each element of `arr` where the first argument is the accumulated value and the second argument is the current element.
 The accumulated value is initialized to `0`.

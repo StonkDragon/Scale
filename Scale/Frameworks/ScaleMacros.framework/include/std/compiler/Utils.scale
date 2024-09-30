@@ -103,17 +103,14 @@ layout MacroError
     decl location: SourceLocation
 end
 
-struct Parser
-    expect nonvirtual foreign function peek(): Token?
-    expect nonvirtual foreign function consume(): Token?
-    expect nonvirtual foreign function getConfig(): Config
+layout Parser
+    decl config: Config
 
-    private init() end
+    expect foreign function peek(): Token?
+    expect foreign function consume(): Token?
 end
 
-struct Config
-    expect nonvirtual foreign function hasKey(key: str): bool
-    expect nonvirtual foreign function getKey(key: str): str?
-
-    private init() end
+layout Config
+    expect foreign function hasKey(key: str): bool
+    expect foreign function getKey(key: str): str?
 end

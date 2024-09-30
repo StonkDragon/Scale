@@ -709,13 +709,23 @@ namespace sclc {
                 isTemplate = strstarts(function->name, "$T");
             }
 
+            auto isFrameworkFile = [](const std::string& file) -> bool {
+                for (auto&& framework : Main::frameworkPaths) {
+                    if (pathstarts(file, framework)) {
+                        return true;
+                    }
+                }
+                return false;
+            };
+
             const std::string& file = function->name_token.location.file;
             if (
                 !Main::options::noLinkScale &&
                 !isTemplate &&
                 function->reified_parameters.empty() &&
                 !function->has_inline &&
-                pathstarts(file, scaleFolder + DIR_SEP "Frameworks" DIR_SEP "Scale.framework")
+                isFrameworkFile(file) &&
+                std::find(Main::options::filesFromCommandLine.begin(), Main::options::filesFromCommandLine.end(), file) == Main::options::filesFromCommandLine.end()
             ) {
                 continue;
             }

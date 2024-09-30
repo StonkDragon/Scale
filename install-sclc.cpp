@@ -399,6 +399,12 @@ int real_main(int argc, char const *argv[]) {
         "-fuse-ld=lld",
         "-Wl,-lldmingw",
     #endif
+    #ifdef __APPLE__
+        "-Wl,-export_dynamic",
+    #endif
+    #ifdef __linux__
+        "-rdynamic",
+    #endif
     };
 
     for (auto f : source_files) {
@@ -486,33 +492,6 @@ int real_main(int argc, char const *argv[]) {
         std::exit(1);
     }
 #endif
-
-    std::string macro_library = create_command({
-        (std::filesystem::path(path) / binary).string(),
-        "-makelib",
-        "-o",
-        path + DIR_SEP "Frameworks" DIR_SEP "Scale.framework" DIR_SEP "impl" DIR_SEP "__scale_macros.scl",
-        path + DIR_SEP "Frameworks" DIR_SEP "Scale.framework" DIR_SEP "impl" DIR_SEP "macro_entry.scale"
-    });
-
-    auto scale_stdlib = create_command({
-        (std::filesystem::path(path) / binary).string(),
-        "-no-link-std",
-        "-makelib",
-        "-o",
-        path + DIR_SEP "Internal" DIR_SEP "lib" DIR_SEP "" SCALE_STDLIB_FILENAME
-    });
-
-    auto files = listFiles(path + DIR_SEP "Frameworks" DIR_SEP "Scale.framework" DIR_SEP "include", ".scale");
-    for (auto&& f : files) {
-        if (pathcontains(f, DIR_SEP "macros" DIR_SEP) || pathcontains(f, DIR_SEP "compiler" DIR_SEP)) {
-            continue;
-        }
-        scale_stdlib += f.string() + " ";
-    }
-
-    exec_command(scale_stdlib);
-    exec_command(macro_library);
 
     if (!is_root()) {
         std::cout << "--------------" << std::endl;

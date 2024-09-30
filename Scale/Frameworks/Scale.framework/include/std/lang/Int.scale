@@ -1,7 +1,7 @@
 cdecl "atoll"
 private expect foreign unsafe function __c_atoll(:[int8]): int64
-cdecl "sprintf"
-private expect foreign unsafe function __c_sprintf(:[int8], :[int8], :varargs): int
+cdecl "snprintf"
+private expect foreign unsafe function __c_snprintf(:[int8], :int, :[int8], :varargs): int
 cdecl "printf"
 private expect foreign unsafe function __c_printf(:[int8], :varargs): int
 
@@ -22,9 +22,9 @@ macro! IntStruct(type) {
       new<int8>[32] => decl out: [int8]
       unsafe
         if sizeof $type 1 == then
-          out c"%c" varargs x __c_sprintf drop
+          out 31 c"%c" varargs x __c_snprintf drop
         else
-          out c"%ld" varargs x __c_sprintf drop
+          out 31 c"%ld" varargs x __c_snprintf drop
         fi
       end
       out:resizeToFit str::new return
@@ -33,7 +33,7 @@ macro! IntStruct(type) {
     function toHexString(x: $type): str
       new<int8>[32] => decl out: [int8]
       unsafe
-        out "0x%0" sizeof $type 2 * + "lx" +:view varargs x __c_sprintf drop
+        out 31 "0x%0" sizeof $type 2 * + "lx" +:view varargs x __c_snprintf drop
       end
       out:resizeToFit str::new return
     end
@@ -44,8 +44,10 @@ macro! IntStruct(type) {
       end
     end
 
-    function asReference(i: int): Int
-      i Int::new return
+    function asReference(i: $type): Box<$type>
+      Box<$type> {
+        i => value
+      } return
     end
 
     function =>(x: float): $type
@@ -66,9 +68,9 @@ macro! UIntStruct(type) {
       new<int8>[32] => decl out: [int8]
       unsafe
         if sizeof $type 1 == then
-          out c"%c" varargs x __c_sprintf drop
+          out 31 c"%c" varargs x __c_snprintf drop
         else
-          out c"%lu" varargs x __c_sprintf drop
+          out 31 c"%lu" varargs x __c_snprintf drop
         fi
       end
       out:resizeToFit str::new return
@@ -77,7 +79,7 @@ macro! UIntStruct(type) {
     function toHexString(x: $type): str
       new<int8>[32] => decl out: [int8]
       unsafe
-        out "0x%0" sizeof $type 2 * + "lx" +:view varargs x __c_sprintf drop
+        out 31 "0x%0" sizeof $type 2 * + "lx" +:view varargs x __c_snprintf drop
       end
       out:resizeToFit str::new return
     end
@@ -88,8 +90,10 @@ macro! UIntStruct(type) {
       end
     end
 
-    function asReference(i: int): Int
-      i Int::new return
+    function asReference(i: $type): Box<$type>
+      Box<$type> {
+        i => value
+      } return
     end
 
     function =>(x: float): $type
@@ -121,6 +125,12 @@ final static struct bool
       s:view __c_atoll 0 != return
     end
   end
+
+  function asReference(i: bool): Box<bool>
+    Box<bool> {
+      i => value
+    } return
+  end
 end
 
 IntStruct! int8
@@ -133,45 +143,6 @@ UIntStruct! uint16
 UIntStruct! uint32
 UIntStruct! uint64
 UIntStruct! uint
-
-delmacro! IntStruct
-delmacro! UIntStruct
-
-final struct Int
-  decl value: readonly int
-
-  static function valueOf(x: int): Int
-    x Int::new return
-  end
-
-  init(x: int)
-    x => self.value
-  end
-
-  function equals(other: any): bool
-    if other is Int then
-      other as Int.value self.value == return
-    else
-      other as int self.value == return
-    fi
-  end
-
-  function ==(other: any): bool
-    other self:equals return
-  end
-
-  function !=(other: any): bool
-    other self:equals ! return
-  end
-
-  function @(): int
-    self.value return
-  end
-
-  const function toString(): str
-    self.value:toString return
-  end
-end
 
 reified operator "add" function +<A, B>(:A, :B): _ABBigger
 reified operator "sub" function -<A, B>(:A, :B): _ABBigger

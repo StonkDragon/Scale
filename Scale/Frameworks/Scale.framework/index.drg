@@ -10,7 +10,7 @@ framework: {
     docfile: "Docs.scldoc";
     docfile-format: "scldoc";
     modules: {
-        std: [
+        std: [ # This module is automatically imported by the compiler
             "std/lang/Core.scale";
             "std/lang/String.scale";
             "std/lang/SclObject.scale";
@@ -60,6 +60,11 @@ framework: {
         ];
         std.fs: [
             "std/lang/File.scale";
+        ];
+    };
+    build: {
+        arguments: [
+            "-no-link-std";
         ];
     };
 };

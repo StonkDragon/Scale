@@ -23,12 +23,12 @@ namespace sclc
         Version& operator=(Version&& other);
         ~Version();
 
-        bool operator==(Version& v) const;
-        bool operator>(Version& v) const;
-        bool operator>=(Version& v) const;
-        bool operator<=(Version& v) const;
-        bool operator<(Version& v) const;
-        bool operator!=(Version& v) const;
-        std::string asString();
+        bool operator==(const Version& v) const;
+        bool operator>(const Version& v) const;
+        bool operator>=(const Version& v) const;
+        bool operator<=(const Version& v) const;
+        bool operator<(const Version& v) const;
+        bool operator!=(const Version& v) const;
+        std::string asString() const;
     };
 } // namespace sclc

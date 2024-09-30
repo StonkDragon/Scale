@@ -169,6 +169,7 @@ namespace sclc {
         static DragonConfig::CompoundEntry* config;
         static std::vector<std::string> frameworkNativeHeaders;
         static std::vector<std::string> frameworks;
+        static std::vector<std::string> frameworkPaths;
         static Version* version;
         static long long tokenHandleTime;
         static long long writeHeaderTime;

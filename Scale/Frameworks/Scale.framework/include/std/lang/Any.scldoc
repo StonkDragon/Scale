@@ -32,26 +32,3 @@ Returns true if `one` and `other` point to the same memory block.
 
 ### static function any::asReference(x: any): Any
 Returns a new instance of `Any` that represents the value `x`.
-
-### struct Any
-The struct `Any` is the reference type that represents the `any` type.
-Declared Fields:
-- `value: readonly any` - The value of the `Any` instance.
-
-### static function Any::valueOf(x: any): Any
-Returns a new instance of `Any` that represents the value `x`.
-
-### function Any:equals(other: any): bool
-Returns true if `self` and `other` point to the same memory block.
-
-### function Any:==(other: any): bool
-Returns true if `self` and `other` point to the same memory block.
-
-### function Any:!=(other: any): bool
-Returns true if `self` and `other` do not point to the same memory block.
-
-### function Any:@(): any
-Returns the data pointed to by this `Any` instance.
-
-### function Any:toString(): str
-Returns a string representation of this `Any` instance.

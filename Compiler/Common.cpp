@@ -63,6 +63,7 @@ namespace sclc
     DragonConfig::CompoundEntry* Main::config = nullptr;
     std::vector<std::string> Main::frameworkNativeHeaders = std::vector<std::string>();
     std::vector<std::string> Main::frameworks = std::vector<std::string>();
+    std::vector<std::string> Main::frameworkPaths = std::vector<std::string>();
     Version* Main::version = new Version(0, 0, 0);
     bool Main::options::noMain = false;
     bool Main::options::Werror = false;

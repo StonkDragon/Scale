@@ -9,13 +9,9 @@ function main(): none
     new<int>[8] => decl s: [int]
 
     # This will set all the values of the array to their index times 3
-    [s do i 3 *] drop
-    # It is equivalent to the following C code:
-    ```c
-    for (int i = 0; i < 8; i++) {
-        s[i] = i * 3;
-    }
-    ```
+    for i in 0 to s:size do
+        i 3 * => s[i]
+    done
     
     s:toString puts # Prints [0, 3, 6, 9, 12, 15, 18, 21]
     s:reverse:toString puts # Prints [21, 18, 15, 12, 9, 6, 3, 0]

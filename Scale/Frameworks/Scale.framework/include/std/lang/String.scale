@@ -380,10 +380,26 @@ final struct str is Iterable
     result str::of return
   end
 
+  static function mapIndexed(arr: str, f: lambda(int8, int): int8): str
+    new<int8>[arr.length 1 +] => decl result: [int8]
+    for i in 0 to arr:size do
+      arr[i] i f:accept => result[i]
+    done
+    result str::of return
+  end
+
   static reified function map<lambda(int8): U>(arr: str, f: lambda(int8): U): [U]
     new<U>[arr:size] => decl result: [U]
     for i in 0 to arr:size do
       arr[i] f:accept => result[i]
+    done
+    result return
+  end
+
+  static reified function mapIndexed<lambda(int8, int): U>(arr: str, f: lambda(int8, int): U): [U]
+    new<U>[arr:size] => decl result: [U]
+    for i in 0 to arr:size do
+      arr[i] i f:accept => result[i]
     done
     result return
   end

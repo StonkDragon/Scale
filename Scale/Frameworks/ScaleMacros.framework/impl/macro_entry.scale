@@ -143,11 +143,11 @@ foreign function config(loc: SourceLocation, parser: Parser): Result`<[Token], M
     fi
 
     tok.location parser expand => decl block: Result
-    if block:isErr then
+    if block.isErr then
         block return
     fi
 
-    parser:getConfig => decl conf: Config
+    parser.config => decl conf: Config
     
     decl conditionMet: bool
     if checkExistence then

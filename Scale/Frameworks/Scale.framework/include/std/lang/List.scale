@@ -40,6 +40,14 @@ static struct List
         out return
     end
 
+    reified function mapIndexed<[T], lambda(T, int): U>(arr: [T], f: lambda(T, int): U): [U]
+        new<U>[arr:size] => decl out: [U]
+        for i in 0 to arr:size do
+            arr[i] i f:accept => out[i]
+        done
+        out return
+    end
+
     reified function reduce<[T], >(arr: [T], f: lambda(T, T): T): T
         decl result: T
         for i in 0 to arr:size do

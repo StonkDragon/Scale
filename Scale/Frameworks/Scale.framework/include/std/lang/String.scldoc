@@ -149,6 +149,10 @@ This function makes the `str` type compatible with `do`-notation.
 Returns a new instance of `str` containing the characters of `self` mapped by `mapper`.
 This function makes the `str` type compatible with `do`-notation.
 
+### static function str::mapIndexed(:str, mapper: lambda(int8, int): int8): str
+Returns a new instance of `str` containing the characters of `self` mapped by `mapper`.
+This function makes the `str` type compatible with `do`-notation.
+
 ### static function str::reduce(:str, reducer: lambda(int, int8): int): int
 Returns the result of reducing `self` with `reducer`.
 This function makes the `str` type compatible with `do`-notation.

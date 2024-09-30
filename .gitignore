@@ -15,8 +15,8 @@ out.typeinfo.h
 *.js
 *.S
 *.s
-scl_*.c
-scl_*.h
+scale_*.c
+scale_*.h
 sclc
 
 # Linker output
@@ -88,7 +88,7 @@ dkms.conf
 scale.vscodeextension/.DS_Store
 ErrorMessages.txt
 msg.md
-scl_trace.log
+scale_trace.log
 .chglog
 Dragon/
 e.java

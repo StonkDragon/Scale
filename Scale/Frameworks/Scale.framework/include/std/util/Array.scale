@@ -223,6 +223,13 @@ struct Array: Lock is Iterable
     done
   end
 
+  function mapIndexed(x: lambda(any, int): none): none
+    0 => decl i
+    for i in 0 to self.count do
+      self[i] i x:accept
+    done
+  end
+
   function filter(x: lambda(any): bool) arr: Array
     self.capacity Array::new => arr
     foreach elem in self do

@@ -46,44 +46,34 @@ final static struct any
         one as int other as int == return
     end
 
-    function asReference(x: any): Any
-        x Any::new return
+    function asReference(x: any): Box<any>
+        Box<any> {
+            x => value
+        } return
     end
 end
 
-final struct Any
-    decl value: readonly any
+template<T>
+struct Box
+    decl value: const T
 
-    static function valueOf(x: any): Any
-        x Any::new return
+    init(value: T)
+        value => self.value
     end
 
-    init(x: any)
-        x => self.value
-    end
-    
     function equals(other: any): bool
-        other self == return
+        if other is Box<T> then
+            (other as Box<T>).value self.value == return
+        elif other is T then
+            ref other as [T] @ self.value == return
+        else
+            false return
+        fi
     end
     function ==(other: any): bool
-        if other is Any then
-            other as Any.value as int self.value as int == return
-        else
-            other self.value == return
-        fi
+        other self:equals return
     end
     function !=(other: any): bool
-        if other is Any then
-            other as Any.value as int self.value as int != return
-        else
-            other self.value != return
-        fi
-    end
-    function @(): any
-        self.value as [any] @ return
-    end
-
-    const function toString(): str
-        self.value:toString return
+        other self:equals ! return
     end
 end

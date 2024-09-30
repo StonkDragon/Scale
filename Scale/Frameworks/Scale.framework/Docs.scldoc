@@ -1,5 +1,4 @@
 # Scale Standard Library
-%include include/std/compiler/Utils.scldoc
 %include include/std/functional/Do.scldoc
 %include include/std/lang/Any.scldoc
 %include include/std/lang/Core.scldoc
@@ -17,7 +16,6 @@
 %include include/std/lang/StaticArray.scldoc
 %include include/std/lang/String.scldoc
 %include include/std/lang/Union.scldoc
-%include include/std/macros/Macros.scldoc
 %include include/std/runtime/GarbageCollector.scldoc
 %include include/std/runtime/Process.scldoc
 %include include/std/thread/Lock.scldoc

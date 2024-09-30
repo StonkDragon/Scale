@@ -384,8 +384,12 @@ struct Struct_str {
 #define scale_offsetof(type, member) ((scale_int)&((type*)0)->member)
 
 #define REINTERPRET_CAST(_type, _value) ({ \
-	typeof(_value) _tmp = (_value); \
-	*(_type*) &_tmp; \
+	union { \
+		typeof(_value) a; \
+		_type b; \
+	} _tmp = {0}; \
+	_tmp.a = _value; \
+	_tmp.b; \
 })
 
 #define scale_async(x, structbody, ...) ({ \
@@ -611,6 +615,11 @@ void				scale_setup(void);
 						scale_mark_static(&(str_data.layout)); \
 						&(((typeof(str)*) scale_mark_static(&(str.layout)))->data); \
 					})
+
+// TODO: More macro magic: make this macro auto convert all args to safe values
+#define varargs(...)				_SCALE_PREPROC_NARG(__VA_ARGS__), _SCALE_VARARGS_SAFE(__VA_ARGS__)
+#define scale_varargs				scale_int $count, ...
+#define scale_varargs_safe(val)		REINTERPRET_CAST(scale_uint64, val)
 
 #if __has_attribute(warn_unused_result)
 #define scale_nodiscard __attribute__((warn_unused_result))
