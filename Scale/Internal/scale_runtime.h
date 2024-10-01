@@ -151,21 +151,21 @@ extern "C" {
 #else
 // 64-bit system
 #if defined(__wasm__)
-#define SCALE_SYSTEM  "WASM64"
-#define SCALE_WASM64  1
+#define SCALE_SYSTEM	"WASM64"
+#define SCALE_WASM64	1
 #define SCALE_WASM32	1
 #elif defined(__aarch64__)
-#define SCALE_SYSTEM  "aarch64"
-#define SCALE_AARCH64 1
-#define SCALE_ARM64   1
-#define SCALE_ARM32	1
+#define SCALE_SYSTEM	"aarch64"
+#define SCALE_AARCH64	1
+#define SCALE_ARM64		1
+#define SCALE_ARM32		1
 #elif defined(__x86_64__)
-#define SCALE_SYSTEM  "x86_64"
-#define SCALE_X64     1
-#define SCALE_X86_64  1
+#define SCALE_SYSTEM	"x86_64"
+#define SCALE_X64		1
+#define SCALE_X86_64	1
 #define SCALE_X86		1
 #else
-#define SCALE_SYSTEM  "unknown 64-bit"
+#define SCALE_SYSTEM	"unknown 64-bit"
 #define SCALE_UNKNOWN_ARCH 1
 #endif
 #endif
@@ -175,24 +175,24 @@ typedef void*				scale_any;
 #if __SIZEOF_LONG__ == 8
 typedef long				scale_int;
 typedef unsigned long		scale_uint;
-#define SCALE_INT_FMT			"%ld"
+#define SCALE_INT_FMT		"%ld"
 #define SCALE_UINT_FMT		"%lu"
-#define SCALE_INT_HEX_FMT		"%lx"
-#define SCALE_PTR_HEX_FMT		"0x%016lx"
+#define SCALE_INT_HEX_FMT	"%lx"
+#define SCALE_PTR_HEX_FMT	"0x%016lx"
 #elif __SIZEOF_LONG_LONG__ == 8
 typedef long long			scale_int;
 typedef unsigned long long	scale_uint;
-#define SCALE_INT_FMT			"%lld"
+#define SCALE_INT_FMT		"%lld"
 #define SCALE_UINT_FMT		"%llu"
-#define SCALE_INT_HEX_FMT		"%llx"
-#define SCALE_PTR_HEX_FMT		"0x%016llx"
+#define SCALE_INT_HEX_FMT	"%llx"
+#define SCALE_PTR_HEX_FMT	"0x%016llx"
 #else
 #error "Can't find a 64-bit integer type"
 #endif
 
-#define SCALE_int_MAX			 (1L << (sizeof(scale_int) * 8 - 1))
+#define SCALE_int_MAX		 (1L << (sizeof(scale_int) * 8 - 1))
 #define SCALE_int_MASK		((scale_int) -1)
-#define SCALE_int_MIN			((1L << (sizeof(scale_int) * 8 - 1)) - 1)
+#define SCALE_int_MIN		((1L << (sizeof(scale_int) * 8 - 1)) - 1)
 #define SCALE_uint_MAX		((scale_uint) -1)
 #define SCALE_uint_MASK		((scale_uint) -1)
 #define SCALE_uint_MIN		((scale_uint) 0)
@@ -208,33 +208,33 @@ typedef float				scale_float;
 #error "Can't find a 64-bit floating point type"
 #endif
 
-typedef scale_int				scale_bool;
+typedef scale_int			scale_bool;
 
 typedef struct Struct_str*	scale_str;
 
 #define SCALE_int64_MAX		((scale_int64) ((scale_uint) (1LL << (sizeof(scale_int64) * 8 - 1))) - 1ULL)
-#define SCALE_int64_MASK		((scale_int64) -1)
+#define SCALE_int64_MASK	((scale_int64) -1)
 #define SCALE_int64_MIN		((scale_int64) (1LL << (sizeof(scale_int64) * 8 - 1)))
 #define SCALE_int32_MAX		((scale_int32) ((scale_uint) (1 << (sizeof(scale_int32) * 8 - 1))) - 1ULL)
-#define SCALE_int32_MASK		((scale_int32) -1)
+#define SCALE_int32_MASK	((scale_int32) -1)
 #define SCALE_int32_MIN		((scale_int32) (1 << (sizeof(scale_int32) * 8 - 1)))
 #define SCALE_int16_MAX		((scale_int16) ((scale_uint) (1 << (sizeof(scale_int16) * 8 - 1))) - 1ULL)
-#define SCALE_int16_MASK		((scale_int16) -1)
+#define SCALE_int16_MASK	((scale_int16) -1)
 #define SCALE_int16_MIN		((scale_int16) (1 << (sizeof(scale_int16) * 8 - 1)))
 #define SCALE_int8_MAX		((scale_int8) ((scale_uint) (1 << (sizeof(scale_int8) * 8 - 1))) - 1ULL)
 #define SCALE_int8_MASK		((scale_int8) -1)
 #define SCALE_int8_MIN		((scale_int8) (1 << (sizeof(scale_int8) * 8 - 1)))
-#define SCALE_uint64_MAX		((scale_uint64) -1)
-#define SCALE_uint64_MASK		((scale_uint64) -1)
-#define SCALE_uint64_MIN		((scale_uint64) 0)
-#define SCALE_uint32_MAX		((scale_uint32) -1)
-#define SCALE_uint32_MASK		((scale_uint32) -1)
-#define SCALE_uint32_MIN		((scale_uint32) 0)
-#define SCALE_uint16_MAX		((scale_uint16) -1)
-#define SCALE_uint16_MASK		((scale_uint16) -1)
-#define SCALE_uint16_MIN		((scale_uint16) 0)
+#define SCALE_uint64_MAX	((scale_uint64) -1)
+#define SCALE_uint64_MASK	((scale_uint64) -1)
+#define SCALE_uint64_MIN	((scale_uint64) 0)
+#define SCALE_uint32_MAX	((scale_uint32) -1)
+#define SCALE_uint32_MASK	((scale_uint32) -1)
+#define SCALE_uint32_MIN	((scale_uint32) 0)
+#define SCALE_uint16_MAX	((scale_uint16) -1)
+#define SCALE_uint16_MASK	((scale_uint16) -1)
+#define SCALE_uint16_MIN	((scale_uint16) 0)
 #define SCALE_uint8_MAX		((scale_uint8) -1)
-#define SCALE_uint8_MASK		((scale_uint8) -1)
+#define SCALE_uint8_MASK	((scale_uint8) -1)
 #define SCALE_uint8_MIN		((scale_uint8) 0)
 
 typedef long long			scale_int64;
@@ -296,18 +296,10 @@ typedef scale_uint ID_t;
 #endif
 
 // Create a new instance of a struct
-#ifdef _WIN32
-// windows does not support runtime linking of dlls
-#define ALLOC(_type)	({ \
-	const TypeInfo* $I ## _type = (const TypeInfo*) GetProcAddress(GetModuleHandleA(NULL), "$I" #_type); \
-	(scale_ ## _type) scale_alloc_struct($I ## _type); \
-})
-#else
 #define ALLOC(_type)	({ \
 	extern const TypeInfo $I ## _type; \
 	(scale_ ## _type) scale_alloc_struct(&$I ## _type); \
 })
-#endif
 
 // Try to cast the given instance to the given type
 #define CAST0(_obj, _type, _type_hash) ((scale_ ## _type) scale_checked_cast(_obj, _type_hash, #_type))
@@ -506,25 +498,6 @@ void				scale_setup(void);
 						&((typeof(_constant)*) scale_mark_static(&(_constant.layout)))->data; \
 					})
 
-#ifdef _WIN32
-#define scale_stack_alloc(_type) ( \
-						&((struct { \
-							memory_layout_t layout; \
-							struct Struct_ ## _type data; \
-						}) { \
-							.layout = { \
-								.size = sizeof(struct Struct_ ## _type), \
-								.flags = MEM_FLAG_INSTANCE, \
-							}, \
-							.data = { \
-								.$type = ({ \
-									const TypeInfo* $I ## _type = (const TypeInfo*) GetProcAddress(GetModuleHandleA(NULL), "$I" #_type); \
-									$I ## _type; \
-								}), \
-							} \
-						}).data \
-					)
-#else
 #define scale_stack_alloc(_type) ( \
 						&((struct { \
 							memory_layout_t layout; \
@@ -542,7 +515,6 @@ void				scale_setup(void);
 							} \
 						}).data \
 					)
-#endif
 
 #define scale_stack_alloc_ctype(_type) ( \
 						&((struct { \
@@ -631,14 +603,14 @@ scale_nodiscard
 scale_any				scale_realloc(scale_any ptr, scale_int size);
 scale_nodiscard
 scale_any				scale_alloc(scale_int size);
-void				scale_free(scale_any ptr);
+void					scale_free(scale_any ptr);
 scale_int				scale_sizeof(scale_any ptr);
 scale_nodiscard
 scale_any				scale_alloc_struct(const TypeInfo* statics);
 scale_nodiscard
 scale_any				scale_init_struct(scale_any ptr, const TypeInfo* statics, memory_layout_t* layout);
 
-ID_t				type_id(const scale_int8* data);
+ID_t					type_id(const scale_int8* data);
 
 scale_int				scale_identity_hash(scale_any obj);
 scale_int				scale_is_instance(scale_any ptr);
@@ -648,40 +620,40 @@ scale_any				scale_mark_static(memory_layout_t* layout);
 scale_int				scale_is_instance_of(scale_any ptr, ID_t type_id);
 scale_any				scale_get_vtable_function(scale_any instance, const scale_int8* methodIdentifier);
 scale_any				scale_checked_cast(scale_any instance, ID_t target_type, const scale_int8* target_type_name);
-scale_int8*			scale_typename_or_else(scale_any instance, const scale_int8* else_);
-ID_t				scale_typeid_or_else(scale_any instance, ID_t else_);
+scale_int8*				scale_typename_or_else(scale_any instance, const scale_int8* else_);
+ID_t					scale_typeid_or_else(scale_any instance, ID_t else_);
 scale_any				scale_cvarargs_to_array(va_list args, scale_int count);
 scale_any				scale_copy_fields(scale_any dest, scale_any src, scale_int size);
-char*				vstrformat(const char* fmt, va_list args);
-char*				strformat(const char* fmt, ...);
-void				builtinUnreachable(void);
+char*					vstrformat(const char* fmt, va_list args);
+char*					strformat(const char* fmt, ...);
+void					builtinUnreachable(void);
 scale_int				builtinIsInstanceOf(scale_any obj, scale_str type);
-scale_int8*			scale_get_thread_name(void);
-void				scale_set_thread_name(scale_int8* name);
+scale_int8*				scale_get_thread_name(void);
+void					scale_set_thread_name(scale_int8* name);
 
 scale_any				scale_new_array_by_size(scale_int num_elems, scale_int elem_size);
 scale_any				scale_migrate_foreign_array(const void* const arr, scale_int num_elems, scale_int elem_size);
 scale_int				scale_is_array(scale_any* arr);
-scale_any*			scale_multi_new_array_by_size(scale_int dimensions, scale_int sizes[], scale_int elem_size);
+scale_any*				scale_multi_new_array_by_size(scale_int dimensions, scale_int sizes[], scale_int elem_size);
 scale_int				scale_array_size(scale_any* arr);
 scale_int				scale_array_elem_size(scale_any* arr);
-void				scale_array_check_bounds_or_throw(scale_any* arr, scale_int index);
-scale_any*			scale_array_resize(scale_int new_size, scale_any* arr);
+void					scale_array_check_bounds_or_throw(scale_any* arr, scale_int index);
+scale_any*				scale_array_resize(scale_int new_size, scale_any* arr);
 scale_str				scale_array_to_string(scale_any* arr);
 
 scale_any				scale_thread_start(scale_any func, scale_any args);
-void				scale_thread_finish(scale_any thread);
-void				scale_thread_detach(scale_any thread);
+void					scale_thread_finish(scale_any thread);
+void					scale_thread_detach(scale_any thread);
 scale_any				scale_run_async(scale_any func, scale_any func_args);
 scale_any				scale_run_sync(scale_any func, scale_any func_args);
 scale_any				scale_run_await(scale_any _args);
-void				scale_yield();
+void					scale_yield();
 
 // BEGIN C++ Concurrency API wrappers
 scale_any				cxx_std_recursive_mutex_new(void);
-void				cxx_std_recursive_mutex_delete(scale_any* mutex);
-void				cxx_std_recursive_mutex_lock(scale_any* mutex);
-void				cxx_std_recursive_mutex_unlock(scale_any* mutex);
+void					cxx_std_recursive_mutex_delete(scale_any* mutex);
+void					cxx_std_recursive_mutex_lock(scale_any* mutex);
+void					cxx_std_recursive_mutex_unlock(scale_any* mutex);
 // END C++ Concurrency API wrappers
 
 static inline scale_always_inline void scale_reset_local_buffer(scale_int* ptr) {
@@ -706,11 +678,11 @@ static inline scale_always_inline void scale_reset_local_buffer(scale_int* ptr) 
 #define scale_positive_offset(offset, _type)	(*(_type*) (_local_stack_ptr + offset))
 #define scale_top(_type)						(*(_type*) (_local_stack_ptr - 1))
 #define scale_cast_stack(_to, _from)			(scale_top(_to) = (_to) scale_top(_from))
-#define scale_popn(n)						(_local_stack_ptr -= (n))
-#define scale_dup()							scale_push(scale_any, scale_top(scale_any))
+#define scale_popn(n)							(_local_stack_ptr -= (n))
+#define scale_dup()								scale_push(scale_any, scale_top(scale_any))
 #define scale_drop()							(--_local_stack_ptr)
 #define scale_cast_positive_offset(offset, _type, _other) \
-											((_other) (*(_type*) (_local_stack_ptr + offset)))
+												((_other) (*(_type*) (_local_stack_ptr + offset)))
 
 #define scale_swap() ({ \
 		scale_int tmp = _local_stack_ptr[-1]; \
@@ -754,9 +726,9 @@ static inline scale_always_inline void scale_reset_local_buffer(scale_int* ptr) 
 #define scale_div(a, b)					(a) / (b)
 #define scale_pow(a, b)					pow((a), (b))
 #define scale_mod(a, b)					(a) % (b)
-#define scale_land(a, b)					(a) & (b)
+#define scale_land(a, b)				(a) & (b)
 #define scale_lor(a, b)					(a) | (b)
-#define scale_lxor(a, b)					(a) ^ (b)
+#define scale_lxor(a, b)				(a) ^ (b)
 #define scale_lnot(a)					~((a))
 #define scale_lsr(a, b)					(a) >> (b)
 #define scale_asr(a, b)					(a) >> (b)
@@ -769,18 +741,18 @@ static inline scale_always_inline void scale_reset_local_buffer(scale_int* ptr) 
 #define scale_le(a, b)					(a) <= (b)
 #define scale_and(a, b)					(a) && (b)
 #define scale_or(a, b)					(a) || (b)
-#define scale_not(a)						!(a)
+#define scale_not(a)					!(a)
 #define scale_at(a)						(*((a)))
-#define scale_inc(a)						((a) + 1)
-#define scale_dec(a)						((a) - 1)
-#define scale_ann(a)						({ __auto_type _a = (a); scale_assert_fast(_a, "Expected non-nil value"); _a; })
+#define scale_inc(a)					((a) + 1)
+#define scale_dec(a)					((a) - 1)
+#define scale_ann(a)					({ __auto_type _a = (a); scale_assert_fast(_a, "Expected non-nil value"); _a; })
 #define scale_elvis(a, b)				({ __auto_type _a = (a); _a ? _a : (b); })
 #if !defined(UNSAFE_ARRAY_ACCESS) && !defined(SCALE_EMBEDDED)
 #define scale_checked_index(a, i)		({ __auto_type _a = (a); __auto_type _i = (i); scale_array_check_bounds_or_throw((scale_any*) _a, _i); _a[_i]; })
-#define scale_checked_write(a, i, w)		({ __auto_type _a = (a); __auto_type _i = (i); scale_array_check_bounds_or_throw((scale_any*) _a, _i); scale_putlocal(_a[_i], (w)); })
+#define scale_checked_write(a, i, w)	({ __auto_type _a = (a); __auto_type _i = (i); scale_array_check_bounds_or_throw((scale_any*) _a, _i); scale_putlocal(_a[_i], (w)); })
 #else
 #define scale_checked_index(a, i)		((a)[(i)])
-#define scale_checked_write(a, i, w)		scale_putlocal((a)[(i)], (w))
+#define scale_checked_write(a, i, w)	scale_putlocal((a)[(i)], (w))
 #endif
 #define scale_putlocal(a, w) 			((a) = (w))
 

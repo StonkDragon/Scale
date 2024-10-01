@@ -256,10 +256,6 @@ int real_main(int argc, char const *argv[]) {
         "-DPARALLEL_MARK",
         "-DGC_BUILTIN_ATOMIC",
         "-DDONT_USE_USER32_DLL",
-        // "-UGC_NO_THREADS_DISCOVERY",
-    #if defined(__APPLE__) || defined(_WIN32)
-        // "-DGC_DISCOVER_TASK_THREADS",
-    #endif
         "-fno-strict-aliasing",
         "-march=native",
         "-Wall",

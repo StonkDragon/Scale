@@ -146,47 +146,6 @@ size_t getline(char **lineptr, size_t *n, FILE *stream) {
 
     return p - bufptr - 1;
 }
-
-scale_any Parser$peek(scale_any ptr) {
-	static scale_any(*peeker)(scale_any) = nil;
-	if (peeker == nil) {
-		peeker = (typeof(peeker)) GetProcAddress(GetModuleHandleA(nil), "SclParser$peek");
-	}
-	return peeker(ptr);
-}
-
-scale_any Parser$consume(scale_any ptr) {
-	static scale_any(*consumer)(scale_any) = nil;
-	if (consumer == nil) {
-		consumer = (typeof(consumer)) GetProcAddress(GetModuleHandleA(nil), "SclParser$consume");
-	}
-	return consumer(ptr);
-}
-
-scale_any Parser$getConfig(scale_any ptr) {
-	static scale_any(*consumer)(scale_any) = nil;
-	if (consumer == nil) {
-		consumer = (typeof(consumer)) GetProcAddress(GetModuleHandleA(nil), "SclParser$getConfig");
-	}
-	return consumer(ptr);
-}
-
-scale_any Config$getKey(scale_any ptr, scale_any arg) {
-	static scale_any(*consumer)(scale_any, scale_any) = nil;
-	if (consumer == nil) {
-		consumer = (typeof(consumer)) GetProcAddress(GetModuleHandleA(nil), "SclConfig$getKey");
-	}
-	return consumer(ptr, arg);
-}
-
-scale_any Config$hasKey(scale_any ptr, scale_any arg) {
-	static scale_any(*consumer)(scale_any, scale_any) = nil;
-	if (consumer == nil) {
-		consumer = (typeof(consumer)) GetProcAddress(GetModuleHandleA(nil), "SclConfig$hasKey");
-	}
-	return consumer(ptr, arg);
-}
-
 #endif
 
 static memory_layout_t** static_ptrs = nil;
@@ -982,9 +941,6 @@ void scale_setup(void) {
 	}
 #endif
 
-// #if defined(__APPLE__) || defined(_WIN32)
-// 	GC_use_threads_discovery();
-// #endif
 	GC_INIT();
 	GC_set_oom_fn((GC_oom_func) &scale_oom);
 
