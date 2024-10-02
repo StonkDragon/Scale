@@ -207,12 +207,6 @@ namespace sclc
 
     #define WRITESIGSTRING(_sig) if (signum == _sig) write(2, #_sig, sizeof(#_sig) - 1)
 
-    jmp_buf global_jmp_buf;
-
-    void throw_up(int sig) {
-        longjmp(global_jmp_buf, sig);
-    }
-
     void signalHandler(int signum) {
         write(2, "\n", 1);
         write(2, "Signal ", 7);
@@ -220,8 +214,7 @@ namespace sclc
         WRITESIGSTRING(SIGSEGV);
         write(2, " received.\n", 11);
         print_trace();
-        
-        throw_up(signum);
+        std::exit(signum);
     }
 
     bool strends(const std::string& str, const std::string& suffix) {
@@ -448,22 +441,12 @@ namespace sclc
         bool isConst = false;
         bool isReadonly = false;
 
-        if ((body[i].type == tok_identifier && body[i].value == "*") || body[i].type == tok_addr_of) {
-            if (body[i].type != tok_addr_of) {
-                FPResult r2;
-                r2.success = true;
-                r2.location = body[i].location;
-                r2.value = body[i].value;
-                r2.type = body[i].type;
-                r2.message = "Using '*' to denote a value-type is deprecated. Use '@' instead";
-                r.warns.push_back(r2);
-                logWarns(r.warns);
-            }
+        if (body[i].type == tok_addr_of) {
             type_mods += "@";
             i++;
         }
 
-        while (body[i].value == "const"|| body[i].value == "readonly") {
+        while (body[i].value == "const" || body[i].value == "readonly") {
             if (!isConst && body[i].value == "const") {
                 type_mods += "const ";
                 isConst = true;
@@ -506,41 +489,46 @@ namespace sclc
         } else if (body[i].type == tok_varargs) {
             r.value = type_mods + body[i].value;
         } else if (body[i].type == tok_identifier) {
-            r.value = type_mods + body[i].value;
-            if (body[i].value == "async") {
+            if (body[i].value == "*") {
                 i++;
-                if (r.type != tok_identifier || body[i].value != "<") {
-                    r.success = false;
-                    r.message = "Expected '<', but got '" + body[i].value + "'";
+                r = parseType(body, i);
+                if (!r.success) {
                     return r;
                 }
-                i++;
-                FPResult tmp = parseType(body, i);
-                if (!tmp.success) return tmp;
-                r.value += "<" + tmp.value + ">";
-                i++;
-                return r;
-            } else if (i + 1 < body.size() && body[i + 1].type == tok_double_column) {
-                i++;
-                i++;
-                FPResult tmp = parseType(body, i);
-                if (!tmp.success) return tmp;
-                r.value += "$" + tmp.value;
+                r.value = type_mods + "*" + r.value;
+            } else {
+                r.value = type_mods + body[i].value;
+                if (body[i].value == "async") {
+                    i++;
+                    if (r.type != tok_identifier || body[i].value != "<") {
+                        r.success = false;
+                        r.message = "Expected '<', but got '" + body[i].value + "'";
+                        return r;
+                    }
+                    i++;
+                    FPResult tmp = parseType(body, i);
+                    if (!tmp.success) return tmp;
+                    r.value += "<" + tmp.value + ">";
+                    i++;
+                    return r;
+                } else if (i + 1 < body.size() && body[i + 1].type == tok_double_column) {
+                    i++;
+                    i++;
+                    FPResult tmp = parseType(body, i);
+                    if (!tmp.success) return tmp;
+                    r.value += "$" + tmp.value;
+                }
             }
         } else if (body[i].type == tok_question_mark || body[i].value == "?") {
             r.value = type_mods + "?";
         } else if (body[i].type == tok_bracket_open) {
             std::string type = "[";
-            std::string size = "";
             i++;
             r = parseType(body, i);
             if (!r.success) {
                 return r;
             }
             type += r.value;
-            if (size.size()) {
-                type += ";" + size;
-            }
             i++;
             if (body[i].type == tok_bracket_close) {
                 type += "]";
@@ -1495,4 +1483,7 @@ void operator delete[](void* x) noexcept
     { operator delete(x); }
 void operator delete[](void* x, std::nothrow_t&) noexcept
     { operator delete(x); }
-
+void operator delete(void* x, size_t) noexcept
+    { operator delete(x); }
+void operator delete[](void* x, size_t) noexcept
+    { operator delete(x); }

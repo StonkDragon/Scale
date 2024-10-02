@@ -150,10 +150,10 @@ reified operator "mul" function *<A, B>(:A, :B): _ABBigger
 reified operator "div" function /<A, B>(:A, :B): _ABBigger
 reified operator "pow" function **<A, B>(:A, :B): _ABBigger
 
-reified function /.<A, >(:A, :A): A gcd end
-reified function *.<A, >(:A, :A): A lcm end
-reified function >.<A, >(:A, :A): A max end
-reified function <.<A, >(:A, :A): A min end
+reified function /.<A>(:A, :A): A gcd end
+reified function *.<A>(:A, :A): A lcm end
+reified function >.<A>(:A, :A): A max end
+reified function <.<A>(:A, :A): A min end
 
 expect reified operator "eq" function == <A?, B?>(:A?, :B?): bool
 expect reified operator "ne" function != <A?, B?>(:A?, :B?): bool
@@ -179,7 +179,7 @@ expect reified operator "ror" function >>> <A, >(:A, :int): A
 expect reified operator "inc" function ++ <A>(:A): A
 expect reified operator "dec" function -- <A>(:A): A
 
-expect reified operator "at" function @<[T]>(:[T]): T
+expect reified operator "at" function @<*T>(:*T): T
 expect reified operator "ann" function !!<T?>(:T?): T
 expect reified operator "elvis" function ?:<T?, >(:T?, :T): T
 

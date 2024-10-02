@@ -65,7 +65,7 @@ struct Box
         if other is Box<T> then
             (other as Box<T>).value self.value == return
         elif other is T then
-            ref other as [T] @ self.value == return
+            ref other as *T @ self.value == return
         else
             false return
         fi

@@ -1,4 +1,4 @@
-#include "scale_interop.h"
+#include "generated.h"
 
 // Define function `foo` and export it to scale
 void foo() {

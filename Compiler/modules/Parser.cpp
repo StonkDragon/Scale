@@ -36,7 +36,7 @@ namespace sclc
     std::string sclFunctionNameToFriendlyString(std::string name);
     std::string argsToRTSignature(Function* f);
 
-    void Parser::parse(FPResult& output, std::string func_file, std::string rt_file, std::string header_file) {
+    void Parser::parse(FPResult& output, const std::string& file, const std::string& header) {
         std::vector<FPResult> errors;
         std::vector<FPResult> warns;
         std::vector<Variable> globals;
@@ -50,7 +50,7 @@ namespace sclc
                 FPResult result;
                 result.success = false;
                 result.message = "No entry point found";
-                result.location = SourceLocation(func_file, 0, 0);
+                result.location = SourceLocation(file, 0, 0);
                 errors.push_back(result);
 
                 output.success = true;
@@ -152,17 +152,31 @@ namespace sclc
         t.writeFunctionHeaders();
 
         fp.flush();
-        std::ofstream header(header_file, std::ios::out);
-        header << fp.str();
+        std::string header_file_data = fp.str();
         fp = std::ostringstream();
 
-        t.writeFunctions(header_file);
+        t.writeFunctions();
 
         scopeDepth = 0;
 
+        auto isFrameworkFile = [](const std::string& file) -> bool {
+            for (auto&& framework : Main::frameworkPaths) {
+                if (pathstarts(file, framework)) {
+                    return true;
+                }
+            }
+            return false;
+        };
+
         for (Variable& v : result.globals) {
             const std::string& file = v.name_token.location.file;
-            if (!Main::options::noLinkScale && pathstarts(file, scaleFolder + DIR_SEP "Frameworks" DIR_SEP "Scale.framework") && !strstarts(v.name, "$T")) {
+            if (
+                !Main::options::noLinkScale &&
+                // !strstarts(v.name, "$T") &&
+                isFrameworkFile(file) &&
+                std::find(Main::options::filesFromCommandLine.begin(), Main::options::filesFromCommandLine.end(), file) == Main::options::filesFromCommandLine.end()
+            ) {
+                DBG("Skipping variable '%s' in framework file '%s'", v.name.c_str(), file.c_str());
                 continue;
             }
             if (!v.isExtern) {
@@ -197,11 +211,11 @@ namespace sclc
                 type = sclTypeToCType(result, type);
                 if (type == "scale_float" || type == "scale_float32") {
                     append("%s Var_%s", type.c_str(), v.name.c_str());
-                    append2(" __asm__(scale_macro_to_string(__USER_LABEL_PREFIX__) \"%s\") = 0.0;\n", v.name.c_str());
+                    append2(" SYMBOL(\"%s\") = 0.0;\n", v.name.c_str());
                 } else {
                     if (s != Struct::Null && !s.isStatic()) {
                         append("%s Var_%s", type.c_str(), v.name.c_str());
-                        append2(" __asm__(scale_macro_to_string(__USER_LABEL_PREFIX__) \"%s\") = {0};\n", v.name.c_str());
+                        append2(" SYMBOL(\"%s\") = {0};\n", v.name.c_str());
                         if (m != nullptr) {
                             Function* f = new Function("static_init$" + v.name, v.name_token);
                             f->return_type = "none";
@@ -216,10 +230,10 @@ namespace sclc
                         }
                     } else if (hasTypealias(result, type) || hasLayout(result, type)) {
                         append("%s Var_%s", type.c_str(), v.name.c_str());
-                        append2(" __asm__(scale_macro_to_string(__USER_LABEL_PREFIX__) \"%s\");\n", v.name.c_str());
+                        append2(" SYMBOL(\"%s\");\n", v.name.c_str());
                     } else {
                         append("%s Var_%s", type.c_str(), v.name.c_str());
-                        append2(" __asm__(scale_macro_to_string(__USER_LABEL_PREFIX__) \"%s\") = 0;\n", v.name.c_str());
+                        append2(" SYMBOL(\"%s\") = 0;\n", v.name.c_str());
                     }
                 }
             }
@@ -243,7 +257,12 @@ namespace sclc
         append("scale_setup();\n");
         for (auto&& f : initFuncs) {
             const std::string& file = f->name_token.location.file;
-            if (!Main::options::noLinkScale && pathstarts(file, scaleFolder + DIR_SEP "Frameworks" DIR_SEP "Scale.framework") && !strstarts(f->name_without_overload, "$T")) {
+            if (
+                !Main::options::noLinkScale &&
+                // !strstarts(v.name, "$T") &&
+                isFrameworkFile(file) &&
+                std::find(Main::options::filesFromCommandLine.begin(), Main::options::filesFromCommandLine.end(), file) == Main::options::filesFromCommandLine.end()
+            ) {
                 continue;
             }
             if (!f->has_expect)
@@ -257,6 +276,15 @@ namespace sclc
         if (destroyFuncs.size()) {
             scopeDepth++;
             for (auto&& f : destroyFuncs) {
+                const std::string& file = f->name_token.location.file;
+                if (
+                    !Main::options::noLinkScale &&
+                    // !strstarts(v.name, "$T") &&
+                    isFrameworkFile(file) &&
+                    std::find(Main::options::filesFromCommandLine.begin(), Main::options::filesFromCommandLine.end(), file) == Main::options::filesFromCommandLine.end()
+                ) {
+                    continue;
+                }
                 if (!f->has_expect)
                     append("  fn_%s();\n", f->name.c_str());
             }
@@ -264,26 +292,28 @@ namespace sclc
         }
         append("}\n");
 
-        std::ofstream func(func_file, std::ios::out);
         fp.flush();
-        func << fp.str();
+        std::string func_file_data = fp.str();
         fp = std::ostringstream();
 
+        std::string rt_file_data;
         if (structTree) {
-            append("#include \"%s\"\n", header_file.c_str());
-            structTree->forEach([&fp](StructTreeNode* node) {
-                append("\n");
+            structTree->forEach([&fp, &isFrameworkFile](StructTreeNode* node) {
                 const Struct& s = node->s;
-                bool isTemplate = isTemplate = strstarts(s.name, "$T");
+                // bool isTemplate = strstarts(s.name, "$T");
 
                 const std::string& file = s.name_token.location.file;
                 if (
                     s.isExtern() ||
-                    (!Main::options::noLinkScale && !isTemplate && !s.isStatic() && strstarts(file, scaleFolder + DIR_SEP "Frameworks" DIR_SEP "Scale.framework"))
+                    s.isStatic() ||
+                    (
+                        !Main::options::noLinkScale &&
+                        // !isTemplate &&
+                        !s.isStatic() &&
+                        isFrameworkFile(file) &&
+                        std::find(Main::options::filesFromCommandLine.begin(), Main::options::filesFromCommandLine.end(), file) == Main::options::filesFromCommandLine.end()
+                    )
                 ) {
-                    append("extern expect const TypeInfo $I%s;\n", s.name.c_str(), s.name.c_str());
-                    return;
-                } else if (s.isStatic()) {
                     return;
                 }
 
@@ -291,6 +321,7 @@ namespace sclc
                 if (vtable == vtables.end()) {
                     return;
                 }
+                append("\n");
                 append("static const scale_methodinfo_t $M%s = {\n", vtable->first.c_str());
                 scopeDepth++;
                 append(".layout = {\n");
@@ -339,6 +370,7 @@ namespace sclc
                 scopeDepth--;
                 append("};\n");
 
+                append("extern const TypeInfo $I%s;\n", s.super.c_str());
                 append("const TypeInfo $I%s = {\n", s.name.c_str(), s.name.c_str());
                 scopeDepth++;
                 append(".type = 0x%lxUL,\n", id(s.name.c_str()));
@@ -355,13 +387,26 @@ namespace sclc
                 append("};\n");
             });
 
-            std::ofstream rt(rt_file, std::ios::out);
             fp.flush();
-            rt << fp.str();
-        } else {
-            std::ofstream rt(rt_file, std::ios::out);
-            rt << "";
+            rt_file_data = fp.str();
         }
+
+        std::ofstream headerFile(header, std::ios::out);
+        headerFile << "// This file was generated by Scale\n";
+        headerFile << "// Begin headers\n";
+        headerFile << header_file_data;
+        headerFile << "// End headers\n";
+        headerFile.close();
+
+        std::ofstream outputFile(file, std::ios::out);
+        outputFile << "#include \"" << header << "\"\n";
+        outputFile << "// Begin functions\n";
+        outputFile << func_file_data;
+        outputFile << "// End functions\n";
+        outputFile << "// Begin runtime\n";
+        outputFile << rt_file_data;
+        outputFile << "// End runtime\n";
+        outputFile.close();
 
         if (Main::options::Werror) {
             errors.insert(errors.end(), warns.begin(), warns.end());

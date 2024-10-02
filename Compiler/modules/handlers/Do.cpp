@@ -41,6 +41,29 @@ namespace sclc {
         append("{\n");
         scopeDepth++;
 
+        std::string arrayType = removeTypeModifiers(typeStackTop);
+        typePop;
+
+        append("%s array = scale_pop(%s);\n", sclTypeToCType(result, arrayType).c_str(), sclTypeToCType(result, arrayType).c_str());
+
+        size_t stackSizeStart = typeStack.size();
+        std::vector<std::string> tmpStackStore;
+        if (body[i].type == tok_paren_open) {
+            safeInc();
+            while (i < body.size() && body[i].type != tok_paren_close) {
+                handle(Token);
+                safeInc();
+            }
+            safeInc();
+        }
+        if (typeStack.size() > stackSizeStart) {
+            for (size_t i = stackSizeStart, n = 0; i < typeStack.size(); i++, n++) {
+                append("%s tmp%d = scale_pop(%s);\n", sclTypeToCType(result, typeStack[i]).c_str(), n, sclTypeToCType(result, typeStack[i]).c_str());
+                tmpStackStore.push_back(typeStack[i]);
+            }
+            typeStack.resize(stackSizeStart);
+        }
+
         if (body[i].type == tok_identifier) {
             if (hasFunction(result, body[i].value)) {
                 i--;
@@ -151,10 +174,6 @@ namespace sclc {
         }
     done:
 
-        std::string arrayType = removeTypeModifiers(typeStackTop);
-        typePop;
-
-        append("%s array = scale_pop(%s);\n", sclTypeToCType(result, arrayType).c_str(), sclTypeToCType(result, arrayType).c_str());
         if (mode == "m") mode = "map";
         else if (mode == "f") mode = "filter";
         else if (mode == "r") mode = "reduce";
@@ -171,6 +190,12 @@ namespace sclc {
             errors.push_back(err);
             return;
         }
+
+        for (size_t i = tmpStackStore.size(); i > 0; i--) {
+            append("scale_push(%s, tmp%d);\n", sclTypeToCType(result, tmpStackStore[i - 1]).c_str(), i - 1);
+            typeStack.push_back(tmpStackStore[i - 1]);
+        }
+        tmpStackStore.clear();
 
         append("scale_push(%s, array);\n", sclTypeToCType(result, arrayType).c_str());
         typeStack.push_back(arrayType);

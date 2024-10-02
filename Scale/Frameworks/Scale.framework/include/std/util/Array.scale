@@ -259,7 +259,7 @@ struct Array: Lock is Iterable
   static function fromPointerCollection(count: int, values: [any]) arr: Array
     count Array::new => arr
     for i in 0 to count do
-      values i sizeof any * + as [any] @ arr:push
+      values i sizeof any * + as *any @ arr:push
     done
     return
   end

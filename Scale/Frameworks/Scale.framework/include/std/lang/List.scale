@@ -48,8 +48,7 @@ static struct List
         out return
     end
 
-    reified function reduce<[T], >(arr: [T], f: lambda(T, T): T): T
-        decl result: T
+    reified function reduce<[T], >(result: T, arr: [T], f: lambda(T, T): T): T
         for i in 0 to arr:size do
             result arr[i] f:accept => result
         done

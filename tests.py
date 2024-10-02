@@ -27,32 +27,40 @@ def runTest(file, directory="examples", current=1, total=1):
     os.chdir(test_file)
     print(f"[COMP] {file}")
     compOut = os.popen("sclc main.scale").read()
-    
-    print(f"[RUN] {file} ({current}/{total})")
-    output = os.popen("./out.scl").read()
-    if not exists("output.txt"):
-        print(f"[SKIP] {file}")
-        genTest(f"main.scale")
-        skippedTests += 1
+
+    if exists("./out.scl"):
+        print(f"[RUN] {file} ({current}/{total})")
+        output = os.popen("./out.scl").read()
+        
+        if not exists("output.txt"):
+            print(f"[SKIP] {file}")
+            genTest(f"main.scale")
+            skippedTests += 1
+            os.chdir(curDir)
+            return
+        
+        with open("output.txt", "r") as f:
+            expected = f.read()
+        
+        os.remove("./out.scl")
         os.chdir(curDir)
-        return
-    with open("output.txt", "r") as f:
-        expected = f.read()
-    if output == expected:
-        print(f"[PASS] {file}")
-        passedTests += 1
-    else:
-        print(f"\b[FAIL] {file}")
-        failedTests += 1
-        theseTestsFailed.append(file)
-        print("Compiler Output:")
-        print(compOut)
+        
+        if output == expected:
+            print(f"[PASS] {file}")
+            passedTests += 1
+            return
+        
         print(f"Program Output (characters: {len(output)}):")
         print(output)
         print(f"Expected Output (characters: {len(expected)}):")
         print(expected)
-    os.remove("./out.scl")
+            
     os.chdir(curDir)
+    print(f"\b[FAIL] {file}")
+    failedTests += 1
+    theseTestsFailed.append(file)
+    print("Compiler Output:")
+    print(compOut)
 
 # loop over every file in the directory examples
 # and run the tests on each file

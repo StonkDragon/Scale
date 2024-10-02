@@ -96,6 +96,8 @@ namespace sclc {
                     std::string type = m->return_type;
                     if (type.size() > 2 && type.front() == '[' && type.back() == ']') {
                         type = type.substr(1, type.size() - 2);
+                    } else if (type.front() == '*') {
+                        type = type.substr(1);
                     } else {
                         type = "any";
                     }
@@ -110,6 +112,8 @@ namespace sclc {
                     std::string type = m->return_type;
                     if (type.size() > 2 && type.front() == '[' && type.back() == ']') {
                         type = type.substr(1, type.size() - 2);
+                    } else if (type.front() == '*') {
+                        type = type.substr(1);
                     } else {
                         type = "any";
                     }
@@ -136,6 +140,8 @@ namespace sclc {
             typePop;
             if (type.size() > 2 && type.front() == '[' && type.back() == ']') {
                 type = type.substr(1, type.size() - 2);
+            } else if (type.front() == '*') {
+                type = type.substr(1);
             } else {
                 type = "any";
             }

@@ -14,9 +14,9 @@ Returns a new array containing the results of applying `fn` to each element of `
 The index is the second argument to `fn`.
 Provides compatibility with `do 'mapIndexed`.
 
-### static function List::reduce<[T], >(arr: [T], fn: lambda(T, T): T): T
+### static function List::reduce<[T], >(result: T, arr: [T], fn: lambda(T, T): T): T
 Returns the result of applying `fn` to each element of `arr` where the first argument is the accumulated value and the second argument is the current element.
-The accumulated value is initialized to `0`.
+The accumulated value is initialized to `result`.
 Provides compatibility with `do 'reduce`.
 
 ### static function List::count<[T], >(arr: [T], fn: lambda(T): bool): int

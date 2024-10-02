@@ -28,7 +28,7 @@ namespace sclc {
         f->container = function;
         f->lambdaName = name;
         f->addModifier("<lambda>");
-        f->addModifier(generateSymbolForFunction(function).substr(44));
+        f->addModifier(generateSymbolForFunction(function).substr(12));
         f->return_type = "none";
         if (body[i].type == tok_bracket_open) {
             while (body[i].type != tok_bracket_close) {
@@ -167,7 +167,12 @@ namespace sclc {
         append("scale_push(scale_any, ({\n");
         scopeDepth++;
         const std::string sym = generateSymbolForFunction(f);
-        append("%s fn_$%s$%s(%s) __asm__(%s);\n", sclTypeToCType(result, f->return_type).c_str(), name.c_str(), function->name.c_str(), arguments.c_str(), sym.c_str());
+        append("%s fn_$%s$%s(%s)", sclTypeToCType(result, f->return_type).c_str(), name.c_str(), function->name.c_str(), arguments.c_str());
+        if (f->has_asm) {
+            append2(" __asm__(%s);\n", f->getModifier(f->has_asm + 1).c_str());
+        } else {
+            append2(" SYMBOL(%s);\n", sym.c_str());
+        }
         append("struct l$%s$%s {\n", name.c_str(), function->name.c_str());
         append("  scale_any func;\n");
         for (size_t i = 0; i < f->captures.size(); i++) {

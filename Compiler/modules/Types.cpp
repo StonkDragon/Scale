@@ -22,6 +22,9 @@ namespace sclc {
         if (type.front() == '[' && type.back() == ']') {
             return type.substr(1, type.size() - 2);
         }
+        if (type.front() == '*') {
+            return type.substr(1);
+        }
         return "any";
     }
 
@@ -52,35 +55,6 @@ namespace sclc {
             super = getStructByName(result, super.super);
         }
         return false;
-    }
-
-    std::string selfTypeToRealType(std::string selfType, std::string realType) {
-        bool selfTypeIsNilable = typeCanBeNil(selfType);
-        bool selfTypeIsValueType = selfType.front() == '@';
-        selfType = removeTypeModifiers(selfType);
-        if (selfType == "self") {
-            std::string type = "";
-            if (selfTypeIsValueType) {
-                type += "@";
-            }
-            type += realType;
-            if (selfTypeIsNilable) {
-                type += "?";
-            }
-            return type;
-        } else if (selfType.front() == '[' && selfType.back() == ']') {
-            std::string type = "";
-            if (selfTypeIsValueType) {
-                type += "@";
-            }
-            type += "[" + selfTypeToRealType(selfType.substr(1, selfType.size() - 2), realType) + "]";
-            if (selfTypeIsNilable) {
-                type += "?";
-            }
-            return type;
-        } else {
-            return selfType;
-        }
     }
 
     bool isPrimitiveIntegerType(std::string s, bool rem) {
@@ -186,14 +160,19 @@ namespace sclc {
     }
 
     bool typeEquals(const std::string& a, const std::string& b) {
+        if (a.empty() || b.empty()) {
+            return false;
+        }
         if (b == "any") {
             return true;
         }
         if (removeTypeModifiers(a) == removeTypeModifiers(b)) {
             return true;
-        } else if (a.size() > 2 && a.front() == '[') {
-            if (b.size() > 2 && b.front() == '[') {
-                return typeEquals(a.substr(1, a.size() - 1), b.substr(1, b.size() - 1));
+        } else if (a.front() == '[' || a.front() == '*') {
+            std::string aType = a.front() == '[' ? a.substr(1, a.size() - 2) : a.substr(1);
+            if (b.front() == '[' || b.front() == '*') {
+                std::string bType = b.front() == '[' ? b.substr(1, b.size() - 2) : b.substr(1);
+                return typeEquals(aType, bType);
             }
         } else if (strstarts(a, "lambda(") && strstarts(b, "lambda(")) {
             return lambdasEqual(a, b);
@@ -244,7 +223,7 @@ namespace sclc {
             return allowIntPromotion || (typeIsSigned(arg) == typeIsSigned(stack) && intBitWidth(arg) == intBitWidth(stack));
         }
 
-        if (arg == "any" || (argIsNilable && arg != "float" && arg != "float32" && (stack == "any" || stack == "[any]"))) {
+        if (arg == "any" || (argIsNilable && arg != "float" && arg != "float32" && (stack == "any" || stack == "[any]" || stack == "*any"))) {
             return true;
         }
 
@@ -414,6 +393,8 @@ namespace sclc {
         else if (strstarts(t, "lambda(")) cache[key] = ("scale_lambda");
         else if (t.size() > 2 && t.front() == '[') {
             cache[key] = (sclTypeToCType(result, t.substr(1, t.size() - 2)) + "*");
+        } else if (!t.empty() && t.front() == '*') {
+            cache[key] = (sclTypeToCType(result, t.substr(1)) + "*");
         } else if (!(getStructByName(result, t) == Struct::Null)) {
             if (valueType) {
                 cache[key] = ("struct Struct_" + t);
@@ -490,6 +471,9 @@ namespace sclc {
         if (rtType.front() == 'P') {
             return "@" + rtTypeToSclType(rtType.substr(1));
         }
+        if (rtType.front() == 'r') {
+            return "*" + rtTypeToSclType(rtType.substr(1));
+        }
         return "<" + rtType + ">";
     }
 
@@ -510,6 +494,9 @@ namespace sclc {
         if (type == "lambda" || strstarts(type, "lambda(")) return "F;";
         if (type.size() > 2 && type.front() == '[' && type.back() == ']') {
             return "[" + typeToRTSig(type.substr(1, type.size() - 2));
+        }
+        if (!type.empty() && type.front() == '*') {
+            return "r" + typeToRTSig(type.substr(1));
         }
         if (type == "uint") return "u;";
         if (type == "int8") return "i8;";
@@ -545,6 +532,9 @@ namespace sclc {
         if (type == "lambda" || strstarts(type, "lambda(")) return "F";
         if (type.size() > 2 && type.front() == '[' && type.back() == ']') {
             return "A" + typeToSymbol(type.substr(1, type.size() - 2));
+        }
+        if (!type.empty() && type.front() == '*') {
+            return "r" + typeToSymbol(type.substr(1));
         }
         if (type == "uint") return capitalize(typeToSymbol(type.substr(1)));
         if (type == "uint8") return capitalize(typeToSymbol(type.substr(1)));
@@ -589,6 +579,9 @@ namespace sclc {
         if (type == "lambda" || strstarts(type, "lambda(")) return "F$";
         if (type.size() > 2 && type.front() == '[' && type.back() == ']') {
             return "A" + typeToRTSigIdent(type.substr(1, type.size() - 2));
+        }
+        if (!type.empty() && type.front() == '*') {
+            return "r" + typeToRTSigIdent(type.substr(1));
         }
         if (type == "uint") return "u$";
         if (type == "int8") return "i8$";

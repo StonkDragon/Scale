@@ -14,23 +14,25 @@ Examples can be found in the [examples](./examples) directory.
 
 Run the following commands (linux/macOS):
 ```shell
-$ clang++ install-sclc.cpp -o install-sclc -std=gnu++17
+$ g++ install-sclc.cpp -o install-sclc -std=gnu++17
 $ ./install-sclc
 ```
 
 On windows use:
 ```shell
-$ clang++ install-sclc.cpp -o install-sclc.exe -std=gnu++17 -lAdvapi32
+$ g++ install-sclc.cpp -o install-sclc.exe -std=gnu++17 -lAdvapi32
 $ ./install-sclc.exe
 ```
 
+This will compile the compiler and install it to `/home/$USER/.local/bin` on linux, `/Users/$USER/bin` on macOS and `C:\Program Files` on windows.
+
 ### Runtime-Time Dependencies
-- `clang`
+- `gcc`
 
 ### Build-Time Dependencies
-- `clang++`
+- `g++`
+- `gcc`
 - `git`
-- `cmake` 
 
 # Documentation
 The Scale Framework documentation can be viewed by running the following command:

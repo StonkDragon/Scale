@@ -27,6 +27,6 @@ function main(): none
     new<int>{1, 2, 3, 4, 5, 6} do
         'map lambda(val: int): int val 2 * return end
         'filter lambda(val: int): bool val 3 % 0 == return end
-        'reduce lambda(acc: int, val: int): int acc val + return end
+        'reduce (0) lambda(acc: int, val: int): int acc val + return end
         puts
 end

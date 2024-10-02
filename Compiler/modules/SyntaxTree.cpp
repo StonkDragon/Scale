@@ -1934,9 +1934,8 @@ namespace sclc {
                     getter->addToken(Token(tok_dot, ".", v.name_token.location));
                     getter->addToken(Token(tok_identifier, "__value", v.name_token.location));
                     getter->addToken(Token(tok_as, "as", v.name_token.location));
-                    getter->addToken(Token(tok_bracket_open, "[", v.name_token.location));
+                    getter->addToken(Token(tok_identifier, "*", v.name_token.location));
                     getter->addToken(Token(tok_identifier, removeTypeModifiers(v.type), v.name_token.location));
-                    getter->addToken(Token(tok_bracket_close, "]", v.name_token.location));
                     getter->addToken(Token(tok_addr_of, "@", v.name_token.location));
                     getter->addToken(Token(tok_return, "return", v.name_token.location));
                     return getter;
@@ -1975,9 +1974,8 @@ namespace sclc {
                         setter->addToken(Token(tok_addr_ref, "ref", v.name_token.location));
                         setter->addToken(Token(tok_identifier, "what", v.name_token.location));
                         setter->addToken(Token(tok_as, "as", v.name_token.location));
-                        setter->addToken(Token(tok_bracket_open, "[", v.name_token.location));
+                        setter->addToken(Token(tok_identifier, "*", v.name_token.location));
                         setter->addToken(Token(tok_identifier, "any", v.name_token.location));
-                        setter->addToken(Token(tok_bracket_close, "]", v.name_token.location));
                         setter->addToken(Token(tok_addr_of, "@", v.name_token.location));
                     } else {
                         setter->addToken(Token(tok_nil, "nil", v.name_token.location));

@@ -1,0 +1,145 @@
+static struct Transform
+    function partialProduct(data: str): [int]
+        if data:size 0 == then
+            new<int>[1] return
+        fi
+
+        new<int>[data:size] => decl counts: [int]
+
+        for i in 0 to data:size do
+            decl acc: int
+            for j in 0 to i 1 + do
+                data[j] acc *> acc
+            done
+            acc => counts[i]
+        done
+
+        counts return
+    end
+
+    function partialMin(data: str): [int]
+        if data:size 0 == then
+            new<int>[1] return
+        fi
+
+        new<int>[data:size] => decl counts: [int]
+
+        for i in 0 to data:size do
+            decl acc: int
+            for j in 0 to i 1 + do
+                data[j] acc min => acc
+            done
+            acc => counts[i]
+        done
+
+        counts return
+    end
+
+    function partialMax(data: str): [int]
+        if data:size 0 == then
+            new<int>[1] return
+        fi
+
+        new<int>[data:size] => decl counts: [int]
+
+        for i in 0 to data:size do
+            decl acc: int
+            for j in 0 to i 1 + do
+                data[j] acc max => acc
+            done
+            acc => counts[i]
+        done
+
+        counts return
+    end
+
+    function partialSum(data: str): [int]
+        if data:size 0 == then
+            new<int>[1] return
+        fi
+
+        new<int>[data:size] => decl counts: [int]
+
+        for i in 0 to data:size do
+            decl acc: int
+            for j in 0 to i 1 + do
+                data[j] acc +> acc
+            done
+            acc => counts[i]
+        done
+
+        counts return
+    end
+
+    reified function partialSum<[T]>(data: [T]): [int]
+        if data:size 0 == then
+            new<int>[0] return
+        fi
+
+        new<int>[data:size] => decl counts: [int]
+
+        for i in 0 to data:size do
+            decl acc: int
+            for j in 0 to i 1 + do
+                data[j] acc +> acc
+            done
+            acc => counts[i]
+        done
+
+        counts return
+    end
+
+    reified function partialProduct<[T]>(data: [T]): [int]
+        if data:size 0 == then
+            new<int>[0] return
+        fi
+
+        new<int>[data:size] => decl counts: [int]
+
+        for i in 0 to data:size do
+            decl acc: int
+            for j in 0 to i 1 + do
+                data[j] acc *> acc
+            done
+            acc => counts[i]
+        done
+
+        counts return
+    end
+
+    reified function partialMin<[T]>(data: [T]): [int]
+        if data:size 0 == then
+            new<int>[0] return
+        fi
+
+        new<int>[data:size] => decl counts: [int]
+
+        for i in 0 to data:size do
+            decl acc: int
+            for j in 0 to i 1 + do
+                data[j] acc <. => acc
+            done
+            acc => counts[i]
+        done
+
+        counts return
+    end
+
+    reified function partialMax<[T]>(data: [T]): [int]
+        if data:size 0 == then
+            new<int>[0] return
+        fi
+
+        new<int>[data:size] => decl counts: [int]
+
+        for i in 0 to data:size do
+            decl acc: int
+            for j in 0 to i 1 + do
+                data[j] acc >. => acc
+            done
+            acc => counts[i]
+        done
+
+        counts return
+    end
+end

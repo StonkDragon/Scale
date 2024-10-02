@@ -1,4 +1,3 @@
-import std.functional.Do
 import std.math
 
 function main(): none
@@ -9,8 +8,8 @@ function main(): none
     } => decl nums: [[int]]
 
     foreach arr in nums do
-        arr do 'reduce Reducers::min => decl minVal: int
-        arr do 'reduce Reducers::max => decl maxVal: int
+        arr do 'reduce (int::maxValue) <.::<int> => decl minVal: int
+        arr do 'reduce (int::minValue) >.::<int> => decl maxVal: int
 
         minVal maxVal gcd puts
     done

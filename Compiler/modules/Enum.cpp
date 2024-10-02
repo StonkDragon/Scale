@@ -5,6 +5,7 @@ namespace sclc {
     const size_t Enum::npos = -1;
     Enum::Enum(std::string name) {
         this->name = name;
+        isExtern = false;
     }
     void Enum::addMember(std::string member, long value, std::string type) {
         members[member] = value;

@@ -19,6 +19,21 @@ namespace sclc {
             f = getFunctionByName(result, toGet.value);
         functionHandling:
             size_t begin = i;
+            if (f->isCVarArgs()) {
+                transpilerError("Cannot take reference of varargs function '" + f->name + "'", begin);
+                errors.push_back(err);
+                return;
+            }
+            if (f->has_reified && !(i + 1 < body.size() && body[i + 1].type == tok_double_column)) {
+                {
+                    transpilerError("Reified types need to be specified for function '" + sclFunctionNameToFriendlyString(f) + "'", i);
+                    errors.push_back(err);
+                }
+                transpilerError("Add the types like this after the function name: '::<...>'", i);
+                err.isNote = true;
+                errors.push_back(err);
+                return;
+            }
             if (i + 1 < body.size() && body[i + 1].type == tok_double_column) {
                 safeInc();
                 safeInc();
@@ -93,17 +108,6 @@ namespace sclc {
                 }
             }
 
-            if (f->isCVarArgs()) {
-                transpilerError("Cannot take reference of varargs function '" + f->name + "'", begin);
-                errors.push_back(err);
-                return;
-            }
-
-            if (f->isCVarArgs()) {
-                transpilerError("Cannot convert variadic function to lambda!", begin);
-                errors.push_back(err);
-                return;
-            }
             append("scale_push(scale_any, ({\n");
             append("  scale_any* tmp = scale_alloc(sizeof(scale_any));\n");
             append("  *tmp = fn_%s;\n", f->name.c_str());
@@ -355,7 +359,7 @@ namespace sclc {
         }
         makePath(result, v, false, body, i, errors, false, function, warns, fp, [&](auto path, auto lastType) {
             append("scale_push(typeof(&(%s)), &(%s));\n", path.c_str(), path.c_str());
-            typeStack.push_back("[" + lastType + "]");
+            typeStack.push_back("*" + lastType);
         });
     }
 } // namespace sclc

@@ -175,7 +175,11 @@ namespace sclc {
                         append("%s fn_%s(%s)", return_type.c_str(), function->name.c_str(), arguments.c_str());
                     }
                 }
-                append2(" __asm__(%s);\n", symbol.c_str());
+                if (function->has_asm) {
+                    append2(" __asm__(%s);\n", function->getModifier(function->has_asm + 1).c_str());
+                } else {
+                    append2(" SYMBOL(%s);\n", symbol.c_str());
+                }
                 if (UNLIKELY(function->has_foreign)) {
                     if (UNLIKELY(function->member_type.size() && hasMethod(result, function->name, function->member_type))) {
                         FPResult res;
@@ -203,7 +207,11 @@ namespace sclc {
                 } else {
                     append("%s mt_%s$%s(%s)", return_type.c_str(), function->member_type.c_str(), function->name.c_str(), arguments.c_str());
                 }
-                append2(" __asm__(%s);\n", symbol.c_str());
+                if (function->has_asm) {
+                    append2(" __asm__(%s);\n", function->getModifier(function->has_asm + 1).c_str());
+                } else {
+                    append2(" SYMBOL(%s);\n", symbol.c_str());
+                }
             }
         }
 
@@ -217,7 +225,7 @@ namespace sclc {
 
         for (Variable& s : result.globals) {
             append("extern %s Var_%s", sclTypeToCType(result, s.type).c_str(), s.name.c_str());
-            append2(" __asm__(scale_macro_to_string(__USER_LABEL_PREFIX__) \"%s\");\n", s.name.c_str());
+            append2(" SYMBOL(\"%s\");\n", s.name.c_str());
         }
 
         append("\n");
@@ -467,9 +475,7 @@ namespace sclc {
         handleRef(t);
     }
 
-    void Transpiler::filePreamble(const std::string& header_file) {
-        append("#include <scale_runtime.h>\n\n");
-        append("#include \"%s\"\n\n", header_file.c_str());
+    void Transpiler::filePreamble() {
         currentStruct = Struct::Null;
 
         append("#if defined(__clang__)\n");
@@ -484,12 +490,26 @@ namespace sclc {
         append("#pragma clang diagnostic ignored \"-Wout-of-scope-function\"\n");
         append("#pragma clang diagnostic ignored \"-Wconstant-conversion\"\n");
         append("#pragma clang diagnostic ignored \"-Wpointer-integer-compare\"\n");
+        append("#elif defined(__GNUC__)\n");
+        append("#pragma gcc diagnostic push\n");
+        append("#pragma gcc diagnostic ignored \"-Wint-to-void-pointer-cast\"\n");
+        append("#pragma gcc diagnostic ignored \"-Wint-to-pointer-cast\"\n");
+        append("#pragma gcc diagnostic ignored \"-Wpointer-to-int-cast\"\n");
+        append("#pragma gcc diagnostic ignored \"-Wvoid-pointer-to-int-cast\"\n");
+        append("#pragma gcc diagnostic ignored \"-Wincompatible-pointer-types\"\n");
+        append("#pragma gcc diagnostic ignored \"-Wint-conversion\"\n");
+        append("#pragma gcc diagnostic ignored \"-Winteger-overflow\"\n");
+        append("#pragma gcc diagnostic ignored \"-Wout-of-scope-function\"\n");
+        append("#pragma gcc diagnostic ignored \"-Wconstant-conversion\"\n");
+        append("#pragma gcc diagnostic ignored \"-Wpointer-integer-compare\"\n");
         append("#endif\n\n");
     }
 
     void Transpiler::filePostamble() {
         append("#if defined(__clang__)\n");
         append("#pragma clang diagnostic pop\n");
+        append("#elif defined(__GNUC__)\n");
+        append("#pragma gcc diagnostic pop\n");
         append("#endif\n");
     }
 
@@ -645,8 +665,8 @@ namespace sclc {
         scopeDepth--;
     }
 
-    void Transpiler::writeFunctions(const std::string& header_file) {
-        filePreamble(header_file);
+    void Transpiler::writeFunctions() {
+        filePreamble();
 
         vars.clear();
         varScopePush();
@@ -668,6 +688,7 @@ namespace sclc {
         for (size_t f = 0; f < result.functions.size(); f++) {
             Function* function = currentFunction = result.functions[f];
             if (UNLIKELY(function->has_reified || function->has_expect || getInterfaceByName(result, function->member_type))) {
+                DBG("Skipping function '%s' with 'reified' or 'expect' modifier, or is part of an interface", function->name.c_str());
                 continue;
             }
             if (UNLIKELY(function->return_type.empty())) {
@@ -702,12 +723,12 @@ namespace sclc {
                 }
             }
 
-            bool isTemplate = false;
-            if (function->isMethod) {
-                isTemplate = strstarts(function->member_type, "$T");
-            } else {
-                isTemplate = strstarts(function->name, "$T");
-            }
+            // bool isTemplate = false;
+            // if (function->isMethod) {
+            //     isTemplate = strstarts(function->member_type, "$T");
+            // } else {
+            //     isTemplate = strstarts(function->name, "$T");
+            // }
 
             auto isFrameworkFile = [](const std::string& file) -> bool {
                 for (auto&& framework : Main::frameworkPaths) {
@@ -721,12 +742,13 @@ namespace sclc {
             const std::string& file = function->name_token.location.file;
             if (
                 !Main::options::noLinkScale &&
-                !isTemplate &&
+                // !isTemplate &&
                 function->reified_parameters.empty() &&
                 !function->has_inline &&
                 isFrameworkFile(file) &&
                 std::find(Main::options::filesFromCommandLine.begin(), Main::options::filesFromCommandLine.end(), file) == Main::options::filesFromCommandLine.end()
             ) {
+                DBG("Skipping function '%s' in framework file '%s'", function->name.c_str(), file.c_str());
                 continue;
             }
 
@@ -773,7 +795,7 @@ namespace sclc {
             }
 
             if (function->has_lambda) {
-                append("%s fn_%s(%s) __asm__(%s);\n", return_type.c_str(), function->name.c_str(), arguments.c_str(), generateSymbolForFunction(function).c_str());
+                append("%s fn_%s(%s) SYMBOL(%s);\n", return_type.c_str(), function->name.c_str(), arguments.c_str(), generateSymbolForFunction(function).c_str());
             }
 
             if (function->has_inline && !isMainFunction) {

@@ -1,4 +1,4 @@
-import std.functional.Do
+import std.functional.Transform
 import std.math
 
 function main(): none
@@ -7,6 +7,6 @@ function main(): none
     data do
         'filter lambda(x: int8): bool x '(' == x ')' == || return end
         'map lambda(x: int8): int8 if x '(' == then 1 else -1 fi return end
-        'transform Transformers::partialSum::<[int8]>
-        'reduce Reducers::max puts
+        'transform Transform::partialSum::<[int8]>
+        'reduce (0) >.::<int> puts
 end

@@ -92,7 +92,6 @@ extern scale_Thread		Thread$mainThread;
 
 tls scale_Thread			_currentThread = nil;
 
-scale_symbol_hidden
 static scale_int count_trace_frames(scale_uint* stack_bottom, scale_uint* stack_top, scale_int iteration_direction) {
 	scale_int frames = 0;
 	while (stack_top != stack_bottom) {

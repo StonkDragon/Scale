@@ -6,17 +6,13 @@
 *.ko
 *.obj
 *.elf
-*.scale.c
-out.c
-out.h
-scale_interop.h
 out.typeinfo.h
 *.wasm
 *.js
 *.S
 *.s
-scale_*.c
-scale_*.h
+generated.h
+generated.c
 sclc
 
 # Linker output

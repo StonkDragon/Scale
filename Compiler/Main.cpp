@@ -302,6 +302,9 @@ namespace sclc
                         std::cout << Color::RED << "Compilation of framework '" + framework + "' failed with error code " << compile_command << Color::RESET << std::endl;
                         std::exit(compile_command);
                     }
+
+                    
+                    std::filesystem::current_path(curPath);
                 };
 
                 auto s = getenv("SCALE_COMPILE_FRAMEWORK");
@@ -1275,14 +1278,7 @@ namespace sclc
                 Main::tokenizer->reset();
             }
             Main::tokenizer = new Tokenizer();
-            FPResult result;
-            if (int sig; !(sig = setjmp(global_jmp_buf))) {
-                result = Main::tokenizer->tokenize(filename);
-            } else {
-                logWarns(result.warns);
-                logErrors(result.errors);
-                std::exit(1);
-            }
+            FPResult result = Main::tokenizer->tokenize(filename);
 
             logWarns(result.warns);
             logErrors(result.errors);
@@ -1325,13 +1321,7 @@ namespace sclc
         TPResult result;
         if (!Main::options::printCflags) {
             Main::lexer = new SyntaxTree(tokens);
-            if (int sig; !(sig = setjmp(global_jmp_buf))) {
-                Main::lexer->parse(result);
-            } else {
-                logWarns(result.warns);
-                logErrors(result.errors);
-                exit(1);
-            }
+            Main::lexer->parse(result);
         }
 
         logWarns(result.warns);
@@ -1367,27 +1357,18 @@ namespace sclc
             cflags.push_back(s);
         }
 
-        std::string code_file = "scale_code.c";
-        std::string types_file = "scale_types.c";
-        std::string headers_file = "scale_headers.h";
+        std::string outputFileName = "generated.c";
+        std::string outputHeaderFileName = "generated.h";
 
         DBG("Parsing");
         
         FPResult parseResult;
-        if (int sig; !(sig = setjmp(global_jmp_buf))) {
-            Main::parser->parse(
-                parseResult,
-                code_file,
-                types_file,
-                headers_file
-            );
-        } else {
-            logWarns(parseResult.warns);
-            logErrors(parseResult.errors);
-            exit(1);
-        }
-        cflags.push_back(code_file);
-        cflags.push_back(types_file);
+        Main::parser->parse(
+            parseResult,
+            outputFileName,
+            outputHeaderFileName
+        );
+        cflags.push_back(outputFileName);
         
         logWarns(parseResult.warns);
         logErrors(parseResult.errors);
@@ -1455,6 +1436,11 @@ namespace sclc
             cmd += s + " ";
         }
 
+        if (std::filesystem::exists(Main::options::outfile)) {
+            DBG("Removing %s", Main::options::outfile.c_str());
+            std::filesystem::remove(Main::options::outfile);
+        }
+
         DBG("Compiling with %s", cmd.c_str());
 
         if (Main::options::printCflags) {
@@ -1471,10 +1457,8 @@ namespace sclc
 
         DBG("Cleaning up files");
 
-        std::filesystem::remove(headers_file.c_str());
-        std::filesystem::remove(code_file.c_str());
-        std::filesystem::remove(types_file.c_str());
-        std::filesystem::remove("scale_interop.h");
+        std::filesystem::remove(outputFileName.c_str());
+        std::filesystem::remove(outputHeaderFileName.c_str());
 
         return 0;
     }

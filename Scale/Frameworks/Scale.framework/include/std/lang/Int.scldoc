@@ -22,16 +22,16 @@ Return type is the larger type of `A` or `B`.
 Returns `a` raised to the power of `b`.
 Return type is the larger type of `A` or `B`.
 
-### reified operator function /.<A, >(a: A, b: A): A
+### reified operator function /.<A>(a: A, b: A): A
 Returns the gcd value of `a` and `b`.
 
-### reified operator function *.<A, >(a: A, b: A): A
+### reified operator function *.<A>(a: A, b: A): A
 Returns the lcm value of `a` and `b`.
 
-### reified operator function >.<A, >(a: A, b: A): A
+### reified operator function >.<A>(a: A, b: A): A
 Returns the bigger value of `a` and `b`.
 
-### reified operator function <.<A, >(a: A, b: A): A
+### reified operator function <.<A>(a: A, b: A): A
 Returns the smaller value of `a` and `b`.
 
 ### reified operator function %<A, >(a: A, b: int): A

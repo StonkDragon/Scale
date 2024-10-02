@@ -63,12 +63,6 @@ extern "C" {
 #error "Scale requires a compiler with __attribute__((destructor)) support"
 #endif
 
-#if __GNUC__ >= 4
-#define scale_symbol_hidden __attribute__((visibility("hidden")))
-#else
-#define scale_symbol_hidden
-#endif
-
 #if __has_attribute(noinline)
 #define scale_noinline __attribute__((noinline))
 #else
@@ -327,7 +321,7 @@ struct scale_backtrace {
 
 typedef struct {
 	scale_int32 size scale_packed;
-	scale_uint8 flags scale_packed;
+	scale_uint8 flags;
 	scale_int32 array_elem_size:24 scale_packed;
 } memory_layout_t;
 
@@ -404,7 +398,8 @@ struct Struct_str {
 #define scale_await(rtype) (scale_top(rtype) = scale_run_await(scale_top(scale_any)))
 #define scale_await_void() scale_run_await(scale_pop(scale_any))
 
-#define SYMBOL(name) __asm__(scale_macro_to_string(__USER_LABEL_PREFIX__) name)
+#define SYMBOL(name)		__asm__(LABEL_PREFIX name)
+#define LABEL_PREFIX		scale_macro_to_string(__USER_LABEL_PREFIX__)
 
 #define 			EXCEPTION_HANDLER_MARKER \
 					0xF0E1D2C3B4A59687ULL
@@ -465,7 +460,7 @@ void				scale_setup(void);
 					})
 
 #define scale_uninitialized_constant_ctype(_type) ({ \
-						static scale_symbol_hidden struct { \
+						static struct { \
 							memory_layout_t layout; \
 							_type data; \
 						} _constant __asm__("lscale_const" scale_macro_to_string(__COUNTER__)) = { \
@@ -482,7 +477,7 @@ void				scale_setup(void);
 #define scale_uninitialized_constant(_type) ({ \
 						extern const TypeInfo $I ## _type; \
 						scale_ ## _type _t; \
-						static scale_symbol_hidden struct { \
+						static struct { \
 							memory_layout_t layout; \
 							typeof(*_t) data; \
 						} _constant __asm__("lscale_const" scale_macro_to_string(__COUNTER__)) = { \
@@ -541,7 +536,7 @@ void				scale_setup(void);
 					)
 
 #define scale_static_cstring(_data) ({ \
-						static scale_symbol_hidden struct { \
+						static struct { \
 							memory_layout_t layout; \
 							scale_int8 data[sizeof((_data))]; \
 						} str_data __asm__("lscale_cstr" scale_macro_to_string(__COUNTER__)) = { \
@@ -558,7 +553,7 @@ void				scale_setup(void);
 
 #define scale_static_string(_data, _hash) ({ \
 						extern const TypeInfo $Istr; \
-						static scale_symbol_hidden struct { \
+						static struct { \
 							memory_layout_t layout; \
 							scale_int8 data[sizeof((_data))]; \
 						} str_data __asm__("lscale_cstr" scale_macro_to_string(__COUNTER__)) = { \
@@ -569,7 +564,7 @@ void				scale_setup(void);
 							}, \
 							.data = (_data), \
 						}; \
-						static scale_symbol_hidden struct { \
+						static struct { \
 							memory_layout_t layout; \
 							struct Struct_str data; \
 						} str __asm__("lscale_str" scale_macro_to_string(__COUNTER__)) = { \
@@ -804,7 +799,7 @@ static inline scale_int scale_assert_fast(scale_int b, const scale_int8* msg) {
 		extern const TypeInfo $IAssertError;
 		scale_any e = scale_alloc_struct(&$IAssertError);
 		scale_str x = str_of_exact(msg);
-		void AssertError$init(scale_any, scale_str) __asm__(scale_macro_to_string(__USER_LABEL_PREFIX__) "_M5Error4initEv");
+		void AssertError$init(scale_any, scale_str) SYMBOL("_M5Error4initEv");
 		AssertError$init(e, x);
 		scale_throw(e);
 	}

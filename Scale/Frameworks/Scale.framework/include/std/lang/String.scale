@@ -20,10 +20,25 @@ final struct str is Iterable
   decl length: readonly int
   decl hash: readonly uint
 
-  function +(:str): str    self:prepend return end
-  function +(:[int8]): str self:prepend return end
-  function +(:int): str    :toString.data self:prepend return end
-  function +(:float): str  :toString.data self:prepend return end
+  function +(:str): str
+    self:prepend return
+  end
+  
+  function +(:[int8]): str
+    self:prepend return
+  end
+  
+  function +(:int): str
+    :toString.data self:prepend return
+  end
+  
+  function +(:float): str
+    :toString.data self:prepend return
+  end
+  
+  function +(:float32): str
+    :toString.data self:prepend return
+  end
 
   function clone(): str
     self.data str::new return
@@ -134,11 +149,11 @@ final struct str is Iterable
   end
 
   deprecated![since: "24.2.0", replacement: "str:view", forRemoval: true]
-  function toChars() _arr_: Array
-    self:size Array::new => _arr_
+  function toChars() arr: Array
+    self:size Array::new => arr
 
     for _i_ in 0 to self:size do
-      _i_ self:at _arr_:push
+      _i_ self:at arr:push
     done
     return
   end
@@ -288,7 +303,7 @@ final struct str is Iterable
   end
 
   function utfLength(): int
-    self do 'reduce lambda(acc: int, val: int8): int
+    self do 'reduce (0) lambda(acc: int, val: int8): int
       if val as uint8 0b11000000u8 & 0b10000000u8 == then
         acc return
       else
@@ -404,8 +419,7 @@ final struct str is Iterable
     result return
   end
 
-  static function reduce(arr: str, f: lambda(int, int8): int): int
-    decl result: int
+  static function reduce(result: int, arr: str, f: lambda(int, int8): int): int
     for i in 0 to arr:size do
       result arr[i] f:accept => result
     done

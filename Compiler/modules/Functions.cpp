@@ -221,22 +221,22 @@ namespace sclc {
 
     std::string generateSymbolForFunction(Function* f) {
         if (f->has_asm) {
-            return format("\"%s\"", f->getModifier(f->has_asm + 1).c_str());
+            return "_FUNCTION_ASM_" + f->name;
         }
 
         if (f->has_cdecl) {
-            return format("scale_macro_to_string(__USER_LABEL_PREFIX__) \"%s\"", f->getModifier(f->has_cdecl + 1).c_str());
+            return format("\"%s\"", f->getModifier(f->has_cdecl + 1).c_str());
         }
 
         if (!f->isMethod && !Main::options::noMain && f->name == "main") {
-            return "scale_macro_to_string(__USER_LABEL_PREFIX__) \"main\"";
+            return "\"main\"";
         }
 
         if (f->has_foreign) {
             if (f->isMethod) {
-                return format("scale_macro_to_string(__USER_LABEL_PREFIX__) \"%s$%s\"", f->member_type.c_str(), f->name.c_str());
+                return format("\"%s$%s\"", f->member_type.c_str(), f->name.c_str());
             } else {
-                return format("scale_macro_to_string(__USER_LABEL_PREFIX__) \"%s\"", f->name.c_str());
+                return format("\"%s\"", f->name.c_str());
             }
         }
 
@@ -249,7 +249,7 @@ namespace sclc {
             symbol = "_F";
         }
         symbol += generateInternal(f);
-        return format("scale_macro_to_string(__USER_LABEL_PREFIX__) \"%s\"", symbol.c_str());
+        return format("\"%s\"", symbol.c_str());
     }
     
     Method* findMethodLocally(Method* self, TPResult& result) {
@@ -534,7 +534,6 @@ namespace sclc {
         bool found = false;
         size_t argc = self->args.size();
         append("scale_popn(%zu);\n", argc);
-        append("// INVOKE %s\n", sclFunctionNameToFriendlyString(self).c_str());
         bool closeThePush = false;
         if (self->return_type.size() && self->return_type.front() == '@' && !self->has_async) {
             const Struct& s = getStructByName(result, self->return_type);
@@ -626,7 +625,7 @@ namespace sclc {
         if (closeThePush) {
             append2(")");
         }
-        append2(";\n");
+        append2("; /* %s */\n", sclFunctionNameToFriendlyString(self).c_str());
         if (self->has_async && !asyncImmediatelyAwaited) {
             typeStack.push_back("async<" + self->return_type + ">");
         } else if (rtype != "none" && rtype != "nothing") {
@@ -695,6 +694,9 @@ namespace sclc {
         } else if (type.front() == '[') {
             std::string inner = type.substr(1, type.size() - 2);
             return "[" + _reparseArgType(inner, templateArgs, target) + "]" + (isNil ? "?" : "");
+        } else if (type.front() == '*') {
+            std::string inner = type.substr(1);
+            return "*" + _reparseArgType(inner, templateArgs, target) + (isNil ? "?" : "");
         }
         if (strstarts(type, "lambda(")) {
             std::string lt = type.substr(0, type.find(':'));
@@ -728,6 +730,9 @@ namespace sclc {
         if (what.front() == '[' && what.back() == ']') {
             return declassifyReify(what.substr(1, what.size() - 2));
         }
+        if (what.front() == '*') {
+            return declassifyReify(what.substr(1));
+        }
         if (what.back() == '?') {
             return declassifyReify(what.substr(0, what.size() - 1));
         }
@@ -738,11 +743,13 @@ namespace sclc {
     }
 
     std::string reifyType(const std::string& with, const std::string& stack) {
-        if (with.front() == '[' && with.back() == ']') {
-            if (stack.front() == '[' && stack.back() == ']') {
-                return reifyType(with.substr(1, with.size() - 2), stack.substr(1, stack.size() - 2));
+        if (with.front() == '[' || with.front() == '*') {
+            std::string inner = with.front() == '[' ? with.substr(1, with.size() - 2) : with.substr(1);
+            if (stack.front() == '[' || stack.front() == '*') {
+                std::string inner2 = stack.front() == '[' ? stack.substr(1, stack.size() - 2) : stack.substr(1);
+                return reifyType(inner, inner2);
             } else {
-                return reifyType(with.substr(1, with.size() - 2), "any");
+                return reifyType(inner, "any");
             }
         } else if (strstarts(with, "lambda(") && strstarts(stack, "lambda(")) {
             return reifyType(lambdaReturnType(with), lambdaReturnType(stack));
@@ -758,7 +765,7 @@ namespace sclc {
             errors.push_back(err);
             return nullptr;
         }
-        if (self->reified_parameters.size() > types.size()) {
+        if (self->reified_parameters.size() != types.size()) {
             transpilerError("Wrong amount of parameters for reified function call. Expected " + std::to_string(self->reified_parameters.size()) + " but got " + std::to_string(types.size()) + " for function '" + sclFunctionNameToFriendlyString(self) + "'", i);
             errors.push_back(err);
             return nullptr;
@@ -883,9 +890,14 @@ namespace sclc {
             }
         }
         if (f->isMethod) {
-            append("%s mt_%s$%s(%s) __asm__(%s);\n", sclTypeToCType(result, f->return_type).c_str(), f->member_type.c_str(), f->name.c_str(), arguments.c_str(), generateSymbolForFunction(f).c_str());
+            append("%s mt_%s$%s(%s)", sclTypeToCType(result, f->return_type).c_str(), f->member_type.c_str(), f->name.c_str(), arguments.c_str());
         } else if (!f->has_reified) {
-            append("%s fn_%s(%s) __asm__(%s);\n", sclTypeToCType(result, f->return_type).c_str(), f->name.c_str(), arguments.c_str(), generateSymbolForFunction(f).c_str());
+            append("%s fn_%s(%s)", sclTypeToCType(result, f->return_type).c_str(), f->name.c_str(), arguments.c_str());
+        }
+        if (f->has_asm) {
+            append2(" __asm__(%s);\n", f->getModifier(f->has_asm + 1).c_str());
+        } else {
+            append2(" SYMBOL(%s);\n", generateSymbolForFunction(f).c_str());
         }
         return f;
     }
@@ -1273,7 +1285,8 @@ namespace sclc {
         auto it = cache.find(type);
         if (it != cache.end()) return it->second;
 
-        if (strstarts(type, "$T")) type = type.substr(2);
+        if (strstarts(type, "$T")) type = replace(type, "$T", "");
+        if (strcontains(type, "$$T")) type = replaceAll(type, "$$T", "$");
 
         std::string ret = "";
         const char* s = type.c_str();
@@ -1308,7 +1321,7 @@ namespace sclc {
             name = retemplate(f->member_type) + ":" + name;
         } else if (!f->member_type.empty()) {
             name = retemplate(f->member_type) + "::" + name.substr(f->member_type.size() + 1);
-        } else if (strstarts(name, "$T")) {
+        } else {
             name = retemplate(name);
         }
         if (f->has_lambda) {

@@ -38,7 +38,7 @@ final static struct float
     end
 
     function bits(x: float): int
-        ref x as [int] @ return
+        ref x as *int @ return
     end
 
     expect foreign function isInfinite(x: float): bool
@@ -60,7 +60,7 @@ final static struct float
     end
 
     function fromBits(bits: any): float
-        ref bits as [float] @ return
+        ref bits as *float @ return
     end
 
     function =>(x: int): float
@@ -103,7 +103,7 @@ final static struct float32
     end
 
     function bits(x: float32): int
-        ref x as [int32] @ return
+        ref x as *int32 @ return
     end
 
     expect foreign function isInfinite(x: float32): bool
@@ -125,7 +125,7 @@ final static struct float32
     end
 
     function fromBits(bits: any): float32
-        ref bits as [float32] @ return
+        ref bits as *float32 @ return
     end
 
     function =>(x: int): float32

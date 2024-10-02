@@ -172,7 +172,7 @@ scale_any scale_mark_static(memory_layout_t* layout) {
 	return layout;
 }
 
-scale_symbol_hidden static scale_int scale_on_stack(scale_any ptr) {
+static scale_int scale_on_stack(scale_any ptr) {
 	struct GC_stack_base base = {0};
 	if (GC_get_stack_base(&base) != GC_SUCCESS) {
 		return 0;
@@ -184,7 +184,7 @@ scale_symbol_hidden static scale_int scale_on_stack(scale_any ptr) {
 	}
 }
 
-scale_symbol_hidden static memory_layout_t* scale_get_memory_layout(scale_any ptr) {
+static memory_layout_t* scale_get_memory_layout(scale_any ptr) {
 	if (unlikely(ptr == nil)) return nil;
 	if (likely(GC_is_heap_ptr(ptr))) {
 		return (memory_layout_t*) GC_base(ptr);
@@ -222,8 +222,7 @@ void scale_finalize(scale_any ptr) {
 	memset(ptr, 0, sizeof(memory_layout_t));
 }
 
-scale_nodiscard _Nonnull
-scale_any scale_alloc(scale_int size) {
+scale_nodiscard scale_any scale_alloc(scale_int size) {
 	scale_int orig_size = size;
 	size = ((size + 7) >> 3) << 3;
 	if (unlikely(size == 0)) size = 8;
@@ -243,8 +242,7 @@ scale_any scale_alloc(scale_int size) {
 	return ptr + sizeof(memory_layout_t);
 }
 
-scale_nodiscard _Nonnull
-scale_any scale_realloc(scale_any ptr, scale_int size) {
+scale_nodiscard scale_any scale_realloc(scale_any ptr, scale_int size) {
 	if (unlikely(size == 0)) {
 		scale_free(ptr);
 		return nil;
@@ -281,7 +279,7 @@ void scale_free(scale_any ptr) {
 	}
 }
 
-scale_symbol_hidden static void native_trace(void);
+static void native_trace(void);
 
 char* vstrformat(const char* fmt, va_list args) {
 	size_t len = vsnprintf(nil, 0, fmt, args);
@@ -337,7 +335,7 @@ const char* strsignal(int sig) {
 }
 #endif
 
-scale_symbol_hidden static void scale_signal_handler(scale_int sig_num) {
+static void scale_signal_handler(scale_int sig_num) {
 	static int handling_signal = 0;
 	static int with_errno = 0;
 	const scale_int8* signalString = nil;
@@ -395,11 +393,11 @@ __pure2 ID_t type_id(const scale_int8* data) {
 	return h;
 }
 
-__pure2 scale_symbol_hidden static scale_uint scale_rotl(const scale_uint value, const scale_int shift) {
+__pure2 static scale_uint scale_rotl(const scale_uint value, const scale_int shift) {
     return (value << shift) | (value >> ((sizeof(scale_uint) << 3) - shift));
 }
 
-__pure2 scale_symbol_hidden static scale_uint scale_rotr(const scale_uint value, const scale_int shift) {
+__pure2 static scale_uint scale_rotr(const scale_uint value, const scale_int shift) {
     return (value >> shift) | (value << ((sizeof(scale_uint) << 3) - shift));
 }
 
@@ -440,7 +438,7 @@ scale_any scale_copy_fields(scale_any dest, scale_any src, scale_int size) {
 	return dest;
 }
 
-scale_symbol_hidden static scale_int scale_search_method_index(const struct scale_methodinfo* const methods, ID_t id, ID_t sig);
+static scale_int scale_search_method_index(const struct scale_methodinfo* const methods, ID_t id, ID_t sig);
 
 static inline scale_function scale_get_method_on_type(scale_any type, ID_t method, ID_t signature) {
 	const struct TypeInfo* ti = ((Struct*) type)->type;
@@ -451,7 +449,7 @@ static inline scale_function scale_get_method_on_type(scale_any type, ID_t metho
 	return index >= 0 ? vtable[index] : nil;
 }
 
-scale_symbol_hidden static size_t str_index_of_or(const scale_int8* str, char c, size_t len) {
+static size_t str_index_of_or(const scale_int8* str, char c, size_t len) {
 	size_t i = 0;
 	while (str[i] != c) {
 		if (str[i] == '\0') return len;
@@ -460,11 +458,11 @@ scale_symbol_hidden static size_t str_index_of_or(const scale_int8* str, char c,
 	return i;
 }
 
-scale_symbol_hidden static size_t str_index_of(const scale_int8* str, char c) {
+static size_t str_index_of(const scale_int8* str, char c) {
 	return str_index_of_or(str, c, -1);
 }
 
-scale_symbol_hidden static void split_at(const scale_int8* str, size_t len, size_t index, scale_int8* left, scale_int8* right) {
+static void split_at(const scale_int8* str, size_t len, size_t index, scale_int8* left, scale_int8* right) {
 	strncpy(left, str, index);
 	left[index] = '\0';
 
@@ -503,8 +501,7 @@ scale_any scale_get_vtable_function(scale_any instance, const scale_int8* method
 	return m;
 }
 
-scale_nodiscard _Nonnull
-scale_any scale_init_struct(scale_any ptr, const TypeInfo* statics, memory_layout_t* layout) {
+scale_nodiscard scale_any scale_init_struct(scale_any ptr, const TypeInfo* statics, memory_layout_t* layout) {
 	if (unlikely(layout == nil || ptr == nil)) {
 		scale_runtime_error(EX_BAD_PTR, "Tried to access nil pointer");
 	}
@@ -513,8 +510,7 @@ scale_any scale_init_struct(scale_any ptr, const TypeInfo* statics, memory_layou
 	return ptr;
 }
 
-scale_nodiscard _Nonnull
-scale_any scale_alloc_struct(const TypeInfo* statics) {
+scale_nodiscard scale_any scale_alloc_struct(const TypeInfo* statics) {
 	scale_any p = scale_alloc(statics->size);
 	return scale_init_struct(p, statics, scale_get_memory_layout(p));
 }
@@ -538,7 +534,7 @@ scale_int scale_is_instance_of(scale_any ptr, ID_t type_id) {
 	return 0;
 }
 
-scale_symbol_hidden static scale_int scale_search_method_index(const struct scale_methodinfo* const methods, ID_t id, ID_t sig) {
+static scale_int scale_search_method_index(const struct scale_methodinfo* const methods, ID_t id, ID_t sig) {
 	if (unlikely(methods == nil)) return -1;
 
 	for (scale_int i = 0; *(scale_int*) &(methods[i].pure_name); i++) {
@@ -549,7 +545,7 @@ scale_symbol_hidden static scale_int scale_search_method_index(const struct scal
 	return -1;
 }
 
-scale_symbol_hidden static void scale_set_up_signal_handler(void) {
+static void scale_set_up_signal_handler(void) {
 #define SIGACTION(_sig) signal(_sig, (void(*)(int)) scale_signal_handler)
 	
 #ifdef SIGINT
@@ -783,7 +779,7 @@ void scale_throw(scale_any ex) {
 	scale_runtime_catch(ex);
 }
 
-scale_symbol_hidden static void native_trace(void) {
+static void native_trace(void) {
 #if !defined(_WIN32) && !defined(__wasm__)
 	void* callstack[1024];
 	int frames = backtrace(callstack, 1024);
@@ -794,7 +790,7 @@ scale_symbol_hidden static void native_trace(void) {
 #endif
 }
 
-scale_symbol_hidden static inline void print_stacktrace_of(scale_Exception e) {
+static inline void print_stacktrace_of(scale_Exception e) {
 	#ifndef _WIN32
 	int write(int, char*, size_t);
 	#endif
@@ -832,7 +828,7 @@ scale_no_return void scale_runtime_catch(scale_any _ex) {
 	exit(EX_THROWN);
 }
 
-scale_no_return scale_symbol_hidden static void* scale_oom(scale_uint size) {
+scale_no_return static void* scale_oom(scale_uint size) {
 	fprintf(stderr, "Out of memory! Tried to allocate " SCALE_UINT_FMT " bytes\n", size);
 	native_trace();
 	exit(-1);
@@ -890,7 +886,7 @@ struct async_func {
     scale_any(*func)(scale_any);
 };
 
-scale_symbol_hidden void scale_async_runner(struct async_func* args) {
+void scale_async_runner(struct async_func* args) {
 	TRY {
 		args->ret = args->func(args->args);
 		if (args->args) free(args->args);

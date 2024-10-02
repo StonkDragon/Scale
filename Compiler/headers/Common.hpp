@@ -13,8 +13,6 @@
 #include <chrono>
 #include <filesystem>
 
-#include <setjmp.h>
-
 #ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
@@ -85,17 +83,25 @@ namespace sclc {
 
     template<typename... Args>
     std::string format(const std::string& str, Args... args) {
+    #if defined(__clang__)
         #pragma clang diagnostic push
         #pragma clang diagnostic ignored "-Wformat-security"
+    #elif defined(__GNUC__)
+        #pragma GCC diagnostic push
+        #pragma GCC diagnostic ignored "-Wformat-security"
+    #endif
+
         size_t len = std::snprintf(nullptr, 0, str.c_str(), args...) + 1;
         if (len == 0) throw std::runtime_error("Format error: " + str);
         char* data = new char[len];
         std::snprintf(data, len, str.c_str(), args...);
         return std::string(data, data + len - 1);
+    #if defined(__clang__)
         #pragma clang diagnostic pop
+    #elif defined(__GNUC__)
+        #pragma GCC diagnostic pop
+    #endif
     }
-
-    extern jmp_buf global_jmp_buf;
 
     class SyntaxTree
     {
@@ -114,7 +120,7 @@ namespace sclc {
     public:
         Parser(TPResult& result);
         ~Parser() {}
-        void parse(FPResult& output, std::string func_file, std::string rt_file, std::string header_file);
+        void parse(FPResult& output, const std::string& file, const std::string& header);
         TPResult& getResult();
     };
 
@@ -157,8 +163,8 @@ namespace sclc {
         void writeFunctionHeaders();
         void writeGlobals();
         void writeContainers();
-        void writeFunctions(const std::string& header_file);
-        void filePreamble(const std::string& header_file);
+        void writeFunctions();
+        void filePreamble();
         void filePostamble();
     };
 

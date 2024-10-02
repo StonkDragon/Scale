@@ -1,0 +1,15 @@
+@std.functional.Transform
+@@{frameworkPath}/include/std/functional/Transform.scale
+
+## Transform
+### static reified function Transform::partialSum<[T]>(arr: [T]): [T]
+Returns the partial sum of the elements by calculating the sum of the first n elements where n is the index of current element plus one.
+
+### static reified function Transform::partialProduct<[T]>(arr: [T]): [T]
+Returns the partial product of the elements by calculating the product of the first n elements where n is the index of current element plus one.
+
+### static reified function Transform::partialMin<[T]>(arr: [T]): [T]
+Returns the partial minimum of the elements by calculating the minimum of the first n elements where n is the index of current element plus one.
+
+### static reified function Transform::partialMax<[T]>(arr: [T]): [T]
+Returns the partial maximum of the elements by calculating the maximum of the first n elements where n is the index of current element plus one.
