@@ -1,10 +1,10 @@
 
 #include <array>
 
-#include "../headers/Common.hpp"
-#include "../headers/TokenType.hpp"
-#include "../headers/TranspilerDefs.hpp"
-#include "../headers/Types.hpp"
+#include <Common.hpp>
+#include <TokenType.hpp>
+#include <TranspilerDefs.hpp>
+#include <Types.hpp>
 
 namespace sclc {
     extern std::vector<std::string> typeStack;

@@ -24,8 +24,8 @@
 #include <process.h>
 #endif
 
-#include "headers/Common.hpp"
-#include "headers/DragonConfig.hpp"
+#include <Common.hpp>
+#include <DragonConfig.hpp>
 
 #ifndef VERSION
 #define VERSION "unknown. Did you forget to build with -DVERSION=<version>?"
@@ -496,7 +496,7 @@ namespace sclc
     auto docHandler(std::vector<std::string> args) {
         Documentation docs;
         std::vector<std::string> tmpFlags;
-        std::vector<std::string> frameworks = {Main::options::printDocFor};
+        std::vector<std::string> frameworks = {Main::options::printDocFor}; 
         bool hasCppFiles;
         Version FrameworkMinimumVersion(FRAMEWORK_VERSION_REQ);
         if (!checkFramework(Main::options::printDocFor, tmpFlags, frameworks, hasCppFiles, FrameworkMinimumVersion)) {

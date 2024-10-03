@@ -7,7 +7,7 @@
 #include <regex>
 #include <unordered_map>
 
-#include "TokenType.hpp"
+#include <TokenType.hpp>
 
 namespace sclc {
     extern std::vector<std::string> keywords;

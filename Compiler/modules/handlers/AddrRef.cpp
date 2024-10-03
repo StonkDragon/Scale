@@ -1,8 +1,8 @@
 
-#include "../../headers/Common.hpp"
-#include "../../headers/TranspilerDefs.hpp"
-#include "../../headers/Types.hpp"
-#include "../../headers/Functions.hpp"
+#include <Common.hpp>
+#include <TranspilerDefs.hpp>
+#include <Types.hpp>
+#include <Functions.hpp>
 
 namespace sclc {
     Function* generateReifiedFunction(Function* self, std::ostream& fp, TPResult& result, std::vector<FPResult>& errors, std::vector<Token>& body, size_t& i, std::vector<std::string>& types);
@@ -44,7 +44,8 @@ namespace sclc {
                 }
                 safeInc();
                 std::vector<std::string> argTypes;
-                while (body[i].value != ">") {
+                argTypes.reserve(f->args.size());
+                while (i < body.size() && body[i].value != ">") {
                     FPResult type = parseType(body, i);
                     if (!type.success) {
                         errors.push_back(type);
@@ -52,7 +53,7 @@ namespace sclc {
                     }
                     argTypes.push_back(removeTypeModifiers(type.value));
                     safeInc();
-                    if (body[i].type != tok_comma && (body[i].value != ">" || body[i].type != tok_identifier)) {
+                    if (body[i].type != tok_comma && (body[i].type != tok_identifier || body[i].value != ">")) {
                         transpilerError("Expected ',' or '>', but got '" + body[i].value + "'", i);
                         errors.push_back(err);
                         return;
@@ -62,7 +63,7 @@ namespace sclc {
                     }
                 }
 
-                auto argsEqual = [&](std::vector<Variable> args) {
+                auto argsEqual = [&](const std::vector<Variable>& args) {
                     if (args.size() != argTypes.size()) return false;
                     bool foundWithoutPromotion = false;
                     for (size_t i = 0; i < args.size(); i++) {

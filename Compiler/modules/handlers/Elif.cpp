@@ -1,8 +1,8 @@
 
-#include "../../headers/Common.hpp"
-#include "../../headers/TranspilerDefs.hpp"
-#include "../../headers/Types.hpp"
-#include "../../headers/Functions.hpp"
+#include <Common.hpp>
+#include <TranspilerDefs.hpp>
+#include <Types.hpp>
+#include <Functions.hpp>
 
 namespace sclc {
     handler(Elif) {

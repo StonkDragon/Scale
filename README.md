@@ -14,8 +14,7 @@ Examples can be found in the [examples](./examples) directory.
 
 Run the following commands (linux/macOS):
 ```shell
-$ g++ install-sclc.cpp -o install-sclc -std=gnu++17
-$ ./install-sclc
+$ sh build.sh
 ```
 
 On windows use:
@@ -41,10 +40,9 @@ $ sclc -doc-for Scale
 ```
 
 # Build
-The install script can also function as the development build script, this requires a full install first (linux/macOS):
+The install script can also function as the development build script:
 ```shell
-$ clang++ install-sclc.cpp -o install-sclc -std=gnu++17
-$ ./install-sclc -dev
+$ sh build.sh
 ```
 
 On windows use:

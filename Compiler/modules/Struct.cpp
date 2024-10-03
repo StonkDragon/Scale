@@ -1,5 +1,5 @@
 
-#include "../headers/Common.hpp"
+#include <Common.hpp>
 
 namespace sclc {
     Struct::Struct(std::string name) : Struct(name, Token(tok_identifier, name)) {}

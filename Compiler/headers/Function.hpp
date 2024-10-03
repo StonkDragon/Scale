@@ -8,8 +8,8 @@
 #include <unordered_map>
 
 
-#include "Variable.hpp"
-#include "Token.hpp"
+#include <Variable.hpp>
+#include <Token.hpp>
 
 namespace sclc
 {

@@ -7,11 +7,11 @@
 #include <regex>
 #include <unordered_map>
 
-#include "Function.hpp"
-#include "Interface.hpp"
-#include "Variable.hpp"
-#include "Struct.hpp"
-#include "Enum.hpp"
+#include <Function.hpp>
+#include <Interface.hpp>
+#include <Variable.hpp>
+#include <Struct.hpp>
+#include <Enum.hpp>
 
 namespace sclc
 {

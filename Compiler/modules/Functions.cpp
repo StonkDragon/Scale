@@ -1,10 +1,10 @@
 
 #include <csignal>
 
-#include "../headers/Common.hpp"
-#include "../headers/Types.hpp"
-#include "../headers/TranspilerDefs.hpp"
-#include "../headers/Functions.hpp"
+#include <Common.hpp>
+#include <Types.hpp>
+#include <TranspilerDefs.hpp>
+#include <Functions.hpp>
 
 #define OS_APPLE 1
 #define OS_WIN 2

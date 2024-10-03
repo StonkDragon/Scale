@@ -7,7 +7,7 @@
 #include <regex>
 #include <map>
 
-#include "Common.hpp"
+#include <Common.hpp>
 
 namespace sclc
 {

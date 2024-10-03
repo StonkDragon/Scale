@@ -6,7 +6,7 @@
 #include <regex>
 #include <unordered_map>
 
-#include "../headers/Version.hpp"
+#include <Version.hpp>
 
 namespace sclc {
     Version::Version(std::string str) {

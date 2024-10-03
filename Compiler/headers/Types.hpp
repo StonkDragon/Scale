@@ -1,5 +1,5 @@
 #pragma once
-#include "Common.hpp"
+#include <Common.hpp>
 
 namespace sclc {
     std::string notNilTypeOf(std::string t);

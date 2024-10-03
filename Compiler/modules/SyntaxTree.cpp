@@ -6,7 +6,7 @@
 #include <list>
 #include <array>
 
-#include "../headers/Common.hpp"
+#include <Common.hpp>
 
 namespace sclc {
     extern std::unordered_map<std::string, std::vector<std::string>> usingStructs;

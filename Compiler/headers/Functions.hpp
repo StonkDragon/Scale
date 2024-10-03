@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Common.hpp"
+#include <Common.hpp>
 
 namespace sclc {
     void createVariadicCall(Function* f, std::ostream& fp, TPResult& result, std::vector<FPResult>& errors, std::vector<Token>& body, size_t& i);

@@ -66,17 +66,17 @@ namespace sclc {
     typedef std::unordered_map<std::string, std::string> Deprecation;
 }
 
-#include "Color.hpp"
-#include "Version.hpp"
-#include "TokenType.hpp"
-#include "Token.hpp"
-#include "Function.hpp"
-#include "Results.hpp"
-#include "Variable.hpp"
-#include "Interface.hpp"
-#include "Struct.hpp"
-#include "DragonConfig.hpp"
-#include "Enum.hpp"
+#include <Color.hpp>
+#include <Version.hpp>
+#include <TokenType.hpp>
+#include <Token.hpp>
+#include <Function.hpp>
+#include <Results.hpp>
+#include <Variable.hpp>
+#include <Interface.hpp>
+#include <Struct.hpp>
+#include <DragonConfig.hpp>
+#include <Enum.hpp>
 
 namespace sclc {
     typedef unsigned long ID_t;
@@ -93,9 +93,9 @@ namespace sclc {
 
         size_t len = std::snprintf(nullptr, 0, str.c_str(), args...) + 1;
         if (len == 0) throw std::runtime_error("Format error: " + str);
-        char* data = new char[len];
-        std::snprintf(data, len, str.c_str(), args...);
-        return std::string(data, data + len - 1);
+        char* _data = new char[len];
+        std::snprintf(_data, len, str.c_str(), args...);
+        return std::string(_data, _data + len - 1);
     #if defined(__clang__)
         #pragma clang diagnostic pop
     #elif defined(__GNUC__)
@@ -313,13 +313,13 @@ namespace sclc {
     }
 
     template<typename T>
-    static inline std::vector<T> joinVecs(std::vector<T> a, std::vector<T> b) {
+    static inline std::vector<T> joinVecs(const std::vector<T>& a, const std::vector<T>& b) {
         std::vector<T> ret;
         ret.reserve(a.size() + b.size());
-        for (T& t : a) {
+        for (const T& t : a) {
             ret.push_back(t);
         }
-        for (T& t : b) {
+        for (const T& t : b) {
             ret.push_back(t);
         }
         return ret;
@@ -352,11 +352,11 @@ namespace sclc {
         static StructTreeNode* fromArrayOfStructs(TPResult& result);
     };
 
-    static constexpr ID_t id(const char data[]) {
-        if (data[0] == 0) return 0;
+    static constexpr ID_t id(const char _data[]) {
+        if (_data[0] == 0) return 0;
         ID_t h = 3323198485UL;
-        for (size_t i = 0; data[i]; i++) {
-            h ^= data[i];
+        for (size_t i = 0; _data[i]; i++) {
+            h ^= _data[i];
             h *= 0x5BD1E995;
             h ^= h >> 15;
         }

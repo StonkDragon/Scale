@@ -6,7 +6,7 @@
 #include <regex>
 #include <filesystem>
 
-#include "../headers/Common.hpp"
+#include <Common.hpp>
 
 #ifndef PATH_SEPARATOR
 #define PATH_SEPARATOR DIR_SEP
@@ -430,8 +430,6 @@ namespace sclc
         TOKEN("new",        tok_new, line, filename);
         TOKEN("is",         tok_is, line, filename);
         TOKEN("cdecl",      tok_cdecl, line, filename);
-        TOKEN("goto",       tok_goto, line, filename);
-        TOKEN("label",      tok_label, line, filename);
         TOKEN("switch",     tok_switch, line, filename);
         TOKEN("case",       tok_case, line, filename);
         TOKEN("esac",       tok_esac, line, filename);

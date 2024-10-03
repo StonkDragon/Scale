@@ -6,7 +6,7 @@
 #include <regex>
 #include <unordered_map>
 
-#include "../headers/Common.hpp"
+#include <Common.hpp>
 
 namespace sclc {
     Variable::Variable(std::string name, std::string type) : Variable(name, type, "") {}

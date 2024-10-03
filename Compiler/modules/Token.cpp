@@ -3,7 +3,7 @@
 #define strdup _strdup
 #endif
 
-#include "../headers/Common.hpp"
+#include <Common.hpp>
 
 namespace sclc {
     SourceLocation SourceLocation::of(CSourceLocation* cloc, char* (*fromString)(void*)) {
@@ -162,8 +162,6 @@ namespace sclc {
                 type == tok_new ||
                 type == tok_is ||
                 type == tok_cdecl ||
-                type == tok_label ||
-                type == tok_goto ||
                 type == tok_switch ||
                 type == tok_case ||
                 type == tok_esac ||

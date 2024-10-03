@@ -1,5 +1,5 @@
 
-#include "../headers/Enum.hpp"
+#include <Enum.hpp>
 
 namespace sclc {
     const size_t Enum::npos = -1;

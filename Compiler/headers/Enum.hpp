@@ -4,7 +4,7 @@
 #include <string>
 #include <vector>
 
-#include "Token.hpp"
+#include <Token.hpp>
 
 namespace sclc {
     struct Enum {

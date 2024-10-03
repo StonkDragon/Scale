@@ -10,6 +10,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <functional>
 
 #if defined(_WIN32)
 #include <windows.h>
@@ -47,6 +48,69 @@
 
 namespace fs = std::filesystem;
 
+class Color {
+public:
+    static std::string RESET;
+    static std::string BLACK;
+    static std::string RED;
+    static std::string GREEN;
+    static std::string YELLOW;
+    static std::string BLUE;
+    static std::string MAGENTA;
+    static std::string CYAN;
+    static std::string WHITE;
+    static std::string GRAY;
+    static std::string BOLDBLACK;
+    static std::string BOLDRED;
+    static std::string BOLDGREEN;
+    static std::string BOLDYELLOW;
+    static std::string BOLDBLUE;
+    static std::string BOLDMAGENTA;
+    static std::string BOLDCYAN;
+    static std::string BOLDWHITE;
+    static std::string BOLDGRAY;
+    static std::string UNDERLINE;
+    static std::string BOLD;
+    static std::string REVERSE;
+    static std::string HIDDEN;
+    static std::string ITALIC;
+    static std::string STRIKETHROUGH;
+};
+
+#ifdef _WIN32
+#define COLOR(NAME, WHAT) std::string Color::NAME = ""
+#else
+#define COLOR(NAME, WHAT) std::string Color::NAME = WHAT
+#endif
+
+COLOR(RESET, "\033[0m");
+COLOR(BLACK, "\033[30m");
+COLOR(RED, "\033[31m");
+COLOR(GREEN, "\033[32m");
+COLOR(YELLOW, "\033[33m");
+COLOR(BLUE, "\033[34m");
+COLOR(MAGENTA, "\033[35m");
+COLOR(CYAN, "\033[36m");
+COLOR(WHITE, "\033[37m");
+COLOR(GRAY, "\033[30m");
+COLOR(BOLDBLACK, "\033[1m\033[30m");
+COLOR(BOLDRED, "\033[1m\033[31m");
+COLOR(BOLDGREEN, "\033[1m\033[32m");
+COLOR(BOLDYELLOW, "\033[1m\033[33m");
+COLOR(BOLDBLUE, "\033[1m\033[34m");
+COLOR(BOLDMAGENTA, "\033[1m\033[35m");
+COLOR(BOLDCYAN, "\033[1m\033[36m");
+COLOR(BOLDWHITE, "\033[1m\033[37m");
+COLOR(BOLDGRAY, "\033[1m\033[30m");
+COLOR(UNDERLINE, "\033[4m");
+COLOR(BOLD, "\033[1m");
+COLOR(REVERSE, "\033[7m");
+COLOR(HIDDEN, "\033[8m");
+COLOR(ITALIC, "\033[3m");
+COLOR(STRIKETHROUGH, "\033[9m");
+
+#define ERASE_LINE "\033[2K\r"
+
 void depends_on(std::string command, const char* error) {
 #if defined(_WIN32)
     int result = std::system((command + " > nul 2>&1").c_str());
@@ -82,10 +146,22 @@ std::vector<fs::path> listFiles(const fs::path& dir, std::string ext) {
 }
 
 void exec_command(std::string cmd) {
-    std::cout << cmd << std::endl;
+    // std::cout << cmd << std::endl;
     int x = std::system(cmd.c_str());
     if (x) std::exit(x);
 }
+
+std::thread async(std::function<void()> f) {
+    return std::thread(f);
+}
+
+std::thread exec_command_async(std::string cmd) {
+    return async([cmd]() {
+        exec_command(cmd);
+    });
+}
+
+#define await(t) ({ std::cout << ERASE_LINE << Color::YELLOW << "Waiting on " #t << Color::RESET; std::cout.flush(); if (t.joinable()) t.join(); })
 
 void go_rebuild_yourself(int argc, char const *argv[]) {
     const char* source_file = __FILE__;
@@ -111,13 +187,10 @@ int real_main(int argc, char const *argv[]) {
     depends_on(CC " --version", CC " is required!");
     depends_on(CXX " --version", CXX " is required!");
 
-    bool isDevBuild = false;
     bool fullRebuild = false;
     bool debug = false;
     for (int i = 1; i < argc; i++) {
-        if (std::strcmp(argv[i], "-dev") == 0) {
-            isDevBuild = true;
-        } else if (std::strcmp(argv[i], "-noinc") == 0) {
+        if (std::strcmp(argv[i], "-noinc") == 0) {
             fullRebuild = true;
         } else if (std::strcmp(argv[i], "-debug") == 0) {
             debug = true;
@@ -139,126 +212,56 @@ int real_main(int argc, char const *argv[]) {
     install_root_dir += "/.local";
 #endif
 
-    std::string path = install_root_dir + DIR_SEP "Scale" DIR_SEP + TO_STRING(VERSION);
-    std::string binary = "sclc" EXE_SUFF;
+    const std::string path = install_root_dir + DIR_SEP "Scale" DIR_SEP + TO_STRING(VERSION);
+    const std::string binary = "sclc" EXE_SUFF;
 
-    std::cout << "Installing Scale to " << path << std::endl;
+    std::cout << Color::GREEN << "Installing Scale to " << path << Color::RESET << std::endl;
 
-    if (!isDevBuild) {
-        fs::remove_all(path);
-    } else {
-        fs::remove_all(path + DIR_SEP "Frameworks");
-        fs::remove_all(path + DIR_SEP "Internal" DIR_SEP LIB_SCALE_FILENAME);
-    }
-    
+    fs::remove_all(path);
     fs::create_directories(path);
+    fs::create_directories(path + DIR_SEP "Internal" DIR_SEP "include");
+    fs::create_directories(path + DIR_SEP "Internal" DIR_SEP "lib");
 
     fs::copy("Scale", path, fs::copy_options::recursive | fs::copy_options::overwrite_existing);
 
     if (fs::exists("bdwgc")) {
         fs::remove_all("bdwgc");
     }
+
     exec_command(create_command({"git", "clone", "--depth=1", "https://github.com/ivmai/bdwgc.git", "bdwgc"}));
-    
-    fs::current_path("bdwgc");
-    
     #if defined(_WIN32)
     exec_command(create_command({"git", "clone", "--depth=1", "https://github.com/ivmai/libatomic_ops.git", "libatomic_ops"}));
     #endif
 
-    exec_command(create_command({
-        CC,
-        "-c",
-        "-I",
-        "include",
-        "-O3",
-    #if !defined(_WIN32)
-        "-fPIC",
-    #else
-        "-D_CRT_SECURE_NO_WARNINGS",
-    #endif
-        "-DGC_DLL",
-        "-DGC_THREADS",
-        "-DALL_INTERIOR_POINTERS",
-        "-DNO_EXECUTE_PERMISSION",
-        "-DPARALLEL_MARK",
-        "-DGC_BUILTIN_ATOMIC",
-        "-DDONT_USE_USER32_DLL",
-        "-fno-strict-aliasing",
-        "-march=native",
-        "-Wall",
-        "extra" DIR_SEP "gc.c",
-        "-o",
-        path + DIR_SEP "Internal" DIR_SEP "gc.o"
-    }));
-    fs::create_directories(path + DIR_SEP "Internal" DIR_SEP "include");
-    fs::create_directories(path + DIR_SEP "Internal" DIR_SEP "lib");
-    fs::copy("include", path + DIR_SEP "Internal" DIR_SEP "include", fs::copy_options::overwrite_existing | fs::copy_options::recursive);
-
-    fs::current_path(fs::current_path().parent_path());
-    fs::remove_all("bdwgc");
-
-    auto scale_runtime = create_command({
-        CC,
-        "-fvisibility=default",
-        ("-std=" C_VERSION),
-        "-I" + path + DIR_SEP "Internal",
-        "-I" + path + DIR_SEP "Internal" DIR_SEP "include",
-        path + DIR_SEP "Internal" DIR_SEP "scale_runtime.c",
-        "-c",
-    #if !defined(_WIN32)
-        "-fPIC",
-    #else
-        "-D_CRT_SECURE_NO_WARNINGS",
-    #endif
-        "-o",
-        path + DIR_SEP "Internal" DIR_SEP "scale_runtime.o"
-    });
-    auto cxx_glue = create_command({
-        CXX,
-        "-fvisibility=default",
-        ("-std=" CXX_VERSION),
-        "-I" + path + DIR_SEP "Internal",
-        "-I" + path + DIR_SEP "Internal" DIR_SEP "include",
-        path + DIR_SEP "Internal" DIR_SEP "scale_cxx.cpp",
-        "-c",
-    #if !defined(_WIN32)
-        "-fPIC",
-    #else
-        "-D_CRT_SECURE_NO_WARNINGS",
-    #endif
-        "-o",
-        path + DIR_SEP "Internal" DIR_SEP "scale_cxx.o"
-    });
-
-    auto library = create_command({
-        CXX,
-        "-fvisibility=default",
-    #if defined(_WIN32)
-        "-Wl,-export-all-symbols",
-        "-fuse-ld=lld",
-        "-Wl,-lldmingw",
-        "-D_CRT_SECURE_NO_WARNINGS",
-    #else
-        "-fPIC",
-        "-shared",
-    #endif
-    #if defined(__APPLE__)
-        "-dynamiclib",
-        "-current_version",
-        (TO_STRING(VERSION)),
-        "-compatibility_version",
-        (TO_STRING(VERSION)),
-        "-undefined",
-        "dynamic_lookup",
-    #elif defined(__linux__)
-        "-Wl,--undefined,dynamic_lookup",
-    #endif
-        path + DIR_SEP "Internal" DIR_SEP "scale_runtime.o",
-        path + DIR_SEP "Internal" DIR_SEP "scale_cxx.o",
-        path + DIR_SEP "Internal" DIR_SEP "gc.o",
-        "-o",
-        path + DIR_SEP "Internal" DIR_SEP "lib" DIR_SEP "" LIB_SCALE_FILENAME
+    fs::copy("bdwgc" DIR_SEP "include", path + DIR_SEP "Internal" DIR_SEP "include", fs::copy_options::overwrite_existing | fs::copy_options::recursive);
+    
+    auto gc_lib_cmd = async([path, debug]() {
+        exec_command(create_command({
+            CC,
+            "-c",
+            "-I",
+            "bdwgc" DIR_SEP "include",
+            debug ? "-O0 -g -DDEBUG" : "-O2",
+        #if !defined(_WIN32)
+            "-fPIC",
+        #else
+            "-D_CRT_SECURE_NO_WARNINGS",
+        #endif
+            "-DGC_DLL",
+            "-DGC_THREADS",
+            "-DALL_INTERIOR_POINTERS",
+            "-DNO_EXECUTE_PERMISSION",
+            "-DPARALLEL_MARK",
+            "-DGC_BUILTIN_ATOMIC",
+            "-DDONT_USE_USER32_DLL",
+            "-fno-strict-aliasing",
+            "-march=native",
+            "-Wall",
+            "bdwgc" DIR_SEP "extra" DIR_SEP "gc.c",
+            "-o",
+            path + DIR_SEP "Internal" DIR_SEP "gc.o"
+        }));
+        fs::remove_all("bdwgc");
     });
 
     #if defined(_WIN32)
@@ -291,33 +294,20 @@ int real_main(int argc, char const *argv[]) {
         "-Wall",
         "-Wextra",
         "-Werror",
-        "-I" + path + DIR_SEP "Internal" DIR_SEP "include",
+        "-ICompiler" DIR_SEP "headers",
     #if defined(_WIN32)
         "-D_CRT_SECURE_NO_WARNINGS",
     #endif
+        debug ? "-O0 -g -DDEBUG" : "-O2",
     });
-
-    if (debug) {
-        compile_command += "-O0 -g -DDEBUG ";
-        cxx_glue += "-O0 -g -DDEBUG ";
-        scale_runtime += "-O0 -g -DDEBUG ";
-        library += "-O0 -g -DDEBUG ";
-    } else {
-        compile_command += "-O2 ";
-        cxx_glue += "-O2 ";
-        scale_runtime += "-O2 ";
-        library += "-O2 ";
-    }
-
+    
     auto source_files = listFiles("Compiler", ".cpp");
-    auto builders = std::vector<std::thread>(source_files.size());
+    auto builders = std::unordered_map<std::string, std::thread>(source_files.size());
     
     std::vector<std::string> link_command = {
         compile_command,
     #if defined(_WIN32)
         "-Wl,-export-all-symbols",
-        "-lUser32",
-        "-lDbgHelp",
         "-fuse-ld=lld",
         "-Wl,-lldmingw",
     #elif defined(__APPLE__)
@@ -341,31 +331,83 @@ int real_main(int argc, char const *argv[]) {
         #undef min
         #endif
 
-        fs::file_time_type last_write = fs::file_time_type::min();
-        fs::file_time_type last_write_obj = fs::file_time_type::min();
-        
         if (fullRebuild || !fs::exists(f.string() + ".o") || fs::last_write_time(f) > fs::last_write_time(f.string() + ".o")) {
-            builders.push_back(std::thread(
-                [cmd]() { exec_command(cmd); }
-            ));
+            builders[f] = exec_command_async(cmd);
         }
     }
 
     link_command.push_back("-o");
     link_command.push_back(std::string(path) + DIR_SEP + binary);
 
-    for (auto&& x : builders) {
-        if (x.joinable())
-            x.join();
-    }
-
     fs::remove(path + DIR_SEP "Internal" DIR_SEP "lib" DIR_SEP "" LIB_SCALE_FILENAME);
     
-    exec_command(scale_runtime);
-    exec_command(cxx_glue);
-    exec_command(library);
-
-    exec_command(create_command(link_command));
+    auto runtime_cmd = exec_command_async(create_command({ // Compile runtime
+        CC,
+        "-fvisibility=default",
+        ("-std=" C_VERSION),
+        "-I" + path + DIR_SEP "Internal",
+        "-I" + path + DIR_SEP "Internal" DIR_SEP "include",
+        path + DIR_SEP "Internal" DIR_SEP "scale_runtime.c",
+        "-c",
+    #if !defined(_WIN32)
+        "-fPIC",
+    #else
+        "-D_CRT_SECURE_NO_WARNINGS",
+    #endif
+        "-o",
+        path + DIR_SEP "Internal" DIR_SEP "scale_runtime.o",
+        debug ? "-O0 -g -DDEBUG" : "-O2",
+    }));
+    auto cxx_runtime_cmd = exec_command_async(create_command({ // Compile C++ runtime
+        CXX,
+        "-fvisibility=default",
+        ("-std=" CXX_VERSION),
+        "-I" + path + DIR_SEP "Internal",
+        "-I" + path + DIR_SEP "Internal" DIR_SEP "include",
+        path + DIR_SEP "Internal" DIR_SEP "scale_cxx.cpp",
+        "-c",
+    #if !defined(_WIN32)
+        "-fPIC",
+    #else
+        "-D_CRT_SECURE_NO_WARNINGS",
+    #endif
+        "-o",
+        path + DIR_SEP "Internal" DIR_SEP "scale_cxx.o",
+        debug ? "-O0 -g -DDEBUG" : "-O2",
+    }));
+    await(runtime_cmd);
+    await(cxx_runtime_cmd);
+    await(gc_lib_cmd);
+    exec_command(create_command({ // Link runtime
+        CXX,
+        "-fvisibility=default",
+    #if defined(_WIN32)
+        "-Wl,-export-all-symbols",
+        "-fuse-ld=lld",
+        "-Wl,-lldmingw",
+        "-D_CRT_SECURE_NO_WARNINGS",
+    #else
+        "-fPIC",
+        "-shared",
+    #endif
+    #if defined(__APPLE__)
+        "-dynamiclib",
+        "-current_version",
+        (TO_STRING(VERSION)),
+        "-compatibility_version",
+        (TO_STRING(VERSION)),
+        "-undefined",
+        "dynamic_lookup",
+    #elif defined(__linux__)
+        "-Wl,--undefined,dynamic_lookup",
+    #endif
+        path + DIR_SEP "Internal" DIR_SEP "scale_runtime.o",
+        path + DIR_SEP "Internal" DIR_SEP "scale_cxx.o",
+        path + DIR_SEP "Internal" DIR_SEP "gc.o",
+        "-o",
+        path + DIR_SEP "Internal" DIR_SEP "lib" DIR_SEP "" LIB_SCALE_FILENAME,
+        debug ? "-O0 -g -DDEBUG" : "-O2"
+    }));
 
     fs::remove(path + DIR_SEP "Internal" DIR_SEP "scale_runtime.o");
     fs::remove(path + DIR_SEP "Internal" DIR_SEP "scale_cxx.o");
@@ -381,6 +423,18 @@ int real_main(int argc, char const *argv[]) {
     #endif
     symlinked_path = symlinked_path.make_preferred();
 
+    std::cout << ERASE_LINE << Color::BLUE << "Waiting for compilation to finish..." << Color::RESET << std::endl;
+    size_t n = 0;
+    for (auto&& p : builders) {
+        if (p.second.joinable()) {
+            p.second.join();
+            n++;
+            std::cout << ERASE_LINE << Color::GREEN << "[" << n << "/" << builders.size() << "] " << Color::RESET << p.first;
+            std::cout.flush();
+        }
+    }
+    exec_command(create_command(link_command));
+
     if (!fs::exists(symlinked_path.parent_path())) {
         fs::create_directories(symlinked_path.parent_path());
     } else {
@@ -391,9 +445,9 @@ int real_main(int argc, char const *argv[]) {
     if (CreateSymbolicLinkA(symlinked_path.string().c_str(), (path + DIR_SEP + binary).c_str(), SYMBOLIC_LINK_FLAG_ALLOW_UNPRIVILEGED_CREATE) == 0) {
         unsigned int err = GetLastError();
         if (err == ERROR_PRIVILEGE_NOT_HELD) {
-            std::cout << "[INFO]: Unprivileged users cannot create symlinks in windows. Failed to create link from " << fs::path(path + DIR_SEP + binary).make_preferred() << " to " << symlinked_path << std::endl;
+            std::cout << Color::RED << "[INFO]: Unprivileged users cannot create symlinks in windows. Failed to create link from " << fs::path(path + DIR_SEP + binary).make_preferred() << " to " << symlinked_path << Color::RESET << std::endl;
         } else {
-            std::cerr << "Error creating symlink: " << GetLastError() << std::endl;
+            std::cerr << Color::RED << "Error creating symlink: " << GetLastError() << Color::RESET << std::endl;
             std::exit(1);
         }
     };
@@ -401,10 +455,12 @@ int real_main(int argc, char const *argv[]) {
     try {
         fs::create_symlink(path + DIR_SEP + binary, symlinked_path);
     } catch (fs::filesystem_error& err) {
-        std::cerr << "Error creating symlink: " << err.what() << std::endl;
+        std::cerr << Color::RED << "Error creating symlink: " << err.what() << Color::RESET << std::endl;
         std::exit(1);
     }
 #endif
+
+    std::cout << ERASE_LINE << Color::GREEN << "Scale was successfully installed to " << path << Color::RESET << std::endl;
 
     #if defined(_WIN32)
     std::cout << "IMPORTANT!!!!!" << std::endl;
@@ -426,6 +482,6 @@ int main(int argc, char const *argv[]) {
     try {
         return real_main(argc, argv);
     } catch (fs::filesystem_error& fs) {
-        std::cerr << "Unexpected filesystem error: " << fs.what() << std::endl;
+        std::cerr << Color::RED << "Unexpected filesystem error: " << fs.what() << Color::RESET << std::endl;
     }
 }

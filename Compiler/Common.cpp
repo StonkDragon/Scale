@@ -19,9 +19,9 @@
 #include <unistd.h>
 #endif
 
-#include "headers/Common.hpp"
-#include "headers/Types.hpp"
-#include "headers/TranspilerDefs.hpp"
+#include <Common.hpp>
+#include <Types.hpp>
+#include <TranspilerDefs.hpp>
 
 namespace sclc
 {

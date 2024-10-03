@@ -1,5 +1,5 @@
 
-#include "../headers/Common.hpp"
+#include <Common.hpp>
 
 namespace sclc {
     FPResult::FPResult() : location("", 0, 0) {

@@ -1,5 +1,5 @@
 
-#include "../headers/Common.hpp"
+#include <Common.hpp>
 
 namespace sclc {
     StructTreeNode::StructTreeNode(Struct s) : s(s), children() {}

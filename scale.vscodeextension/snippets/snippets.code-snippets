@@ -640,22 +640,6 @@
 		],
 		"description": "is"
 	},
-	"Keyword goto": {
-		"scope": "source.scale",
-		"prefix": "goto",
-		"body": [
-			"goto ${1:label}",
-		],
-		"description": "goto"
-	},
-	"Keyword label": {
-		"scope": "source.scale",
-		"prefix": "label",
-		"body": [
-			"label ${1:name}",
-		],
-		"description": "label"
-	},
 	"Keyword self": {
 		"scope": "source.scale",
 		"prefix": "self",

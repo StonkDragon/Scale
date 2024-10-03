@@ -3,7 +3,8 @@
 #include <cstring>
 #include <cerrno>
 
-#include "../headers/DragonConfig.hpp"
+#include <DragonConfig.hpp>
+#include <vector>
 
 using namespace std;
 using namespace DragonConfig;

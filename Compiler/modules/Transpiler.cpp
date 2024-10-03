@@ -12,10 +12,10 @@
 // #include <unistd.h>
 #endif
 
-#include "../headers/Common.hpp"
-#include "../headers/TranspilerDefs.hpp"
-#include "../headers/Types.hpp"
-#include "../headers/Functions.hpp"
+#include <Common.hpp>
+#include <TranspilerDefs.hpp>
+#include <Types.hpp>
+#include <Functions.hpp>
 
 #ifndef VERSION
 #define VERSION ""
@@ -74,8 +74,6 @@ namespace sclc {
         std::pair(tok_declare, handlerRef(Declare)),
         std::pair(tok_continue, handlerRef(Continue)),
         std::pair(tok_break, handlerRef(Break)),
-        std::pair(tok_goto, handlerRef(Goto)),
-        std::pair(tok_label, handlerRef(Label)),
         std::pair(tok_case, handlerRef(Case)),
         std::pair(tok_esac, handlerRef(Esac)),
         std::pair(tok_default, handlerRef(Default)),

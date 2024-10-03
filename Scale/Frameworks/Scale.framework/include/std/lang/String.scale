@@ -102,13 +102,16 @@ final struct str is Iterable
 
   function indexOf(s: str): int
     for i in 0 to self:size do
+      true => decl found: bool
       for j in 0 to s:size do
         if self[i j +] s[j] != then
-          goto next
+          found false => found
+          break
         fi
       done
-      i return
-      label next
+      if found then
+        i return
+      fi
     done
     -1 return
   end

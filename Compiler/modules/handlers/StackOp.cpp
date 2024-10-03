@@ -1,7 +1,7 @@
 
-#include "../../headers/Common.hpp"
-#include "../../headers/TranspilerDefs.hpp"
-#include "../../headers/Types.hpp"
+#include <Common.hpp>
+#include <TranspilerDefs.hpp>
+#include <Types.hpp>
 
 namespace sclc {
     handler(StackOp) {

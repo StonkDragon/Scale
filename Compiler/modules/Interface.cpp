@@ -6,7 +6,7 @@
 #include <regex>
 #include <unordered_map>
 
-#include "../headers/Interface.hpp"
+#include <Interface.hpp>
 
 namespace sclc {
     Interface::Interface(std::string name) {

@@ -48,8 +48,6 @@ namespace sclc
         tok_new,                    // new
         tok_is,                     // is
         tok_cdecl,                  // cdecl
-        tok_label,                  // label
-        tok_goto,                   // goto
         tok_switch,                 // switch
         tok_case,                   // case
         tok_esac,                   // esac

@@ -1,5 +1,5 @@
 
-#include "../headers/Common.hpp"
+#include <Common.hpp>
 
 using namespace sclc;
 
