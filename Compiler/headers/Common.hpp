@@ -133,6 +133,7 @@ namespace sclc {
         size_t current;
         bool additional;
         Token additionalToken;
+        size_t sourceLen;
 
         int line = 1;
         int column = 1;

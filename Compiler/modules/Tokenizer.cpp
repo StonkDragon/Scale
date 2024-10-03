@@ -56,10 +56,11 @@ namespace sclc
         column = 1;
         begin = 1;
         filename = "";
+        sourceLen = 0;
     }
 
     Token Tokenizer::nextToken() {
-        if (current >= strlen(source)) {
+        if (current >= sourceLen) {
             return Token(tok_eof, "", line, filename, begin);
         }
         char c = source[current];
@@ -67,7 +68,8 @@ namespace sclc
             line++;
             column = 0;
         }
-        std::string value = "";
+        std::string value;
+        value.reserve(32);
 
         begin = column;
 
@@ -75,7 +77,7 @@ namespace sclc
 
         if (isCharacter(c)) {
             while (!isSpace(c) && (isCharacter(c) || isDigit(c))) {
-                value += c;
+                value.push_back(c);
                 current++;
                 column++;
                 c = source[current];
@@ -92,24 +94,23 @@ namespace sclc
             }
         } else if ((c == '-' && isDigit(source[current + 1])) || isDigit(c)) {
             if (c == '-') {
-                value += c;
+                value.push_back(c);
                 c = source[++current];
                 column++;
             }
             bool isFloat = false;
-            value += c;
+            value.push_back(c);
             c = source[++current];
             column++;
-            int(*validDigit)(char) = isDigit;
-            if (c == 'x' || c == 'X') {
-                validDigit = isHexDigit;
-            } else if (c == 'o' || c == 'O') {
-                validDigit = isOctDigit;
-            } else if (c == 'b' || c == 'B') {
-                validDigit = isBinDigit;
+            int(*validDigit)(char);
+            switch (c) {
+                case 'x': case 'X': validDigit = isHexDigit; break;
+                case 'o': case 'O': validDigit = isOctDigit; break;
+                case 'b': case 'B': validDigit = isBinDigit; break;
+                default: validDigit = isDigit; break;
             }
             while (validDigit(c) || (c == '.' && !isFloat)) {
-                value += c;
+                value.push_back(c);
                 if (c == '.') {
                     isFloat = true;
                 }
@@ -119,9 +120,9 @@ namespace sclc
             if (isFloat) {
                 if (c == 'f' || c == 'F' || c == 'd' || c == 'D') {
                     if (c == 'f' || c == 'F') {
-                        value += 'f';
+                        value.push_back('f');
                     } else if (c == 'd' || c == 'D') {
-                        value += 'd';
+                        value.push_back('d');
                     }
                     c = source[++current];
                     column++;
@@ -130,23 +131,23 @@ namespace sclc
             } else {
                 if (c == 'i' || c == 'u' || c == 'I' || c == 'U') {
                     if (c == 'i' || c == 'I') {
-                        value += 'i';
+                        value.push_back('i');
                     } else {
-                        value += 'u';
+                        value.push_back('u');
                     }
                     c = source[++current];
                     column++;
                     if (c == '8' || c == '1' || c == '3' || c == '6') {
                         if (c == '8') {
-                            value += '8';
+                            value.push_back('8');
                             c = source[++current];
                             column++;
                         } else {
-                            value += c;
+                            value.push_back(c);
                             c = source[++current];
                             column++;
                             if (c == '2' || c == '4' || c == '6') {
-                                value += c;
+                                value.push_back(c);
                                 c = source[++current];
                                 column++;
                             } else {
@@ -154,11 +155,11 @@ namespace sclc
                             }
                         }
                     }
-                } else if (validDigit != isHexDigit && (c == 'f' || c == 'F' || c == 'd' || c == 'D')) {
+                } else if (validDigit == isDigit && (c == 'f' || c == 'F' || c == 'd' || c == 'D')) {
                     if (c == 'f' || c == 'F') {
-                        value += 'f';
+                        value.push_back('f');
                     } else if (c == 'd' || c == 'D') {
-                        value += 'd';
+                        value.push_back('d');
                     }
                     c = source[++current];
                     column++;
@@ -186,8 +187,8 @@ namespace sclc
                         case 'n':
                         case '"':
                         case '\\':
-                            value += '\\';
-                            value += c;
+                            value.push_back('\\');
+                            value.push_back(c);
                             c = source[++current];
                             column++;
                             break;
@@ -197,7 +198,7 @@ namespace sclc
                             break;
                     }
                 } else {
-                    value += c;
+                    value.push_back(c);
                     c = source[++current];
                     column++;
                 }
@@ -212,11 +213,11 @@ namespace sclc
             }
         } else if (c == '\'') {
             c = source[++current];
-            value += c;
+            value.push_back(c);
             column++;
             if (c == '\\') {
                 c = source[++current];
-                value += c;
+                value.push_back(c);
                 column++;
                 if (c == 'n' || c == 't' || c == 'r' || c == '\\' || c == '\'' || c == '\"' || c == '0') {
                     current += 2;
@@ -231,7 +232,7 @@ namespace sclc
                 } else {
                     value = "";
                     while (!isSpace(c) && (isCharacter(c) || isDigit(c))) {
-                        value += c;
+                        value.push_back(c);
                         current++;
                         column++;
                         c = source[current];
@@ -243,29 +244,29 @@ namespace sclc
                 }
             }
         } else if (isOperator(c)) {
-            value += c;
+            value.push_back(c);
             if (c == '>') {
                 if (source[current + 1] == '=' || source[current + 1] == '.') {
                     c = source[++current];
                     column++;
-                    value += c;
+                    value.push_back(c);
                 }
             } else if (c == '<') {
                 if (source[current + 1] == '<' || source[current + 1] == '=' || source[current + 1] == '.') {
                     c = source[++current];
                     column++;
-                    value += c;
+                    value.push_back(c);
                     if (source[current] == '<' && source[current + 1] == '<') {
                         c = source[++current];
                         column++;
-                        value += c;
+                        value.push_back(c);
                     }
                 }
             } else if (c == '=') {
                 c = source[++current];
                 column++;
                 if (c == '=' || c == '>') {
-                    value += c;
+                    value.push_back(c);
                 } else {
                     syntaxError("Expected '=' or '>' after '='");
                 }
@@ -273,87 +274,87 @@ namespace sclc
                 if (source[current + 1] == '*' || source[current + 1] == '>' || source[current + 1] == '.') {
                     c = source[++current];
                     column++;
-                    value += c;
+                    value.push_back(c);
                 }
             } else if (c == '/') {
                 if (source[current + 1] == '>' || source[current + 1] == '.') {
                     c = source[++current];
                     column++;
-                    value += c;
+                    value.push_back(c);
                 }
             } else if (c == '^') {
                 if (source[current + 1] == '>') {
                     c = source[++current];
                     column++;
-                    value += c;
+                    value.push_back(c);
                 }
             } else if (c == '-') {
                 if (source[current + 1] == '-' || source[current + 1] == '>') {
                     c = source[++current];
                     column++;
-                    value += c;
+                    value.push_back(c);
                 }
             } else if (c == '+') {
                 if (source[current + 1] == '+' || source[current + 1] == '>') {
                     c = source[++current];
                     column++;
-                    value += c;
+                    value.push_back(c);
                 }
             } else if (c == '!') {
                 if (source[current + 1] == '=' || source[current + 1] == '!') {
                     c = source[++current];
                     column++;
-                    value += c;
+                    value.push_back(c);
                 }
             } else if (c == '?') {
                 if (source[current + 1] == '.' || source[current + 1] == ':') {
                     c = source[++current];
                     column++;
-                    value += c;
+                    value.push_back(c);
                 }
             } else if (c == '&') {
                 if (source[current + 1] == '&' || source[current + 1] == '>') {
                     c = source[++current];
                     column++;
-                    value += c;
+                    value.push_back(c);
                 }
             } else if (c == '|') {
                 if (source[current + 1] == '|' || source[current + 1] == '>') {
                     c = source[++current];
                     column++;
-                    value += c;
+                    value.push_back(c);
                 }
             } else if (c == ':') {
                 if (source[current + 1] == ':') {
                     c = source[++current];
                     column++;
-                    value += c;
+                    value.push_back(c);
                 }
             } else if (c == '~') {
                 if (source[current + 1] == '>') {
                     c = source[++current];
                     column++;
-                    value += c;
+                    value.push_back(c);
                 }
             } else if (c == '%') {
                 if (source[current + 1] == '>') {
                     c = source[++current];
                     column++;
-                    value += c;
+                    value.push_back(c);
                 }
             }
             c = source[++current];
             column++;
         } else if (c == '.') {
-            value += c;
+            value.push_back(c);
             c = source[++current];
             column++;
         } else if (isBracket(c)) {
-            value += c;
+            value.push_back(c);
             c = source[++current];
             column++;
         } else if (c == '$') {
-            value += c;
+            value.push_back(c);
             c = source[++current];
             column++;
         }
@@ -367,7 +368,7 @@ namespace sclc
 
         if (c == '!') {
             if (value == "pragma" || value == "c" || value == "macro" || value == "deprecated") {
-                value += c;
+                value.push_back(c);
                 c = source[++current];
                 column++;
             }
@@ -378,7 +379,7 @@ namespace sclc
             int startLine = line;
             int startColumn = column;
             while (strncmp("end", (source + current), 3) != 0) {
-                value += c;
+                value.push_back(c);
                 c = source[current++];
                 column++;
                 if (c == '\n') {
@@ -560,6 +561,7 @@ namespace sclc
         fclose(fp);
 
         this->source = (char*) data.c_str();
+        this->sourceLen = strlen(this->source);
 
         token = nextToken();
         
