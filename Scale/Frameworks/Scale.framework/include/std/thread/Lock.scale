@@ -9,5 +9,5 @@ struct Lock
     end
 
     cdecl "cxx_std_recursive_mutex_delete"
-    private static expect foreign function __c_std_recursive_mutex_delete(:[any]): none
+    private static expect foreign function __c_std_recursive_mutex_delete(:*any): none
 end

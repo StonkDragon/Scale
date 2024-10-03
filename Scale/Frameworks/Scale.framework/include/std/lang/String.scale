@@ -182,7 +182,7 @@ final struct str is Iterable
 
   function split(delim: str): [str]
     if delim:size 0 == then
-      self.data do 'map int8::toString return
+      self.data do 'map Char::toString return
     fi
 
     0 => decl index: int
@@ -202,7 +202,7 @@ final struct str is Iterable
 
         delim.length index +> index
       else
-        tmpStr self.data[index]:toString + => tmpStr
+        tmpStr self.data[index] Char::toString + => tmpStr
 
         index++ => index
       fi
@@ -352,12 +352,12 @@ final struct str is Iterable
         elif c 'b' == then
           out arg bool::toString + => out
         elif c 'c' == then
-          out arg int8::toString + => out
+          out arg Char::toString + => out
         else
           "Invalid format specifier at position #" i + InvalidArgumentException::new throw
         fi
       else
-        out c:toString + => out
+        out c Char::toString + => out
       fi
     done
     out return
@@ -378,9 +378,9 @@ final struct str is Iterable
   static function filter(arr: str, f: lambda(int8): bool): str
     new<int8>[arr.length 1 +] => decl result: [int8]
     0 => decl acc: int
-    foreach char in arr do
-      if char f:accept then
-        char => result[acc]
+    foreach c in arr do
+      if c f:accept then
+        c => result[acc]
         acc 1 +> acc
       fi
     done

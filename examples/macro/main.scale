@@ -1,7 +1,7 @@
 macro! ImplMove(on) {
-    function $on:init(other: [$on]): none
+    function $on:init(other: *$on): none
         unsafe
-            self as int sizeof any + other@ as int sizeof any + self any::size sizeof any - memcpy
+            self as int sizeof any + other @ as int sizeof any + self any::size sizeof any - memcpy
             other@ any::delete
         end
     end

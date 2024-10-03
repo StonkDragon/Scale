@@ -48,7 +48,7 @@ namespace sclc {
                 scopeDepth++;
                 append("scale_any tmp = scale_pop(scale_any);\n");
                 std::string t = type;
-                append("scale_push(scale_str, scale_create_string(\"%s\"));\n", body[i].value.c_str());
+                append("scale_push(scale_str, scale_static_string(\"%s\", 0x%lxUL));\n", body[i].value.c_str(), id(body[i].value.c_str()));
                 typeStack.push_back("str");
                 append("scale_push(scale_any, tmp);\n");
                 typeStack.push_back(t);
@@ -60,7 +60,12 @@ namespace sclc {
             std::string help = "";
             Method* m;
             if ((m = getMethodByName(result, body[i].value, s.name)) != nullptr) {
-                std::string lambdaType = "lambda(" + std::to_string(m->args.size()) + "):" + m->return_type;
+                std::string lambdaType = "lambda(";
+                for (size_t i = 0; i < m->args.size(); i++) {
+                    if (i) lambdaType += ",";
+                    lambdaType += m->args[i].type;
+                }
+                lambdaType += "):" + m->return_type;
                 append("scale_push(scale_any, mt_%s$%s);\n", s.name.c_str(), m->name.c_str());
                 typeStack.push_back(lambdaType);
                 return;

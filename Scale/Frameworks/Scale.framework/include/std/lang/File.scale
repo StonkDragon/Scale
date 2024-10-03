@@ -9,7 +9,7 @@ private expect foreign unsafe function __c_stderr(): __c_file
 cdecl "strlen"
 private expect foreign unsafe function __c_strlen(cstr: [int8]): int
 cdecl "getline"
-private expect foreign unsafe function __c_getline(cstr: [[int8]], size: [int], file: __c_file): int
+private expect foreign unsafe function __c_getline(cstr: *[int8], size: *int, file: __c_file): int
 
 final struct EndOfFileException: Exception
   init()
@@ -163,7 +163,7 @@ final struct File
     decl line: [int8]?
 
     unsafe
-      if ref line as [[int8]] ref len self._file __c_getline 0 < then
+      if ref line as *[int8] ref len self._file __c_getline 0 < then
         EndOfFileException::new throw
       fi
     end

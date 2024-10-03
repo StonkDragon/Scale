@@ -172,7 +172,7 @@ namespace sclc
             const std::string& file = v.name_token.location.file;
             if (
                 !Main::options::noLinkScale &&
-                // !strstarts(v.name, "$T") &&
+                !strstarts(v.name, "$T") &&
                 isFrameworkFile(file) &&
                 std::find(Main::options::filesFromCommandLine.begin(), Main::options::filesFromCommandLine.end(), file) == Main::options::filesFromCommandLine.end()
             ) {
@@ -259,7 +259,7 @@ namespace sclc
             const std::string& file = f->name_token.location.file;
             if (
                 !Main::options::noLinkScale &&
-                // !strstarts(v.name, "$T") &&
+                !strstarts(f->name, "$T") &&
                 isFrameworkFile(file) &&
                 std::find(Main::options::filesFromCommandLine.begin(), Main::options::filesFromCommandLine.end(), file) == Main::options::filesFromCommandLine.end()
             ) {
@@ -279,7 +279,7 @@ namespace sclc
                 const std::string& file = f->name_token.location.file;
                 if (
                     !Main::options::noLinkScale &&
-                    // !strstarts(v.name, "$T") &&
+                    !strstarts(f->name, "$T") &&
                     isFrameworkFile(file) &&
                     std::find(Main::options::filesFromCommandLine.begin(), Main::options::filesFromCommandLine.end(), file) == Main::options::filesFromCommandLine.end()
                 ) {
@@ -300,7 +300,7 @@ namespace sclc
         if (structTree) {
             structTree->forEach([&fp, &isFrameworkFile](StructTreeNode* node) {
                 const Struct& s = node->s;
-                // bool isTemplate = strstarts(s.name, "$T");
+                bool isTemplate = strstarts(s.name, "$T");
 
                 const std::string& file = s.name_token.location.file;
                 if (
@@ -308,7 +308,7 @@ namespace sclc
                     s.isStatic() ||
                     (
                         !Main::options::noLinkScale &&
-                        // !isTemplate &&
+                        !isTemplate &&
                         !s.isStatic() &&
                         isFrameworkFile(file) &&
                         std::find(Main::options::filesFromCommandLine.begin(), Main::options::filesFromCommandLine.end(), file) == Main::options::filesFromCommandLine.end()

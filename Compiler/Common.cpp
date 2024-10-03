@@ -458,33 +458,34 @@ namespace sclc
         }
         if (body[i].type == tok_lambda) {
             r.value = type_mods + "lambda";
-            if (body[i + 1].type == tok_paren_open) {
-                i++;
+            i++;
+            if (i < body.size() && body[i].type == tok_paren_open) {
                 r.value += "(";
-                int count = 0;
-                if (body[i].type == tok_paren_open) {
+                i++;
+                while (i < body.size() && body[i].type != tok_paren_close) {
+                    FPResult tmp = parseType(body, i);
+                    if (!tmp.success) return tmp;
+                    r.value += tmp.value;
                     i++;
-                    while (body[i].type != tok_paren_close) {
-                        FPResult tmp = parseType(body, i);
-                        if (!tmp.success) return tmp;
+                    if (i < body.size() && body[i].type == tok_comma) {
+                        r.value += ",";
                         i++;
-                        if (body[i].type == tok_comma) {
-                            i++;
-                        }
-                        count++;
                     }
-                    i++;
                 }
-                r.value += std::to_string(count) + ")";
-                if (body[i].type == tok_column) {
+                i++;
+                r.value += "):";
+                if (i < body.size() && body[i].type == tok_column) {
                     i++;
                     FPResult tmp = parseType(body, i);
                     if (!tmp.success) return tmp;
-                    r.value += ":" + tmp.value;
+                    r.value += tmp.value;
                 } else {
                     i--;
-                    r.value += ":none";
+                    r.value += "none";
                 }
+            } else {
+                i--;
+                r.value += "():none";
             }
         } else if (body[i].type == tok_varargs) {
             r.value = type_mods + body[i].value;
@@ -815,6 +816,11 @@ namespace sclc
     bool isPrimitiveType(std::string s, bool rem) {
         if (rem) s = removeTypeModifiers(s);
         return isPrimitiveIntegerType(s, rem) || s == "float" || s == "float32" || s == "any" || s == "bool";
+    }
+
+    bool isNumericType(std::string s, bool rem) {
+        if (rem) s = removeTypeModifiers(s);
+        return isPrimitiveIntegerType(s, rem) || s == "float" || s == "float32";
     }
 
     bool featureEnabled(std::string feat) {

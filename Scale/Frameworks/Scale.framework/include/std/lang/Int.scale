@@ -7,25 +7,13 @@ private expect foreign unsafe function __c_printf(:[int8], :varargs): int
 
 macro! IntStruct(type) {
   final static struct $type
-    (
-      1 sizeof $type 8 * 1 - <<
-    ) => decl minValue: const $type
-    (
-      if sizeof $type 8 == then
-        0x7fffffffffffffff
-      else
-        1 sizeof $type 8 * 1 - << 1 -
-      fi
-    ) => decl maxValue: const $type
+    (1u sizeof $type 8 * 1 - <<     as $type) => decl minValue: const $type
+    (1u sizeof $type 8 * 1 - << 1 - as $type) => decl maxValue: const $type
 
     function toString(x: $type): str
       new<int8>[32] => decl out: [int8]
       unsafe
-        if sizeof $type 1 == then
-          out 31 c"%c" varargs x __c_snprintf drop
-        else
-          out 31 c"%ld" varargs x __c_snprintf drop
-        fi
+        out 31 c"%ld" varargs x __c_snprintf drop
       end
       out:resizeToFit str::new return
     end
@@ -33,7 +21,12 @@ macro! IntStruct(type) {
     function toHexString(x: $type): str
       new<int8>[32] => decl out: [int8]
       unsafe
-        out 31 "0x%0" sizeof $type 2 * + "lx" +:view varargs x __c_snprintf drop
+        sizeof $type switch
+          case 1 out 31 c"0x%02lx"  varargs x __c_snprintf drop esac
+          case 2 out 31 c"0x%04lx"  varargs x __c_snprintf drop esac
+          case 4 out 31 c"0x%08lx"  varargs x __c_snprintf drop esac
+          case 8 out 31 c"0x%016lx" varargs x __c_snprintf drop esac
+        done
       end
       out:resizeToFit str::new return
     end
@@ -61,17 +54,13 @@ macro! IntStruct(type) {
 }
 macro! UIntStruct(type) {
   final static struct $type
-    (0) => decl minValue: const $type
-    (-1) => decl maxValue: const $type
+    (0  as $type) => decl minValue: const $type
+    (-1 as $type) => decl maxValue: const $type
 
     function toString(x: $type): str
       new<int8>[32] => decl out: [int8]
       unsafe
-        if sizeof $type 1 == then
-          out 31 c"%c" varargs x __c_snprintf drop
-        else
-          out 31 c"%lu" varargs x __c_snprintf drop
-        fi
+        out 31 c"%lu" varargs x __c_snprintf drop
       end
       out:resizeToFit str::new return
     end
@@ -79,7 +68,12 @@ macro! UIntStruct(type) {
     function toHexString(x: $type): str
       new<int8>[32] => decl out: [int8]
       unsafe
-        out 31 "0x%0" sizeof $type 2 * + "lx" +:view varargs x __c_snprintf drop
+        sizeof $type switch
+          case 1 out 31 c"0x%02lx"  varargs x __c_snprintf drop esac
+          case 2 out 31 c"0x%04lx"  varargs x __c_snprintf drop esac
+          case 4 out 31 c"0x%08lx"  varargs x __c_snprintf drop esac
+          case 8 out 31 c"0x%016lx" varargs x __c_snprintf drop esac
+        done
       end
       out:resizeToFit str::new return
     end
@@ -133,6 +127,19 @@ final static struct bool
   end
 end
 
+final static struct Char
+  function toString(x: int8): str
+    new<int8> {
+      x,
+      0
+    } str::new return
+  end
+
+  function parse(s: str): int8
+    s[0] return
+  end
+end
+
 IntStruct! int8
 IntStruct! int16
 IntStruct! int32
@@ -144,44 +151,44 @@ UIntStruct! uint32
 UIntStruct! uint64
 UIntStruct! uint
 
-reified operator "add" function +<A, B>(:A, :B): _ABBigger
-reified operator "sub" function -<A, B>(:A, :B): _ABBigger
-reified operator "mul" function *<A, B>(:A, :B): _ABBigger
-reified operator "div" function /<A, B>(:A, :B): _ABBigger
-reified operator "pow" function **<A, B>(:A, :B): _ABBigger
+reified @NumericOperator operator "add" function +  <Lhs, Rhs>(:Lhs, :Rhs): Numeric
+reified @NumericOperator operator "sub" function -  <Lhs, Rhs>(:Lhs, :Rhs): Numeric
+reified @NumericOperator operator "mul" function *  <Lhs, Rhs>(:Lhs, :Rhs): Numeric
+reified @NumericOperator operator "div" function /  <Lhs, Rhs>(:Lhs, :Rhs): Numeric
+reified @NumericOperator operator "pow" function ** <Lhs, Rhs>(:Lhs, :Rhs): Numeric
 
-reified function /.<A>(:A, :A): A gcd end
-reified function *.<A>(:A, :A): A lcm end
-reified function >.<A>(:A, :A): A max end
-reified function <.<A>(:A, :A): A min end
+reified function /. <A>(:A, :A): A gcd end
+reified function *. <A>(:A, :A): A lcm end
+reified function >. <A>(:A, :A): A max end
+reified function <. <A>(:A, :A): A min end
 
 expect reified operator "eq" function == <A?, B?>(:A?, :B?): bool
 expect reified operator "ne" function != <A?, B?>(:A?, :B?): bool
-expect reified operator "gt" function > <A?, B?>(:A?, :B?): bool
+expect reified operator "gt" function >  <A?, B?>(:A?, :B?): bool
 expect reified operator "ge" function >= <A?, B?>(:A?, :B?): bool
-expect reified operator "lt" function < <A?, B?>(:A?, :B?): bool
+expect reified operator "lt" function <  <A?, B?>(:A?, :B?): bool
 expect reified operator "le" function <= <A?, B?>(:A?, :B?): bool
 
 expect operator "and" function &&(:int, :int): bool
-expect operator "or" function ||(:int, :int): bool
+expect operator "or"  function ||(:int, :int): bool
 expect operator "not" function !(:int): bool
 
-expect reified operator "mod" function % <A, >(:A, :int): A
-expect reified operator "land" function & <A, >(:A, :int): A
-expect reified operator "lor" function | <A, >(:A, :int): A
-expect reified operator "lxor" function ^ <A, >(:A, :int): A
-expect reified operator "lnot" function ~ <A>(:A): A
-expect reified operator "lsl" function << <A, >(:A, :int): A
-expect reified operator "lsr" function >> <A, >(:A, :int): A
-expect reified operator "rol" function <<< <A, >(:A, :int): A
-expect reified operator "ror" function >>> <A, >(:A, :int): A
+expect reified operator "mod"  function %   <A, >(:A, :int): A
+expect reified operator "land" function &   <A, >(:A, :int): A
+expect reified operator "lor"  function |   <A, >(:A, :int): A
+expect reified operator "lxor" function ^   <A, >(:A, :int): A
+expect reified operator "lnot" function ~   <A>(:A): A
+expect reified operator "lsl"  function <<  <A, >(:A, :int): A
+expect reified operator "lsr"  function >>  <A, >(:A, :int): A
+expect reified operator "rol"  function <<< <A, >(:A, :int): A
+expect reified operator "ror"  function >>> <A, >(:A, :int): A
 
 expect reified operator "inc" function ++ <A>(:A): A
 expect reified operator "dec" function -- <A>(:A): A
 
-expect reified operator "at" function @<*T>(:*T): T
-expect reified operator "ann" function !!<T?>(:T?): T
-expect reified operator "elvis" function ?:<T?, >(:T?, :T): T
+expect unsafe reified operator "at"    function @  <*T>(:*T): T
+expect        reified operator "ann"   function !! <T?>(:T?): T
+expect        reified operator "elvis" function ?: <T?, >(:T?, :T): T
 
 function isnil(x: any): bool
   x nil == return

@@ -65,7 +65,9 @@ struct Box
         if other is Box<T> then
             (other as Box<T>).value self.value == return
         elif other is T then
-            ref other as *T @ self.value == return
+            unsafe
+                ref other as *T @ self.value == return
+            end
         else
             false return
         fi

@@ -643,7 +643,7 @@ namespace sclc {
             }
         }
 
-        if (opFunc(function->name_without_overload) && typeStack.size()) {
+        if ((opFunc(function->name_without_overload) || function->has_operator) && typeStack.size()) {
             handle(Return);
         }
 
@@ -723,12 +723,12 @@ namespace sclc {
                 }
             }
 
-            // bool isTemplate = false;
-            // if (function->isMethod) {
-            //     isTemplate = strstarts(function->member_type, "$T");
-            // } else {
-            //     isTemplate = strstarts(function->name, "$T");
-            // }
+            bool isTemplate = false;
+            if (function->isMethod) {
+                isTemplate = strstarts(function->member_type, "$T");
+            } else {
+                isTemplate = strstarts(function->name, "$T");
+            }
 
             auto isFrameworkFile = [](const std::string& file) -> bool {
                 for (auto&& framework : Main::frameworkPaths) {
@@ -742,7 +742,7 @@ namespace sclc {
             const std::string& file = function->name_token.location.file;
             if (
                 !Main::options::noLinkScale &&
-                // !isTemplate &&
+                !isTemplate &&
                 function->reified_parameters.empty() &&
                 !function->has_inline &&
                 isFrameworkFile(file) &&

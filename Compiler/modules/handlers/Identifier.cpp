@@ -39,8 +39,13 @@ namespace sclc {
             }
         } else if (hasFunction(result, body[i].value)) {
             Function* f = getFunctionByName(result, body[i].value);
-            std::string lambdaType = "lambda(" + std::to_string(f->args.size()) + "):" + f->return_type;
-            append("scale_push(scale_str, scale_create_string(\"%s\"));\n", lambdaType.c_str());
+            std::string lambdaType = "lambda(";
+            for (size_t i = 0; i < f->args.size(); i++) {
+                if (i) lambdaType += ",";
+                lambdaType += f->args[i].type;
+            }
+            lambdaType += "):" + f->return_type;
+            append("scale_push(scale_str, scale_static_string(\"%s\", 0x%lxUL));\n", lambdaType.c_str(), id(lambdaType.c_str()));
         } else if (body[i].type == tok_paren_open) {
             append("{\n");
             scopeDepth++;
@@ -55,17 +60,21 @@ namespace sclc {
             if (s != Struct::Null && !s.isStatic()) {
                 append("scale_top(scale_str) = scale_create_string(scale_top(scale_SclObject)->$type->type_name);\n");
             } else if (hasLayout(result, typeStackTop)) {
-                append("scale_top(scale_str) = scale_create_string(\"%s\");\n", retemplate(typeStackTop).c_str());
+                append("scale_top(scale_str) = scale_static_string(\"%s\", 0x%lxUL);\n", retemplate(typeStackTop).c_str(), id(retemplate(typeStackTop).c_str()));
             } else if (e.name.size()) {
-                append("scale_top(scale_str) = scale_create_string(((char*[]){\n");
+                append("scale_top(scale_str) = ((scale_str[]){\n");
                 scopeDepth++;
                 for (auto&& x : e.member_types) {
-                    append("[%ld] = \"%s\",\n", e.members[x.first], x.second.c_str());
+                    append("[%ld] = scale_static_string(\"%s\", 0x%lxUL),\n", e.members[x.first], x.second.c_str(), id(x.second.c_str()));
                 }
                 scopeDepth--;
-                append("})[scale_top(%s)]);\n", sclTypeToCType(result, typeStackTop).c_str());
+                append("})[scale_top(%s)];\n", sclTypeToCType(result, typeStackTop).c_str());
             } else {
-                append("scale_top(scale_str) = scale_create_string(scale_typename_or_else(scale_top(%s), \"%s\"));\n", sclTypeToCType(result, typeStackTop).c_str(), retemplate(typeStackTop).c_str());
+                if (removeTypeModifiers(typeStackTop) == "any") {
+                    append("scale_top(scale_str) = scale_create_string(scale_typename_or_else(scale_top(%s), \"%s\"));\n", sclTypeToCType(result, typeStackTop).c_str(), retemplate(typeStackTop).c_str());
+                } else {
+                    append("scale_top(scale_str) = scale_static_string(\"%s\", 0x%lxUL);\n", retemplate(typeStackTop).c_str(), id(retemplate(typeStackTop).c_str()));
+                }
             }
             scopeDepth--;
             append("}\n");
@@ -76,7 +85,7 @@ namespace sclc {
                 errors.push_back(res);
                 return;
             }
-            append("scale_push(scale_str, scale_create_string(\"%s\"));\n", retemplate(res.value).c_str());
+            append("scale_push(scale_str, scale_static_string(\"%s\", 0x%lxUL));\n", retemplate(res.value).c_str(), id(retemplate(res.value).c_str()));
         }
         typeStack.push_back("str");
     }
@@ -93,7 +102,12 @@ namespace sclc {
             }
         } else if (hasFunction(result, body[i].value)) {
             Function* f = getFunctionByName(result, body[i].value);
-            std::string lambdaType = "lambda(" + std::to_string(f->args.size()) + "):" + f->return_type;
+            std::string lambdaType = "lambda(";
+            for (size_t i = 0; i < f->args.size(); i++) {
+                if (i) lambdaType += ",";
+                lambdaType += f->args[i].type;
+            }
+            lambdaType += "):" + f->return_type;
             append("scale_push(scale_int, 0x%016llx);\n", id(lambdaType.c_str()));
         } else if (body[i].type == tok_paren_open) {
             append("{\n");
@@ -138,7 +152,7 @@ namespace sclc {
         noUnused;
         safeInc();
         if (hasVar(body[i].value)) {
-            append("scale_push(scale_str, scale_create_string(\"%s\"));\n", body[i].value.c_str());
+            append("scale_push(scale_str, scale_static_string(\"%s\", 0x%lxUL));\n", body[i].value.c_str(), id(body[i].value.c_str()));
             typeStack.push_back("str");
         } else {
             transpilerError("Unknown Variable: '" + body[i].value + "'", i);

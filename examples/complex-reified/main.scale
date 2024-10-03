@@ -38,7 +38,9 @@ function main(): none
         "C",
     } 1 x:test2 puts
 
-    1d => decl f: float
-    nil as [float]?
-    ref f ?: @ puts
+    unsafe
+        1d => decl f: float
+        nil as *float?
+        ref f ?: @ puts
+    end
 end

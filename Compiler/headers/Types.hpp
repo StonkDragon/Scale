@@ -13,6 +13,7 @@ namespace sclc {
     bool canBeCastTo(TPResult& r, const Struct& one, const Struct& other);
     std::string lambdaReturnType(const std::string& lambda);
     size_t lambdaArgCount(const std::string& lambda);
+    std::vector<Variable> lambdaArgs(const std::string& lambda);
     bool lambdasEqual(const std::string& a, const std::string& b);
     bool typeEquals(const std::string& a, const std::string& b);
     bool typeIsUnsigned(std::string s);

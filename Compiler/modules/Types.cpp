@@ -144,19 +144,83 @@ namespace sclc {
     size_t lambdaArgCount(const std::string& lambda) {
         if (strstarts(lambda, "lambda(")) {
             std::string args = lambda.substr(lambda.find_first_of("(") + 1, lambda.find_last_of("):") - lambda.find_first_of("(") - 1);
-            return std::stoi(args);
+            if (isDigit(args.front())) {
+                return std::stoi(args);
+            } else {
+                size_t count = 1;
+                size_t depth = 0;
+                for (char c : args) {
+                    if (c == '(') {
+                        depth++;
+                    } else if (c == ')') {
+                        depth--;
+                    } else if (c == ',' && depth == 0) {
+                        count++;
+                    }
+                }
+                return count;
+            }
         }
         return -1;
+    }
+
+    std::vector<Variable> lambdaArgs(const std::string& lambda) {
+        if (strstarts(lambda, "lambda(")) {
+            std::string argsString = lambda.substr(lambda.find_first_of("(") + 1, lambda.find_last_of("):") - lambda.find_first_of("(") - 1);
+            std::vector<Variable> args;
+            if (isDigit(argsString.front())) {
+                size_t count = std::stoi(argsString);
+                std::cout << "Old lambda detected with " << count << " args" << std::endl;
+                for (size_t i = 0; i < count; i++) {
+                    args.push_back(Variable{"", "any"});
+                }
+            } else {
+                // Parse all arguments from the lambda
+                // The lambda is in the format 'lambda(arg1,arg2,arg3):returntype'
+                std::string a = lambda.substr(lambda.find_first_of("(") + 1, lambda.find_last_of("):") - lambda.find_first_of("(") - 1);
+                // a = arg1,arg2,arg3
+                // split by commas
+                // each arg may be of lambda type, so ignore commas in parentheses
+                size_t depth = 0;
+                size_t start = 0;
+                for (size_t i = 0; i < a.size(); i++) {
+                    if (a[i] == '(') {
+                        depth++;
+                    } else if (a[i] == ')') {
+                        depth--;
+                    } else if (a[i] == ',' && depth == 0) {
+                        args.push_back(Variable{"", a.substr(start, i - start)});
+                        start = i + 1;
+                    }
+                }
+                std::string arg = a.substr(start, a.size() - start - 1);
+                if (!arg.empty()) {
+                    args.push_back(Variable{"", arg});
+                }
+            }
+            return args;
+        }
+        return {};
     }
 
     bool lambdasEqual(const std::string& a, const std::string& b) {
         std::string returnTypeA = lambdaReturnType(a);
         std::string returnTypeB = lambdaReturnType(b);
 
-        size_t argAmountA = lambdaArgCount(a);
-        size_t argAmountB = lambdaArgCount(b);
+        auto argsA = lambdaArgs(a);
+        auto argsB = lambdaArgs(b);
 
-        return argAmountA == argAmountB && typeEquals(returnTypeA, returnTypeB);
+        if (argsA.size() != argsB.size()) {
+            return false;
+        }
+
+        for (size_t i = 0; i < argsA.size(); i++) {
+            if (!typeEquals(argsA[i].type, argsB[i].type)) {
+                return false;
+            }
+        }
+
+        return typeEquals(returnTypeA, returnTypeB);
     }
 
     bool typeEquals(const std::string& a, const std::string& b) {
@@ -166,18 +230,28 @@ namespace sclc {
         if (b == "any") {
             return true;
         }
+        if (a == "?" || b == "?") {
+            return true;
+        }
         if (removeTypeModifiers(a) == removeTypeModifiers(b)) {
             return true;
-        } else if (a.front() == '[' || a.front() == '*') {
-            std::string aType = a.front() == '[' ? a.substr(1, a.size() - 2) : a.substr(1);
-            if (b.front() == '[' || b.front() == '*') {
-                std::string bType = b.front() == '[' ? b.substr(1, b.size() - 2) : b.substr(1);
+        }
+        std::string a2 = removeTypeModifiers(a);
+        std::string b2 = removeTypeModifiers(b);
+        if (a2.front() == '[') {
+            std::string aType = a2.substr(1, a2.size() - 2);
+            if (b2.front() == '[') {
+                std::string bType = b2.substr(1, b2.size() - 2);
                 return typeEquals(aType, bType);
             }
-        } else if (strstarts(a, "lambda(") && strstarts(b, "lambda(")) {
-            return lambdasEqual(a, b);
-        } else if (a == "?" || b == "?") {
-            return true;
+        } else if (a2.front() == '*') {
+            std::string aType = a2.substr(1);
+            if (b2.front() == '*') {
+                std::string bType = b2.substr(1);
+                return removeTypeModifiers(aType) == removeTypeModifiers(bType);
+            }
+        } else if (strstarts(a2, "lambda(") && strstarts(b2, "lambda(")) {
+            return lambdasEqual(a2, b2);
         }
         return false;
     }
@@ -223,7 +297,7 @@ namespace sclc {
             return allowIntPromotion || (typeIsSigned(arg) == typeIsSigned(stack) && intBitWidth(arg) == intBitWidth(stack));
         }
 
-        if (arg == "any" || (argIsNilable && arg != "float" && arg != "float32" && (stack == "any" || stack == "[any]" || stack == "*any"))) {
+        if (arg == "any" || (argIsNilable && arg != "float" && arg != "float32" && (stack == "any" || stack == "[any]"))) {
             return true;
         }
 

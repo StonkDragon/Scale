@@ -435,26 +435,26 @@ namespace sclc {
 
             auto argsEqual = [&](std::vector<Variable> args) {
                 if (args.size() != argTypes.size()) return false;
-                    bool foundWithoutPromotion = false;
-                    for (size_t i = 0; i < args.size(); i++) {
-                        if (args[i].name == "self") continue;
-                        if (argTypes[i] == args[i].type) continue;
-                        if (typesCompatible(result, argTypes[i], args[i].type, false)) {
-                            foundWithoutPromotion = true;
-                            continue;
-                        }
-                        return false;
+                bool foundWithoutPromotion = false;
+                for (size_t i = 0; i < args.size(); i++) {
+                    if (args[i].name == "self") continue;
+                    if (argTypes[i] == args[i].type) continue;
+                    if (typesCompatible(result, argTypes[i], args[i].type, false)) {
+                        foundWithoutPromotion = true;
+                        continue;
                     }
-                    if (foundWithoutPromotion) return true;
-                    for (size_t i = 0; i < args.size(); i++) {
-                        if (args[i].name == "self") continue;
-                        if (argTypes[i] == args[i].type) continue;
-                        if (typesCompatible(result, argTypes[i], args[i].type, true)) {
-                            continue;
-                        }
-                        return false;
+                    return false;
+                }
+                if (foundWithoutPromotion) return true;
+                for (size_t i = 0; i < args.size(); i++) {
+                    if (args[i].name == "self") continue;
+                    if (argTypes[i] == args[i].type) continue;
+                    if (typesCompatible(result, argTypes[i], args[i].type, true)) {
+                        continue;
                     }
-                    return true;
+                    return false;
+                }
+                return true;
             };
 
             bool found = false;
@@ -478,7 +478,7 @@ namespace sclc {
             std::vector<Function*>& overloads = self->overloads;
             bool argsEqual = ignoreArgs || checkStackType(result, self->args, withIntPromotion);
             if (checkOverloads && overloads.size() && !argsEqual && !ignoreArgs) {
-                for (Function* overload : overloads) {
+                for (Function* overload : self->overloads) {
                     for (bool b : bools) {
                         if (!overload->isMethod) continue;
                         
@@ -699,9 +699,15 @@ namespace sclc {
             return "*" + _reparseArgType(inner, templateArgs, target) + (isNil ? "?" : "");
         }
         if (strstarts(type, "lambda(")) {
-            std::string lt = type.substr(0, type.find(':'));
-            std::string ret = type.substr(type.find(':') + 1);
-            type = lt + ":" + _reparseArgType(ret, templateArgs, target);
+            std::string lambda = "lambda(";
+            std::string returnType = lambdaReturnType(type);
+            auto args = lambdaArgs(type);
+            for (size_t i = 0; i < args.size(); i++) {
+                if (i) lambda += ",";
+                lambda += _reparseArgType(args[i].type, templateArgs, target);
+            }
+            lambda += "):" + _reparseArgType(returnType, templateArgs, target);
+            return lambda;
         }
         if (templateArgs.find(type) != templateArgs.end()) {
             if constexpr (std::is_same_v<T, Token>) {
@@ -778,41 +784,49 @@ namespace sclc {
             }
             reified_mappings[declassifyReify(param)] = reifyType(param, removeTypeModifiers(types[i]));
         }
-        bool has_A_type = false;
-        bool has_B_type = false;
-        bool has_AB_type = false;
-        if (reified_mappings.size() == 2) {
-            for (auto&& f : reified_mappings) {
-                if (f.first == "A") {
-                    has_A_type = true;
-                } else if (f.first == "B") {
-                    has_B_type = true;
-                }
-            }
-            has_AB_type = has_A_type && has_B_type;
-        }
-        if (has_AB_type) {
+        // bool hasLhs = false;
+        // bool hasRhs = false;
+        // bool isOperator = false;
+        // if (reified_mappings.size() == 2) {
+        //     for (auto&& f : reified_mappings) {
+        //         if (f.first == "Lhs") {
+        //             hasLhs = true;
+        //         } else if (f.first == "Rhs") {
+        //             hasRhs = true;
+        //         }
+        //     }
+        //     isOperator = hasLhs && hasRhs;
+        // }
+        if (contains<std::string>(self->modifiers, "NumericOperator")) {
             std::string biggestType;
+            bool hasFloat32 = false;
+            bool hasFloat = false;
             for (auto&& f : reified_mappings) {
-                if (!isPrimitiveType(f.second)) {
-                    biggestType = f.second;
-                    break;
-                }
-                if (typeEquals(f.second, "float")) {
-                    biggestType = "float";
-                    break;
-                }
-                if (
-                    typeEquals(f.second, "float32") ||
-                    intBitWidth(biggestType) < intBitWidth(f.second) ||
-                    (typeIsUnsigned(f.second) && !typeIsUnsigned(biggestType))
-                ) {
-                    biggestType = f.second;
+                if (typeEquals(f.second, "float32")) {
+                    hasFloat32 = true;
+                } else if (typeEquals(f.second, "float")) {
+                    hasFloat = true;
                 }
             }
-            if (biggestType.size()) {
-                reified_mappings["_ABBigger"] = biggestType;
+            if (hasFloat) {
+                biggestType = "float";
+            } else if (hasFloat32) {
+                biggestType = "float32";
+            } else {
+                for (auto&& f : reified_mappings) {
+                    if (!isPrimitiveType(f.second)) {
+                        transpilerError("Operators only support numerical types, but got '" + f.second + "'", i);
+                        errors.push_back(err);
+                        return nullptr;
+                    }
+                    if (!typeIsUnsigned(biggestType) && typeIsUnsigned(f.second)) {
+                        biggestType = f.second;
+                    } else if (intBitWidth(biggestType) < intBitWidth(f.second)) {
+                        biggestType = f.second;
+                    }
+                }
             }
+            reified_mappings["Numeric"] = biggestType;
         }
         Function* f = self->clone();
         if (f->isMethod) {
@@ -964,9 +978,9 @@ namespace sclc {
             return;
         }
         if (f->isMethod) {
-            methodCall((Method*) f, fp, result, warns, errors, body, i);
+            methodCall((Method*) f, fp, result, warns, errors, body, i, false, true, false, false, false);
         } else {
-            functionCall(f, fp, result, warns, errors, body, i);
+            functionCall(f, fp, result, warns, errors, body, i, false, false, false);
         }
     }
 
@@ -1086,7 +1100,7 @@ namespace sclc {
             goto callFunction;
         }
 
-        if (checkOverloads && overloads.size() && !argsEqual) {
+        if (!argsEqual && checkOverloads && overloads.size()) {
             for (Function* overload : overloads) {
                 for (bool b : bools) {
                     if (overload->isMethod) continue;

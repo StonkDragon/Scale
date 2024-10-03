@@ -264,6 +264,7 @@ namespace sclc {
     bool typeIsConst(std::string s);
     bool typeIsReadonly(std::string s);
     bool isPrimitiveType(std::string s, bool rem = true);
+    bool isNumericType(std::string s, bool rem = true);
     bool featureEnabled(std::string feat);
     bool isInitFunction(Function* f);
     bool isDestroyFunction(Function* f);

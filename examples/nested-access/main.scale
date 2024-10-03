@@ -1,8 +1,8 @@
 struct Foo
-    decl bar: [Bar]
+    decl bar: *Bar
 
     init(b: Bar)
-        any::default as [Bar] => self.bar
+        any::default as *Bar => self.bar
         b => self.@bar
     end
 end
@@ -23,8 +23,10 @@ function main(): none
     } => decl tmp: Bar
     tmp Foo::new => decl foo: Foo
 
-    foo.@bar.baz.value puts # these two are equivalent
-    foo.bar@.baz.value puts # these two are equivalent
+    unsafe
+        foo.@bar.baz.value puts # these two are equivalent
+        foo.bar@.baz.value puts # these two are equivalent
 
-    foo.bar @ puts
+        foo.bar @ puts
+    end
 end

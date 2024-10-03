@@ -14,51 +14,51 @@ namespace sclc {
                 errors.push_back(err);
                 return;
             }
-            std::string returnType = lambdaReturnType(typeStackTop);
-            std::string rType = removeTypeModifiers(returnType);
-            size_t argAmount = lambdaArgCount(typeStackTop);
-            std::string op = body[i].value;
+            std::string lambdaType = typeStackTop;
             typePop;
+            std::string returnType = lambdaReturnType(lambdaType);
+            std::string rType = removeTypeModifiers(returnType);
+            auto args = lambdaArgs(lambdaType);
+            size_t argAmount = args.size();
+            std::string op = body[i].value;
+            
+            bool argsEqual = checkStackType(result, args);
+            if (!argsEqual && argsContainsIntType(args)) {
+                argsEqual = checkStackType(result, args, true);
+            }
+            if (!argsEqual) {
+                {
+                    transpilerError("Arguments for lambda '" + lambdaType + "' do not equal inferred stack", i);
+                    errors.push_back(err);
+                }
+                transpilerError("Expected: [ " + Color::BLUE + argVectorToString(args) + Color::RESET + " ], but got: [ " + Color::RED + stackSliceToString(args.size()) + Color::RESET + " ]", i);
+                err.isNote = true;
+                errors.push_back(err);
+                return;
+            }
             
             std::string argTypes = "";
             std::string argGet = "";
             for (size_t argc = argAmount; argc; argc--) {
-                argTypes += "scale_any";
-                argGet += "scale_positive_offset(" + std::to_string(argAmount - argc) + ", scale_any)";
-                if (argc > 1) {
-                    argTypes += ", ";
-                    argGet += ", ";
-                }
+                argTypes += sclTypeToCType(result, args[argAmount - argc].type);
+                argGet += "scale_positive_offset(" + std::to_string(argAmount - argc) + ", " + sclTypeToCType(result, args[argAmount - argc].type) + ")";
+                argTypes += ", ";
+                argGet += ", ";
                 typePop;
             }
+            argGet += "lambda";
+            argTypes += "void*";
 
             if (op == "accept") {
                 append("{\n");
                 scopeDepth++;
+                append("%s(*(*lambda))(%s);\n", sclTypeToCType(result, returnType).c_str(), argTypes.c_str());
+                append("lambda = scale_pop(typeof(lambda));\n");
+                append("scale_popn(%zu);\n", argAmount);
                 if (rType == "none" || rType == "nothing") {
-                    if (argTypes.size()) {
-                        append("void(*(*lambda))(%s, void*);\n", argTypes.c_str());
-                        append("lambda = scale_pop(typeof(lambda));\n");
-                        append("scale_popn(%zu);\n", argAmount);
-                        append("(*lambda)(%s, lambda);\n", argGet.c_str());
-                    } else {
-                        append("void(*(*lambda))(void*);\n");
-                        append("lambda = scale_pop(typeof(lambda));\n");
-                        append("scale_popn(%zu);\n", argAmount);
-                        append("(*lambda)(lambda);\n");
-                    }
+                    append("(*lambda)(%s);\n", argGet.c_str());
                 } else {
-                    if (argTypes.size()) {
-                        append("%s(*(*lambda))(%s, void*);\n", sclTypeToCType(result, returnType).c_str(), argTypes.c_str());
-                        append("lambda = scale_pop(typeof(lambda));\n");
-                        append("scale_popn(%zu);\n", argAmount);
-                        append("scale_push(%s, (*lambda)(%s, lambda));\n", sclTypeToCType(result, returnType).c_str(), argGet.c_str());
-                    } else {
-                        append("%s(*(*lambda))(void*);\n", sclTypeToCType(result, returnType).c_str());
-                        append("lambda = scale_pop(typeof(lambda));\n");
-                        append("scale_popn(%zu);\n", argAmount);
-                        append("scale_push(%s, (*lambda)(lambda));\n", sclTypeToCType(result, returnType).c_str());
-                    }
+                    append("scale_push(%s, (*lambda)(%s));\n", sclTypeToCType(result, returnType).c_str(), argGet.c_str());
                     typeStack.push_back(returnType);
                 }
                 scopeDepth--;
@@ -102,48 +102,49 @@ namespace sclc {
             }
 
             std::string returnType = lambdaReturnType(type);
-            size_t argAmount = lambdaArgCount(type);
+            auto args = lambdaArgs(type);
 
             append("{\n");
             scopeDepth++;
 
             append("%s tmp = scale_pop(scale_any);\n", sclTypeToCType(result, container).c_str());
             typePop;
-
-            if (typeStack.size() < argAmount) {
-                transpilerError("Arguments for lambda '" + container + ":" + v.name + "' do not equal inferred stack", i);
-                errors.push_back(err);
-                return true;
+            
+            bool argsEqual = checkStackType(result, args);
+            if (!argsEqual && argsContainsIntType(args)) {
+                argsEqual = checkStackType(result, args, true);
             }
-
+            if (!argsEqual) {
+                {
+                    transpilerError("Arguments for lambda '" + type + "' do not equal inferred stack", i);
+                    errors.push_back(err);
+                }
+                transpilerError("Expected: [ " + Color::BLUE + argVectorToString(args) + Color::RESET + " ], but got: [ " + Color::RED + stackSliceToString(args.size()) + Color::RESET + " ]", i);
+                err.isNote = true;
+                errors.push_back(err);
+                return false;
+            }
+            
+            size_t argAmount = args.size();
             std::string argTypes = "";
             std::string argGet = "";
             for (size_t argc = argAmount; argc; argc--) {
-                argTypes += "scale_any";
-                argGet += "scale_positive_offset(" + std::to_string(argAmount - argc) + ", scale_any)";
-                if (argc > 1) {
-                    argTypes += ", ";
-                    argGet += ", ";
-                }
+                argTypes += sclTypeToCType(result, args[argAmount - argc].type);
+                argGet += "scale_positive_offset(" + std::to_string(argAmount - argc) + ", " + sclTypeToCType(result, args[argAmount - argc].type) + ")";
+                argTypes += ", ";
+                argGet += ", ";
                 typePop;
             }
+            argGet += "lambda";
+            argTypes += "void*";
+
+            append("%s(*(*lambda))(%s) = (typeof(lambda)) tmp->%s;\n", sclTypeToCType(result, returnType).c_str(), argTypes.c_str(), v.name.c_str());
             append("scale_popn(%zu);\n", argAmount);
+
             if (removeTypeModifiers(returnType) == "none" || removeTypeModifiers(returnType) == "nothing") {
-                if (argTypes.size()) {
-                    append("void(*(*lambda))(%s, void*) = tmp->%s;\n", argTypes.c_str(), v.name.c_str());
-                    append("(*lambda)(%s, lambda);\n", argGet.c_str());
-                } else {
-                    append("void(*(*lambda))(void*) = tmp->%s;\n", v.name.c_str());
-                    append("(*lambda)(lambda);\n");
-                }
+                append("(*lambda)(%s);\n", argGet.c_str());
             } else {
-                if (argTypes.size()) {
-                    append("void(*(*lambda))(%s, void*) = tmp->%s;\n", argTypes.c_str(), v.name.c_str());
-                    append("scale_push(%s, (*lambda)(%s, lambda));\n", sclTypeToCType(result, returnType).c_str(), argGet.c_str());
-                } else {
-                    append("void(*(*lambda))(void*) = tmp->%s;\n", v.name.c_str());
-                    append("scale_push(%s, (*lambda)(lambda));\n", sclTypeToCType(result, returnType).c_str());
-                }
+                append("scale_push(%s, (*lambda)(%s));\n", sclTypeToCType(result, returnType).c_str(), argGet.c_str());
                 typeStack.push_back(returnType);
             }
             scopeDepth--;

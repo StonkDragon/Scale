@@ -694,6 +694,15 @@ namespace sclc
         return false;
     }
 
+    std::string limitPathTo(const std::filesystem::path& path, size_t limit) {
+        std::string out = path.string();
+        if (out.size() > limit) {
+            out = out.substr(out.size() - limit);
+            out = "..." + out;
+        }
+        return out;
+    };
+
     void logWarns(std::vector<FPResult>& warns) {
         for (FPResult error : warns) {
             if (error.type >= tok_MAX) continue;
@@ -720,10 +729,11 @@ namespace sclc
             } else {
                 colString = Color::BOLDMAGENTA;
             }
-            std::string fileRelativeToCurrent = std::filesystem::relative(error.location.file, std::filesystem::current_path()).string();
+
+            std::string path = limitPathTo(std::filesystem::absolute(error.location.file), 48);
             std::cerr <<
                 Color::BOLD <<
-                fileRelativeToCurrent <<
+                path <<
                 ":" << error.location.line <<
                 ":" << error.location.column <<
                 ": " << colString <<
@@ -781,10 +791,10 @@ namespace sclc
             char* line = new char[512];
             int i = 1;
             if (f) fseek(f, 0, SEEK_SET);
-            std::string fileRelativeToCurrent = std::filesystem::relative(error.location.file, std::filesystem::current_path()).string();
+            std::string path = limitPathTo(std::filesystem::absolute(error.location.file), 48);
             std::cerr <<
                 Color::BOLD <<
-                fileRelativeToCurrent <<
+                path <<
                 ":" << error.location.line <<
                 ":" << error.location.column <<
                 ": " << colorStr <<

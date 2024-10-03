@@ -22,7 +22,12 @@ namespace sclc {
         safeInc();
         size_t diff = typeStack.size() - typeStackSize;
         if (diff > 1) {
-            transpilerError("More than one value in if-condition. Maybe you forgot to use '&&' or '||'?", i);
+            {
+                transpilerError("More than one value in if-condition. Maybe you forgot to use '&&' or '||'?", i);
+                warns.push_back(err);
+            }
+            transpilerError("Found: [ " + stackSliceToString(diff) + " ]", i);
+            err.isNote = true;
             warns.push_back(err);
         }
         if (diff == 0) {

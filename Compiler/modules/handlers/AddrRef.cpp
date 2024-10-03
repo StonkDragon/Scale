@@ -113,7 +113,12 @@ namespace sclc {
             append("  *tmp = fn_%s;\n", f->name.c_str());
             append("  tmp;\n");
             append("}));\n");
-            std::string lambdaType = "lambda(" + std::to_string(f->args.size()) + "):" + f->return_type;
+            std::string lambdaType = "lambda(";
+            for (size_t i = 0; i < f->args.size(); i++) {
+                if (i) lambdaType += ",";
+                lambdaType += f->args[i].type;
+            }
+            lambdaType += "):" + f->return_type;
             typeStack.push_back(lambdaType);
             return;
         }
@@ -230,7 +235,12 @@ namespace sclc {
                         append("  *tmp = mt_%s$%s;\n", f->member_type.c_str(), f->name.c_str());
                         append("  tmp;\n");
                         append("}));\n");
-                        std::string lambdaType = "lambda(" + std::to_string(f->args.size()) + "):" + f->return_type;
+                        std::string lambdaType = "lambda(";
+                        for (size_t i = 0; i < f->args.size(); i++) {
+                            if (i) lambdaType += ",";
+                            lambdaType += f->args[i].type;
+                        }
+                        lambdaType += "):" + f->return_type;
                         typeStack.push_back(lambdaType);
                         return;
                     } else {
@@ -342,7 +352,12 @@ namespace sclc {
                     append("  *tmp = mt_%s$%s;\n", f->member_type.c_str(), f->name.c_str());
                     append("  tmp;\n");
                     append("}));\n");
-                    std::string lambdaType = "lambda(" + std::to_string(f->args.size()) + "):" + f->return_type;
+                    std::string lambdaType = "lambda(";
+                    for (size_t i = 0; i < f->args.size(); i++) {
+                        if (i) lambdaType += ",";
+                        lambdaType += f->args[i].type;
+                    }
+                    lambdaType += "):" + f->return_type;
                     typeStack.push_back(lambdaType);
                     return;
                 } else if (hasGlobal(result, s.name + "$" + body[i].value)) {

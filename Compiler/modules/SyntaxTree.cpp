@@ -1929,6 +1929,7 @@ namespace sclc {
                     if (removed == "none" || removed == "nothing") {
                         return getter;
                     }
+                    getter->addToken(Token(tok_unsafe, "unsafe", v.name_token.location));
                     getter->addToken(Token(tok_addr_ref, "ref", v.name_token.location));
                     getter->addToken(Token(tok_identifier, "self", v.name_token.location));
                     getter->addToken(Token(tok_dot, ".", v.name_token.location));
@@ -1938,6 +1939,7 @@ namespace sclc {
                     getter->addToken(Token(tok_identifier, removeTypeModifiers(v.type), v.name_token.location));
                     getter->addToken(Token(tok_addr_of, "@", v.name_token.location));
                     getter->addToken(Token(tok_return, "return", v.name_token.location));
+                    getter->addToken(Token(tok_end, "end", v.name_token.location));
                     return getter;
                 };
 
@@ -1969,6 +1971,7 @@ namespace sclc {
                     if (removed != "none" && removed != "nothing") {
                         setter->addArgument(Variable("what", v.type));
                     }
+                    setter->addToken(Token(tok_unsafe, "unsafe", v.name_token.location));
                     setter->addToken(Token(tok_number, std::to_string(n), v.name_token.location));
                     if (removed != "none" && removed != "nothing") {
                         setter->addToken(Token(tok_addr_ref, "ref", v.name_token.location));
@@ -1984,6 +1987,7 @@ namespace sclc {
                     setter->addToken(Token(tok_double_column, "::", v.name_token.location));
                     setter->addToken(Token(tok_identifier, "new", v.name_token.location));
                     setter->addToken(Token(tok_return, "return", v.name_token.location));
+                    setter->addToken(Token(tok_end, "end", v.name_token.location));
                     return setter;
                 };
 
@@ -2900,6 +2904,13 @@ namespace sclc {
                         nextAttributes.push_back("static");
                     }
                     nextAttributes.push_back(tokens[i].value);
+                } else if (tokens[i].type == tok_addr_of) {
+                    i++;
+                    if (tokens[i].value == "construct" && currentStructs.size()) {
+                        nextAttributes.push_back("private");
+                        nextAttributes.push_back("static");
+                    }
+                    nextAttributes.push_back(tokens[i].value);
                 }
             }
         }
@@ -3050,7 +3061,7 @@ namespace sclc {
                         toString->addToken(Token(tok_double_column, "::", s.name_token.location));
                         toString->addToken(Token(tok_identifier, "toHexString", s.name_token.location));
                     } else {
-                        if (canBeNil) {
+                        if (canBeNil || type.front() == '*') {
                             toString->addToken(Token(tok_identifier, "builtinToString", s.name_token.location));
                         } else {
                             toString->addToken(Token(tok_column, ":", s.name_token.location));
@@ -3069,20 +3080,6 @@ namespace sclc {
                     while (i < s.members.size() && strcontains(s.members[i].name, "$BACKER")) {
                         i++;
                     }
-
-                    // size_t count = 0;
-                    // for (member = s.members[i++]; strcontains(member.name, "$BACKER") && i < s.members.size(); member = s.members[i++]) {
-                    //     if (count) {
-                    //         toString->addToken(Token(tok_string_literal, ", ", s.name_token.location));
-                    //         toString->addToken(Token(tok_identifier, "+", s.name_token.location));
-                    //     }
-                    //     emitMember(member);
-                    //     toString->addToken(Token(tok_identifier, "+", s.name_token.location));
-                    //     count++;
-                    // }
-                    // toString->addToken(Token(tok_string_literal, "]", s.name_token.location));
-                    // toString->addToken(Token(tok_identifier, "+", s.name_token.location));
-                    // toString->addToken(Token(tok_paren_close, ")", s.name_token.location));
                 } else {
                     emitMember(member);
                 }
@@ -3132,7 +3129,7 @@ namespace sclc {
                         toString->addToken(Token(tok_double_column, "::", s.name_token.location));
                         toString->addToken(Token(tok_identifier, "toHexString", s.name_token.location));
                     } else {
-                        if (canBeNil) {
+                        if (canBeNil || type.front() == '*') {
                             toString->addToken(Token(tok_identifier, "builtinToString", s.name_token.location));
                         } else {
                             toString->addToken(Token(tok_column, ":", s.name_token.location));
@@ -3151,20 +3148,6 @@ namespace sclc {
                     while (i < s.members.size() && strcontains(s.members[i].name, "$BACKER")) {
                         i++;
                     }
-
-                    // size_t count = 0;
-                    // for (member = s.members[i++]; strcontains(member.name, "$BACKER") && i < s.members.size(); member = s.members[i++]) {
-                    //     if (count) {
-                    //         toString->addToken(Token(tok_string_literal, ", ", s.name_token.location));
-                    //         toString->addToken(Token(tok_identifier, "+", s.name_token.location));
-                    //     }
-                    //     emitMember(member);
-                    //     toString->addToken(Token(tok_identifier, "+", s.name_token.location));
-                    //     count++;
-                    // }
-                    // toString->addToken(Token(tok_string_literal, "]", s.name_token.location));
-                    // toString->addToken(Token(tok_identifier, "+", s.name_token.location));
-                    // toString->addToken(Token(tok_paren_close, ")", s.name_token.location));
                 } else {
                     emitMember(member);
                 }
