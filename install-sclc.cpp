@@ -208,7 +208,7 @@ int real_main(int argc, char const *argv[]) {
 
     std::string install_root_dir = user_home_dir;
 
-#if defined(__linux__)
+#if !defined(_WIN32)
     install_root_dir += "/.local";
 #endif
 
@@ -414,13 +414,12 @@ int real_main(int argc, char const *argv[]) {
     fs::remove(path + DIR_SEP "Internal" DIR_SEP "gc.o");
 
     fs::path symlinked_path =
-    #if defined(__linux__)
-    install_root_dir + DIR_SEP "bin" DIR_SEP + binary;
-    #elif defined(_WIN32)
-    install_root_dir
+    #if defined(_WIN32)
+        install_root_dir
     #else
-    install_root_dir + DIR_SEP "bin" DIR_SEP + binary;
+        install_root_dir + DIR_SEP "bin" DIR_SEP + binary;
     #endif
+    
     symlinked_path = symlinked_path.make_preferred();
 
     std::cout << ERASE_LINE << Color::BLUE << "Waiting for compilation to finish..." << Color::RESET << std::endl;
