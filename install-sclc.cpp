@@ -11,6 +11,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <functional>
+#include <fstream>
 
 #if defined(_WIN32)
 #include <windows.h>
@@ -155,14 +156,6 @@ std::thread async(std::function<void()> f) {
     return std::thread(f);
 }
 
-std::thread exec_command_async(std::string cmd) {
-    return async([cmd]() {
-        exec_command(cmd);
-    });
-}
-
-#define await(t) ({ std::cout << ERASE_LINE << Color::YELLOW << "Waiting on " #t << Color::RESET; std::cout.flush(); if (t.joinable()) t.join(); })
-
 void go_rebuild_yourself(int argc, char const *argv[]) {
     const char* source_file = __FILE__;
     const char* binary_file = argv[0];
@@ -229,14 +222,17 @@ int real_main(int argc, char const *argv[]) {
     }
 
     exec_command(create_command({"git", "clone", "--depth=1", "https://github.com/ivmai/bdwgc.git", "bdwgc"}));
-    #if defined(_WIN32)
-    exec_command(create_command({"git", "clone", "--depth=1", "https://github.com/ivmai/libatomic_ops.git", "libatomic_ops"}));
-    #endif
 
     fs::copy("bdwgc" DIR_SEP "include", path + DIR_SEP "Internal" DIR_SEP "include", fs::copy_options::overwrite_existing | fs::copy_options::recursive);
     
-    auto gc_lib_cmd = async([path, debug]() {
-        exec_command(create_command({
+    std::vector<std::pair<std::string, std::thread>> builders;
+    std::vector<int*> returnValue;
+
+    returnValue.push_back(nullptr);
+    returnValue.push_back(nullptr);
+    returnValue.push_back(nullptr);
+    auto gc_lib_cmd = async([path, debug, &returnValue]() {
+        std::string cmd = create_command({
             CC,
             "-c",
             "-I",
@@ -260,9 +256,72 @@ int real_main(int argc, char const *argv[]) {
             "bdwgc" DIR_SEP "extra" DIR_SEP "gc.c",
             "-o",
             path + DIR_SEP "Internal" DIR_SEP "gc.o"
-        }));
+        });
+        int r = std::system((cmd + " > " + path + DIR_SEP "Internal" DIR_SEP "gc.o.log 2>&1").c_str());
+        returnValue[0] = new int(r);
         fs::remove_all("bdwgc");
     });
+    
+    auto runtime_cmd = async([path, debug, &returnValue]() {
+        std::string cmd = create_command({ // Compile runtime
+            CC,
+            "-fvisibility=default",
+            ("-std=" C_VERSION),
+            "-I" + path + DIR_SEP "Internal",
+            "-I" + path + DIR_SEP "Internal" DIR_SEP "include",
+            path + DIR_SEP "Internal" DIR_SEP "scale_runtime.c",
+            "-c",
+        #if !defined(_WIN32)
+            "-fPIC",
+        #else
+            "-D_CRT_SECURE_NO_WARNINGS",
+        #endif
+            "-o",
+            path + DIR_SEP "Internal" DIR_SEP "scale_runtime.o",
+            debug ? "-O0 -g -DDEBUG" : "-O2",
+        });
+        int r = std::system((cmd + " > " + path + DIR_SEP "Internal" DIR_SEP "scale_runtime.o.log 2>&1").c_str());
+        returnValue[1] = new int(r);
+    });
+    auto cxx_runtime_cmd = async([path, debug, &returnValue]() {
+        std::string cmd = create_command({ // Compile C++ runtime
+            CXX,
+            "-fvisibility=default",
+            ("-std=" CXX_VERSION),
+            "-I" + path + DIR_SEP "Internal",
+            "-I" + path + DIR_SEP "Internal" DIR_SEP "include",
+            path + DIR_SEP "Internal" DIR_SEP "scale_cxx.cpp",
+            "-c",
+        #if !defined(_WIN32)
+            "-fPIC",
+        #else
+            "-D_CRT_SECURE_NO_WARNINGS",
+        #endif
+            "-o",
+            path + DIR_SEP "Internal" DIR_SEP "scale_cxx.o",
+            debug ? "-O0 -g -DDEBUG" : "-O2",
+        });
+        int r = std::system((cmd + " > " + path + DIR_SEP "Internal" DIR_SEP "scale_cxx.o.log 2>&1").c_str());
+        returnValue[2] = new int(r);
+    });
+    builders.push_back(
+        std::make_pair(
+            path + DIR_SEP "Internal" DIR_SEP "gc.o",
+            std::move(gc_lib_cmd)
+        )
+    );
+    builders.push_back(
+        std::make_pair(
+            path + DIR_SEP "Internal" DIR_SEP "scale_runtime.o",
+            std::move(runtime_cmd)
+        )
+    );
+    builders.push_back(
+        std::make_pair(
+            path + DIR_SEP "Internal" DIR_SEP "scale_cxx.o",
+            std::move(cxx_runtime_cmd)
+        )
+    );
 
     #if defined(_WIN32)
     auto escape_backslashes = [](std::string s) -> std::string {
@@ -302,7 +361,6 @@ int real_main(int argc, char const *argv[]) {
     });
     
     auto source_files = listFiles("Compiler", ".cpp");
-    auto builders = std::unordered_map<std::string, std::thread>(source_files.size());
     
     std::vector<std::string> link_command = {
         compile_command,
@@ -332,7 +390,12 @@ int real_main(int argc, char const *argv[]) {
         #endif
 
         if (fullRebuild || !fs::exists(f.string() + ".o") || fs::last_write_time(f) > fs::last_write_time(f.string() + ".o")) {
-            builders[f] = exec_command_async(cmd);
+            size_t n = returnValue.size();
+            returnValue.push_back(nullptr);
+            builders.push_back(std::make_pair(f.string(), async([cmd, n, &returnValue, f]() {
+                int r = std::system((cmd + " > " + f.string() + ".log 2>&1").c_str());
+                returnValue[n] = new int(r);
+            })));
         }
     }
 
@@ -340,44 +403,72 @@ int real_main(int argc, char const *argv[]) {
     link_command.push_back(std::string(path) + DIR_SEP + binary);
 
     fs::remove(path + DIR_SEP "Internal" DIR_SEP "lib" DIR_SEP "" LIB_SCALE_FILENAME);
+
+    fs::path symlinked_path =
+    #if defined(_WIN32)
+        install_root_dir
+    #else
+        install_root_dir + DIR_SEP "bin" DIR_SEP + binary;
+    #endif
     
-    auto runtime_cmd = exec_command_async(create_command({ // Compile runtime
-        CC,
-        "-fvisibility=default",
-        ("-std=" C_VERSION),
-        "-I" + path + DIR_SEP "Internal",
-        "-I" + path + DIR_SEP "Internal" DIR_SEP "include",
-        path + DIR_SEP "Internal" DIR_SEP "scale_runtime.c",
-        "-c",
-    #if !defined(_WIN32)
-        "-fPIC",
-    #else
-        "-D_CRT_SECURE_NO_WARNINGS",
-    #endif
-        "-o",
-        path + DIR_SEP "Internal" DIR_SEP "scale_runtime.o",
-        debug ? "-O0 -g -DDEBUG" : "-O2",
-    }));
-    auto cxx_runtime_cmd = exec_command_async(create_command({ // Compile C++ runtime
-        CXX,
-        "-fvisibility=default",
-        ("-std=" CXX_VERSION),
-        "-I" + path + DIR_SEP "Internal",
-        "-I" + path + DIR_SEP "Internal" DIR_SEP "include",
-        path + DIR_SEP "Internal" DIR_SEP "scale_cxx.cpp",
-        "-c",
-    #if !defined(_WIN32)
-        "-fPIC",
-    #else
-        "-D_CRT_SECURE_NO_WARNINGS",
-    #endif
-        "-o",
-        path + DIR_SEP "Internal" DIR_SEP "scale_cxx.o",
-        debug ? "-O0 -g -DDEBUG" : "-O2",
-    }));
-    await(runtime_cmd);
-    await(cxx_runtime_cmd);
-    await(gc_lib_cmd);
+    symlinked_path = symlinked_path.make_preferred();
+
+    char waiting = '-';
+    char done = 'D';
+    char error = 'E';
+    bool someoneRunning = true;
+    if (builders.size() != returnValue.size()) {
+        std::cerr << "Builders and return values are not the same size!" << std::endl;
+        std::cerr << "Builders: " << builders.size() << std::endl;
+        std::cerr << "Return values: " << returnValue.size() << std::endl;
+        std::exit(1);
+    }
+    while (someoneRunning) {
+        std::cout << ERASE_LINE << Color::GREEN << "[" << Color::RESET;
+        someoneRunning = false;
+        for (size_t i = 0; i < returnValue.size(); i++) {
+            if (returnValue[i] == nullptr) {
+                someoneRunning = true;
+                std::cout << Color::YELLOW << waiting << Color::RESET;
+            } else if (*returnValue[i] == 0) {
+                std::remove((builders[i].first + ".log").c_str());
+                std::cout << Color::GREEN << done << Color::RESET;
+            } else {
+                std::cout << Color::RED << error << Color::RESET;
+            }
+        }
+        std::cout << Color::GREEN << "]" << Color::RESET << std::flush;
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    }
+    std::cout << std::endl;
+    bool hasError = false;
+    for (size_t i = 0; i < returnValue.size(); i++) {
+        if (*returnValue[i] != 0) {
+            hasError = true;
+            std::ifstream file(builders[i].first + ".log");
+            std::string line;
+            while (std::getline(file, line)) {
+                std::cerr << line << std::endl;
+            }
+            file.close();
+            std::remove((builders[i].first + ".log").c_str());
+        }
+        delete returnValue[i];
+    }
+    for (auto&& p : builders) {
+        if (p.second.joinable()) {
+            p.second.join();
+        }
+    }
+    if (hasError) {
+        std::exit(1);
+    }
+    exec_command(create_command(link_command));
+    
+    // await(runtime_cmd);
+    // await(cxx_runtime_cmd);
+    // await(gc_lib_cmd);
+
     exec_command(create_command({ // Link runtime
         CXX,
         "-fvisibility=default",
@@ -413,27 +504,6 @@ int real_main(int argc, char const *argv[]) {
     fs::remove(path + DIR_SEP "Internal" DIR_SEP "scale_cxx.o");
     fs::remove(path + DIR_SEP "Internal" DIR_SEP "gc.o");
 
-    fs::path symlinked_path =
-    #if defined(_WIN32)
-        install_root_dir
-    #else
-        install_root_dir + DIR_SEP "bin" DIR_SEP + binary;
-    #endif
-    
-    symlinked_path = symlinked_path.make_preferred();
-
-    std::cout << ERASE_LINE << Color::BLUE << "Waiting for compilation to finish..." << Color::RESET << std::endl;
-    size_t n = 0;
-    for (auto&& p : builders) {
-        if (p.second.joinable()) {
-            p.second.join();
-            n++;
-            std::cout << ERASE_LINE << Color::GREEN << "[" << n << "/" << builders.size() << "] " << Color::RESET << p.first;
-            std::cout.flush();
-        }
-    }
-    exec_command(create_command(link_command));
-
     if (!fs::exists(symlinked_path.parent_path())) {
         fs::create_directories(symlinked_path.parent_path());
     } else {
@@ -459,7 +529,7 @@ int real_main(int argc, char const *argv[]) {
     }
 #endif
 
-    std::cout << ERASE_LINE << Color::GREEN << "Scale was successfully installed to " << path << Color::RESET << std::endl;
+    std::cout << Color::GREEN << "Scale was successfully installed to " << path << Color::RESET << std::endl;
 
     #if defined(_WIN32)
     std::cout << "IMPORTANT!!!!!" << std::endl;
