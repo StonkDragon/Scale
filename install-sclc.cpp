@@ -112,6 +112,22 @@ COLOR(STRIKETHROUGH, "\033[9m");
 
 #define ERASE_LINE "\033[2K\r"
 
+#if defined(NO_THREADS)
+class fake_thread {
+public:
+    fake_thread(std::function<void()> f) {
+        f();
+    }
+
+    void join() {}
+    bool joinable() { return false; }
+};
+
+using thread_type = fake_thread;
+#else
+using thread_type = std::thread;
+#endif
+
 void depends_on(std::string command, const char* error) {
 #if defined(_WIN32)
     int result = std::system((command + " > nul 2>&1").c_str());
@@ -152,8 +168,8 @@ void exec_command(std::string cmd) {
     if (x) std::exit(x);
 }
 
-std::thread async(std::function<void()> f) {
-    return std::thread(f);
+thread_type async(std::function<void()> f) {
+    return thread_type(f);
 }
 
 void go_rebuild_yourself(int argc, char const *argv[]) {
@@ -163,7 +179,10 @@ void go_rebuild_yourself(int argc, char const *argv[]) {
         auto cmd = create_command({
         CXX, "-o", binary_file, source_file, "-std=" CXX_VERSION,
     #if defined(_WIN32)
-        "-lAdvapi32"
+        "-lAdvapi32",
+    #endif
+    #if defined(NO_THREADS)
+        "-DNO_THREADS",
     #endif
         });
         exec_command(cmd);
@@ -225,7 +244,7 @@ int real_main(int argc, char const *argv[]) {
 
     fs::copy("bdwgc" DIR_SEP "include", path + DIR_SEP "Internal" DIR_SEP "include", fs::copy_options::overwrite_existing | fs::copy_options::recursive);
     
-    std::vector<std::pair<std::string, std::thread>> builders;
+    std::vector<std::pair<std::string, thread_type>> builders;
     std::vector<int*> returnValue;
 
     returnValue.push_back(nullptr);
@@ -424,20 +443,20 @@ int real_main(int argc, char const *argv[]) {
         std::exit(1);
     }
     while (someoneRunning) {
-        std::cout << ERASE_LINE << Color::GREEN << "[" << Color::RESET;
+        std::cout << ERASE_LINE << Color::GREEN << "[";
         someoneRunning = false;
         for (size_t i = 0; i < returnValue.size(); i++) {
             if (returnValue[i] == nullptr) {
                 someoneRunning = true;
-                std::cout << Color::YELLOW << waiting << Color::RESET;
+                std::cout << Color::YELLOW << waiting;
             } else if (*returnValue[i] == 0) {
                 std::remove((builders[i].first + ".log").c_str());
-                std::cout << Color::GREEN << done << Color::RESET;
+                std::cout << Color::GREEN << done;
             } else {
-                std::cout << Color::RED << error << Color::RESET;
+                std::cout << Color::RED << error;
             }
         }
-        std::cout << Color::GREEN << "]" << Color::RESET << std::flush;
+        std::cout << Color::GREEN << "]" << std::flush;
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
     std::cout << std::endl;
