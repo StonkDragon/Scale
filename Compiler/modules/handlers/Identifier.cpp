@@ -262,12 +262,57 @@ namespace sclc {
                 }
             }
         }
+        // const auto funcNameLambda = [](Function* f) {
+        //     if (f->isMethod) {
+        //         return f->member_type + "$$" + f->name;
+        //     }
+        //     return f->name;
+        // };
         if (hasVar(body[i].value)) {
+            // if (hasFunction(result, "$lambda$" + body[i].value + "$" + funcNameLambda(function))) {
+            //     Function* f = getFunctionByName(result, "$lambda$" + body[i].value + "$" + funcNameLambda(function));
+            //     if (f->isMethod) {
+            //         transpilerError("'" + f->name + "' is a method, not a function.", i);
+            //         errors.push_back(err);
+            //         return;
+            //     }
+            //     Variable v = getVar(body[i].value);
+            //     makePath(result, v, false, body, i, errors, false, function, warns, fp, [&](auto path, auto lastType) {
+            //         LOAD_PATH(path, lastType);
+            //     });
+            //     std::string arguments = "";
+            //     if (f->isMethod) {
+            //         arguments = sclTypeToCType(result, f->member_type) + " Var_self";
+            //         for (size_t i = 0; i < f->args.size() - 1; i++) {
+            //             std::string type = sclTypeToCType(result, f->args[i].type);
+            //             arguments += ", " + type;
+            //             if (type == "varargs" || type == "...") continue;
+            //             if (f->args[i].name.size())
+            //                 arguments += " Var_" + f->args[i].name;
+            //         }
+            //     } else {
+            //         if (f->args.size() > 0) {
+            //             for (size_t i = 0; i < f->args.size(); i++) {
+            //                 std::string type = sclTypeToCType(result, f->args[i].type);
+            //                 if (i) {
+            //                     arguments += ", ";
+            //                 }
+            //                 arguments += type;
+            //                 if (type == "varargs" || type == "...") continue;
+            //                 if (f->args[i].name.size())
+            //                     arguments += " Var_" + f->args[i].name;
+            //             }
+            //         }
+            //     }
+            //     append("%s fn_%s(%s) SYMBOL(%s);\n", sclTypeToCType(result, f->return_type).c_str(), f->name.c_str(), arguments.c_str(), generateSymbolForFunction(f).c_str());
+            //     functionCall(f, fp, result, warns, errors, body, i);
+            // } else {
         normalVar:
             Variable v = getVar(body[i].value);
             makePath(result, v, false, body, i, errors, false, function, warns, fp, [&](auto path, auto lastType) {
                 LOAD_PATH(path, lastType);
             });
+            // }
         } else if (hasFunction(result, body[i].value)) {
             Function* f = getFunctionByName(result, body[i].value);
             if (f->isMethod) {

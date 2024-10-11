@@ -181,7 +181,7 @@ void Thread$run(scale_Thread self) {
 	Process$unlock(Thread$threads);
 	
 	TRY {
-		(*self->function)(self->function);
+		self->function->func(self->function);
 	} else {
 		scale_runtime_catch(scale_exception_handler.exception);
 	}

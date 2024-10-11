@@ -240,8 +240,10 @@ typedef unsigned int		scale_uint32;
 typedef unsigned short		scale_uint16;
 typedef unsigned char		scale_uint8;
 
+#define SCALE_LAMBDA_TYPE(rtype, ...) struct { rtype(*func)(__VA_ARGS__ __VA_OPT__(,) void*); }*
+
 typedef void(*scale_function)(void);
-typedef void(*(*scale_lambda))(void*);
+typedef SCALE_LAMBDA_TYPE(void) scale_lambda;
 
 typedef scale_uint ID_t;
 

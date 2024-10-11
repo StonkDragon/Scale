@@ -399,7 +399,7 @@ namespace sclc
         headerFile.close();
 
         std::ofstream outputFile(file, std::ios::out);
-        outputFile << "#include \"" << header << "\"\n";
+        outputFile << "#include \"" << std::filesystem::path(header).filename().string() << "\"\n";
         outputFile << "// Begin functions\n";
         outputFile << func_file_data;
         outputFile << "// End functions\n";

@@ -1367,8 +1367,8 @@ namespace sclc
             cflags.push_back(s);
         }
 
-        std::string outputFileName = "generated.c";
-        std::string outputHeaderFileName = "generated.h";
+        std::string outputFileName = outfile + ".c";
+        std::string outputHeaderFileName = outfile + ".h";
 
         DBG("Parsing");
         

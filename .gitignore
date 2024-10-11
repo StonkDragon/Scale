@@ -11,8 +11,8 @@ out.typeinfo.h
 *.js
 *.S
 *.s
-generated.h
-generated.c
+out.scl.h
+out.scl.c
 sclc
 
 # Linker output
