@@ -424,14 +424,6 @@
 		],
 		"description": "C Symbol name"
 	},
-	"ASM Symbol": {
-		"scope": "source.scale",
-		"prefix": "asm",
-		"body": [
-			"asm \"$0\"",
-		],
-		"description": "ASM Symbol name"
-	},
 	"Overrides": {
 		"scope": "source.scale",
 		"prefix": "overrides",

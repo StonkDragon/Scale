@@ -11,9 +11,15 @@ struct SclObject
         self:hashCode other as SclObject:hashCode == return
     end
 
-    expect foreign cdecl "scale_atomic_clone" function clone(): SclObject
+    function clone(): SclObject
+        self builtinAtomicClone return
+    end
 
-    expect foreign cdecl "scale_identity_hash" function hashCode(): int
+    function hashCode(): int
+        unsafe
+            self as [int8] builtinHash return
+        end
+    end
 
     init() end
     deinit() end

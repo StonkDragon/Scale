@@ -5,6 +5,8 @@
 #include <Functions.hpp>
 
 namespace sclc {
+    extern std::vector<std::string> strings;
+
     handler(Dot) {
         noUnused;
         std::string type = typeStackTop;
@@ -48,7 +50,7 @@ namespace sclc {
                 scopeDepth++;
                 append("scale_any tmp = scale_pop(scale_any);\n");
                 std::string t = type;
-                append("scale_push(scale_str, scale_static_string(\"%s\", 0x%lxUL));\n", body[i].value.c_str(), id(body[i].value.c_str()));
+                append("scale_push(scale_str, (scale_str) (scale_mark_static(&static_str_%lu.layout) + sizeof(memory_layout_t)));\n", findOrAdd(strings, body[i].value));
                 typeStack.push_back("str");
                 append("scale_push(scale_any, tmp);\n");
                 typeStack.push_back(t);
@@ -66,7 +68,7 @@ namespace sclc {
                     lambdaType += m->args[i].type;
                 }
                 lambdaType += "):" + m->return_type;
-                append("scale_push(scale_any, mt_%s$%s);\n", s.name.c_str(), m->name.c_str());
+                append("scale_push(scale_any, %s);\n", s.name.c_str(), m->outputName().c_str());
                 typeStack.push_back(lambdaType);
                 return;
             }
@@ -97,7 +99,7 @@ namespace sclc {
         if (m) {
             if (dot.value == "?.") {
                 if (deref) {
-                    append("scale_top(%s) = scale_top(scale_int) ? *(mt_%s$%s(scale_top(%s))) : 0%s;\n", sclTypeToCType(result, m->return_type).c_str(), m->member_type.c_str(), m->name.c_str(), sclTypeToCType(result, m->member_type).c_str(), removeTypeModifiers(m->return_type) == "float" ? ".0" : "");
+                    append("scale_top(%s) = scale_top(scale_int) ? *(%s(scale_top(%s))) : 0%s;\n", sclTypeToCType(result, m->return_type).c_str(), m->member_type.c_str(), m->outputName().c_str(), sclTypeToCType(result, m->member_type).c_str(), removeTypeModifiers(m->return_type) == "float" ? ".0" : "");
                     std::string type = m->return_type;
                     if (type.size() > 2 && type.front() == '[' && type.back() == ']') {
                         type = type.substr(1, type.size() - 2);
@@ -108,12 +110,12 @@ namespace sclc {
                     }
                     typeStack.push_back(type);
                 } else {
-                    append("scale_top(%s) = scale_top(scale_int) ? mt_%s$%s(scale_top(%s)) : 0%s;\n", sclTypeToCType(result, m->return_type).c_str(), m->member_type.c_str(), m->name.c_str(), sclTypeToCType(result, m->member_type).c_str(), removeTypeModifiers(m->return_type) == "float" ? ".0" : "");
+                    append("scale_top(%s) = scale_top(scale_int) ? %s(scale_top(%s)) : 0%s;\n", sclTypeToCType(result, m->return_type).c_str(), m->member_type.c_str(), m->outputName().c_str(), sclTypeToCType(result, m->member_type).c_str(), removeTypeModifiers(m->return_type) == "float" ? ".0" : "");
                     typeStack.push_back(m->return_type);
                 }
             } else {
                 if (deref) {
-                    append("scale_top(%s) = *(mt_%s$%s(scale_top(%s)));\n", sclTypeToCType(result, m->return_type).c_str(), m->member_type.c_str(), m->name.c_str(), sclTypeToCType(result, m->member_type).c_str());
+                    append("scale_top(%s) = *(%s(scale_top(%s)));\n", sclTypeToCType(result, m->return_type).c_str(), m->member_type.c_str(), m->outputName().c_str(), sclTypeToCType(result, m->member_type).c_str());
                     std::string type = m->return_type;
                     if (type.size() > 2 && type.front() == '[' && type.back() == ']') {
                         type = type.substr(1, type.size() - 2);
@@ -124,7 +126,7 @@ namespace sclc {
                     }
                     typeStack.push_back(type);
                 } else {
-                    append("scale_top(%s) = mt_%s$%s(scale_top(%s));\n", sclTypeToCType(result, m->return_type).c_str(), m->member_type.c_str(), m->name.c_str(), sclTypeToCType(result, m->member_type).c_str());
+                    append("scale_top(%s) = %s(scale_top(%s));\n", sclTypeToCType(result, m->return_type).c_str(), m->member_type.c_str(), m->outputName().c_str(), sclTypeToCType(result, m->member_type).c_str());
                     typeStack.push_back(m->return_type);
                 }
             }

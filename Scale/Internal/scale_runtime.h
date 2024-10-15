@@ -327,9 +327,11 @@ typedef struct {
 	scale_int32 array_elem_size:24 scale_packed;
 } memory_layout_t;
 
-#define MEM_FLAG_INSTANCE	0x01
-#define MEM_FLAG_ARRAY		0x02
-#define MEM_FLAG_STATIC		0x04
+#define MEM_FLAG_STATIC		0x01
+#define MEM_FLAG_STACK		0x02
+#define MEM_FLAG_HEAP		0x04
+#define MEM_FLAG_INSTANCE	0x10
+#define MEM_FLAG_ARRAY		0x20
 
 struct scale_methodinfo {
 	const ID_t							pure_name;
@@ -433,67 +435,17 @@ void				scale_trace_remove(struct scale_backtrace*);
 #include "preproc.h"
 
 // call a method on an instance
-#define				virtual_call(instance, methodIdentifier, rtype, ...) \
-						({ \
-							typeof((instance)) _tmp = (instance); \
-							((rtype(*)(typeof((instance)) __VA_OPT__(, _SCALE_TYPES(__VA_ARGS__)))) scale_get_vtable_function(_tmp, (methodIdentifier)))(_tmp, ##__VA_ARGS__); \
-						})
-
-// call a lambda
-#define call_lambda(lambda, rtype, ...) ({ \
-	rtype (*(*CONCAT(tmp, __LINE__)))(scale_any __VA_OPT__(, _SCALE_TYPES(__VA_ARGS__))) = (typeof(CONCAT(tmp, __LINE__))) (lambda); \
-	(*CONCAT(tmp, __LINE__))(CONCAT(tmp, __LINE__) __VA_OPT__(,) __VA_ARGS__); \
-})
+#define virtual_call(instance, methodIdentifier, rtype, ...) ({ \
+		typeof((instance)) _tmp = (instance); \
+		((rtype(*)(typeof((instance)) __VA_OPT__(, _SCALE_TYPES(__VA_ARGS__)))) scale_get_vtable_function(_tmp, (methodIdentifier)))(_tmp, ##__VA_ARGS__); \
+	})
 
 scale_no_return void	scale_runtime_error(int code, const scale_int8* msg, ...);
 scale_no_return void	scale_runtime_catch(scale_any ex);
 scale_no_return void	scale_throw(scale_any ex);
 
 scale_constructor
-void				scale_setup(void);
-
-#define scale_create_string(_data) ({ \
-						const scale_int8* data = (_data); \
-						scale_str str = ALLOC(str); \
-						str->length = strlen(data); \
-						str->data = (scale_int8*) scale_migrate_foreign_array(data, strlen(data) + 1, sizeof(scale_int8)); \
-						str->hash = type_id(data); \
-						str; \
-					})
-
-#define scale_uninitialized_constant_ctype(_type) ({ \
-						static struct { \
-							memory_layout_t layout; \
-							_type data; \
-						} _constant __asm__("lscale_const" scale_macro_to_string(__COUNTER__)) = { \
-							.layout = { \
-								.array_elem_size = 0, \
-								.flags = MEM_FLAG_INSTANCE, \
-								.size = sizeof(_type), \
-							}, \
-							.data = {}, \
-						}; \
-						&((typeof(_constant)*) scale_mark_static(&(_constant.layout)))->data; \
-					})
-
-#define scale_uninitialized_constant(_type) ({ \
-						extern const TypeInfo $I ## _type; \
-						scale_ ## _type _t; \
-						static struct { \
-							memory_layout_t layout; \
-							typeof(*_t) data; \
-						} _constant __asm__("lscale_const" scale_macro_to_string(__COUNTER__)) = { \
-							.layout = { \
-								.array_elem_size = 0, \
-								.flags = MEM_FLAG_INSTANCE, \
-								.size = sizeof(*_t), \
-							}, \
-							.data = { \
-								.$type = &$I ## _type, \
-							}, \
-						}; \
-						&((typeof(_constant)*) scale_mark_static(&(_constant.layout)))->data; \
-					})
+void					scale_setup(void);
 
 #define scale_stack_alloc(_type) ( \
 						&((struct { \
@@ -502,7 +454,7 @@ void				scale_setup(void);
 						}) { \
 							.layout = { \
 								.size = sizeof(struct Struct_ ## _type), \
-								.flags = MEM_FLAG_INSTANCE, \
+								.flags = MEM_FLAG_INSTANCE | MEM_FLAG_STACK, \
 							}, \
 							.data = { \
 								.$type = ({ \
@@ -520,6 +472,7 @@ void				scale_setup(void);
 						}) { \
 							.layout = { \
 								.size = sizeof(_type), \
+								.flags = MEM_FLAG_STACK, \
 							} \
 						}).data \
 					)
@@ -532,60 +485,79 @@ void				scale_setup(void);
 							.layout = { \
 								.size = (_size); \
 								.array_elem_size = sizeof(_type); \
-								.flags = MEM_FLAG_ARRAY; \
+								.flags = MEM_FLAG_ARRAY | MEM_FLAG_STACK, \
 							} \
 						}).data \
 					)
 
-#define scale_static_cstring(_data) ({ \
+#define scale_uninitialized_constant_ctype(_type) ({ \
 						static struct { \
 							memory_layout_t layout; \
-							scale_int8 data[sizeof((_data))]; \
-						} str_data __asm__("lscale_cstr" scale_macro_to_string(__COUNTER__)) = { \
+							_type data; \
+						} _constant __asm__("lscale_const" scale_macro_to_string(__COUNTER__)) = { \
 							.layout = { \
-								.array_elem_size = sizeof(scale_int8), \
-								.flags = MEM_FLAG_ARRAY, \
-								.size = sizeof((_data)) - 1, \
+								.array_elem_size = 0, \
+								.flags = MEM_FLAG_INSTANCE, \
+								.size = sizeof(_type), \
 							}, \
-							.data = (_data), \
+							.data = {}, \
 						}; \
-						scale_mark_static(&(str_data.layout)); \
-						(scale_int8*) ((str_data).data); \
+						&((typeof(_constant)*) scale_mark_static(&_constant.layout))->data; \
 					})
 
-#define scale_static_string(_data, _hash) ({ \
-						extern const TypeInfo $Istr; \
+#define STATIC_MEMORY(type) static struct { \
+							memory_layout_t layout; \
+							type data; \
+						}
+#define STATIC_MEMORY_ARRAY(type, size) static struct { \
+							memory_layout_t layout; \
+							type data[size]; \
+						}
+
+#define INSTANCE_LAYOUT(type) LAYOUT(MEM_FLAG_INSTANCE, sizeof(type), 0)
+#define ARRAY_LAYOUT(type, size) LAYOUT(MEM_FLAG_ARRAY, size, sizeof(type))
+#define LAYOUT(_flags, _size, _array_elem_size) { \
+	.size = _size, \
+	.flags = _flags, \
+	.array_elem_size = _array_elem_size, \
+}
+#define STATIC_CSTRING(_data, _num) \
+	STATIC_MEMORY_ARRAY(scale_int8, sizeof(_data)) static_cstr_ ## _num = { \
+		.layout = ARRAY_LAYOUT(scale_int8, sizeof(_data) - 1), \
+		.data = _data, \
+	}
+
+#define STATIC_STRING(_data, _hash, _num, _cstr) \
+	extern const TypeInfo $Istr; \
+	STATIC_MEMORY(struct Struct_str) static_str_ ## _num = { \
+		.layout = INSTANCE_LAYOUT(struct Struct_str), \
+		.data = { \
+			.$type = &$Istr, \
+			.data = static_cstr_ ## _cstr.data, \
+			.length = sizeof(_data) - 1, \
+			.hash = _hash, \
+		}, \
+	}
+
+#define scale_uninitialized_constant(_type) ({ \
+						extern const TypeInfo $I ## _type; \
+						scale_ ## _type _t; \
 						static struct { \
 							memory_layout_t layout; \
-							scale_int8 data[sizeof((_data))]; \
-						} str_data __asm__("lscale_cstr" scale_macro_to_string(__COUNTER__)) = { \
+							typeof(*_t) data; \
+						} _constant __asm__("lscale_const" scale_macro_to_string(__COUNTER__)) = { \
 							.layout = { \
-								.array_elem_size = sizeof(scale_int8), \
-								.flags = MEM_FLAG_ARRAY, \
-								.size = sizeof((_data)) - 1, \
-							}, \
-							.data = (_data), \
-						}; \
-						static struct { \
-							memory_layout_t layout; \
-							struct Struct_str data; \
-						} str __asm__("lscale_str" scale_macro_to_string(__COUNTER__)) = { \
-							.layout = { \
-								.size = sizeof(struct Struct_str), \
+								.array_elem_size = 0, \
 								.flags = MEM_FLAG_INSTANCE, \
+								.size = sizeof(*_t), \
 							}, \
 							.data = { \
-								.$type = &$Istr, \
-								.data = (str_data.data), \
-								.length = sizeof((_data)) - 1, \
-								.hash = _hash, \
+								.$type = &$I ## _type, \
 							}, \
 						}; \
-						scale_mark_static(&(str_data.layout)); \
-						&(((typeof(str)*) scale_mark_static(&(str.layout)))->data); \
+						&((typeof(_constant)*) scale_mark_static(&_constant.layout))->data; \
 					})
 
-// TODO: More macro magic: make this macro auto convert all args to safe values
 #define varargs(...)				_SCALE_PREPROC_NARG(__VA_ARGS__), _SCALE_VARARGS_SAFE(__VA_ARGS__)
 #define scale_varargs				scale_int $count, ...
 #define scale_varargs_safe(val)		REINTERPRET_CAST(scale_uint64, val)
@@ -612,7 +584,7 @@ ID_t					type_id(const scale_int8* data);
 scale_int				scale_identity_hash(scale_any obj);
 scale_int				scale_is_instance(scale_any ptr);
 #ifndef SCALE_EMBEDDED
-scale_any				scale_mark_static(memory_layout_t* layout);
+scale_any				scale_mark_static(scale_any x);
 #endif
 scale_int				scale_is_instance_of(scale_any ptr, ID_t type_id);
 scale_any				scale_get_vtable_function(scale_any instance, const scale_int8* methodIdentifier);
@@ -652,6 +624,15 @@ void					cxx_std_recursive_mutex_delete(scale_any* mutex);
 void					cxx_std_recursive_mutex_lock(scale_any* mutex);
 void					cxx_std_recursive_mutex_unlock(scale_any* mutex);
 // END C++ Concurrency API wrappers
+
+static inline scale_always_inline scale_str scale_create_string(const scale_int8* data) {
+	extern const TypeInfo $Istr;
+	scale_str str = (scale_str) scale_alloc_struct(&$Istr);
+	str->length = strlen(data);
+	str->data = (scale_int8*) scale_migrate_foreign_array(data, str->length + 1, sizeof(scale_int8));
+	str->hash = type_id(data);
+	return str;
+}
 
 static inline scale_always_inline void scale_reset_local_buffer(scale_int* ptr) {
 	*ptr = 0;

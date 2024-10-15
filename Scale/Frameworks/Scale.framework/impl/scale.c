@@ -90,6 +90,8 @@ typedef struct Struct_Range {
 extern scale_Array		Thread$threads;
 extern scale_Thread		Thread$mainThread;
 
+extern const TypeInfo	$IIllegalStateException;
+
 tls scale_Thread			_currentThread = nil;
 
 static scale_int count_trace_frames(scale_uint* stack_bottom, scale_uint* stack_top, scale_int iteration_direction) {
@@ -197,7 +199,7 @@ void Thread$run(scale_Thread self) {
 void Thread$start0(scale_Thread self) {
 	SCALE_BACKTRACE("Thread:start0(): none");
 	if (self->function == nil) {
-		scale_IllegalStateException e = ALLOC(IllegalStateException);
+		scale_IllegalStateException e = scale_alloc_struct(&$IIllegalStateException);
 		virtual_call(e, "init(s;)V;", void, str_of_exact("Cannot call start on main thread!"));
 		scale_throw(e);
 	}
@@ -207,7 +209,7 @@ void Thread$start0(scale_Thread self) {
 void Thread$stop0(scale_Thread self) {
 	SCALE_BACKTRACE("Thread:stop0(): none");
 	if (self->function == nil) {
-		scale_IllegalStateException e = ALLOC(IllegalStateException);
+		scale_IllegalStateException e = scale_alloc_struct(&$IIllegalStateException);
 		virtual_call(e, "init(s;)V;", void, str_of_exact("Cannot call join on main thread!"));
 		scale_throw(e);
 	}
@@ -217,7 +219,7 @@ void Thread$stop0(scale_Thread self) {
 void Thread$detach0(scale_Thread self) {
 	SCALE_BACKTRACE("Thread:detach0(): none");
 	if (self->function == nil) {
-		scale_IllegalStateException e = ALLOC(IllegalStateException);
+		scale_IllegalStateException e = scale_alloc_struct(&$IIllegalStateException);
 		virtual_call(e, "init(s;)V;", void, str_of_exact("Cannot detach main thread!"));
 		scale_throw(e);
 	}

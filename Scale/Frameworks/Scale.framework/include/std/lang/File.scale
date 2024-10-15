@@ -1,11 +1,11 @@
 typealias __c_file "FILE*"
 
 cdecl "scale_get_stdin"
-private expect foreign unsafe function __c_stdin(): __c_file
+private expect foreign unsafe function __c_stdin(): any
 cdecl "scale_get_stdout"
-private expect foreign unsafe function __c_stdout(): __c_file
+private expect foreign unsafe function __c_stdout(): any
 cdecl "scale_get_stderr"
-private expect foreign unsafe function __c_stderr(): __c_file
+private expect foreign unsafe function __c_stderr(): any
 cdecl "strlen"
 private expect foreign unsafe function __c_strlen(cstr: [int8]): int
 cdecl "getline"
@@ -26,7 +26,7 @@ final struct File
     unsafe
       File static {
         "stdin" => _name
-        __c_stdin => _file
+        (__c_stdin as __c_file) => _file
         false => _can_close
       }
     end
@@ -36,7 +36,7 @@ final struct File
     unsafe
       File static {
         "stdout" => _name
-        __c_stdout => _file
+        (__c_stdout as __c_file) => _file
         false => _can_close
       }
     end
@@ -46,7 +46,7 @@ final struct File
     unsafe
       File static {
         "stderr" => _name
-        __c_stderr => _file
+        (__c_stderr as __c_file) => _file
         false => _can_close
       }
     end

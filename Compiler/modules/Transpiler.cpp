@@ -151,33 +151,31 @@ namespace sclc {
 
             std::string symbol = generateSymbolForFunction(function);
 
+            if (function->has_reified) continue;
+
             if (!function->isMethod) {
                 if (UNLIKELY(function->return_type == "nothing")) {
                     append("scale_no_return ");
                 }
                 if (isMain) {
-                    append("int fn_%s(%s)", function->name.c_str(), arguments.c_str());
+                    append("int %s(%s)", function->outputName().c_str(), arguments.c_str());
                 } else {
                     if (UNLIKELY(function->has_async)) {
-                        append("struct _args_fn_%s {\n", function->name.c_str());
+                        append("struct _args_%s {\n", function->outputName().c_str());
                         for (size_t i = 0; i < function->args.size(); i++) {
                             append("  %s _Var_%s;\n", sclTypeToCType(result, function->args[i].type).c_str(), function->args[i].name.c_str());
                         }
                         append("};\n");
                         if (function->return_type.front() != '@') {
-                            append("%s fn_%s(struct _args_fn_%s*)", return_type.c_str(), function->name.c_str(), function->name.c_str());
+                            append("%s %s(struct _args_%s*)", return_type.c_str(), function->outputName().c_str(), function->outputName().c_str());
                         } else {
-                            append("%s* fn_%s(struct _args_fn_%s*)", return_type.c_str(), function->name.c_str(), function->name.c_str());
+                            append("%s* %s(struct _args_%s*)", return_type.c_str(), function->outputName().c_str(), function->outputName().c_str());
                         }
                     } else {
-                        append("%s fn_%s(%s)", return_type.c_str(), function->name.c_str(), arguments.c_str());
+                        append("%s %s(%s)", return_type.c_str(), function->outputName().c_str(), arguments.c_str());
                     }
                 }
-                if (function->has_asm) {
-                    append2(" __asm__(%s);\n", function->getModifier(function->has_asm + 1).c_str());
-                } else {
-                    append2(" SYMBOL(%s);\n", symbol.c_str());
-                }
+                append2(" SYMBOL(%s);\n", symbol.c_str());
                 if (UNLIKELY(function->has_foreign)) {
                     if (UNLIKELY(function->member_type.size() && hasMethod(result, function->name, function->member_type))) {
                         FPResult res;
@@ -192,24 +190,20 @@ namespace sclc {
                 }
             } else {
                 if (UNLIKELY(function->has_async)) {
-                    append("struct _args_mt_%s$%s {\n", function->member_type.c_str(), function->name.c_str());
+                    append("struct _args_%s {\n", function->outputName().c_str());
                     for (size_t i = 0; i < function->args.size(); i++) {
                         append("  %s _Var_%s;\n", sclTypeToCType(result, function->args[i].type).c_str(), function->args[i].name.c_str());
                     }
                     append("};\n");
                     if (function->return_type.front() != '@') {
-                        append("%s mt_%s$%s(struct _args_mt_%s$%s*)", return_type.c_str(), function->member_type.c_str(), function->name.c_str(), function->member_type.c_str(), function->name.c_str());
+                        append("%s %s(struct _args_%s$%s*)", return_type.c_str(), function->outputName().c_str(), function->outputName().c_str());
                     } else {
-                        append("%s* mt_%s$%s(struct _args_mt_%s$%s*)", return_type.c_str(), function->member_type.c_str(), function->name.c_str(), function->member_type.c_str(), function->name.c_str());
+                        append("%s* %s(struct _args_%s$%s*)", return_type.c_str(), function->outputName().c_str(), function->outputName().c_str());
                     }
                 } else {
-                    append("%s mt_%s$%s(%s)", return_type.c_str(), function->member_type.c_str(), function->name.c_str(), arguments.c_str());
+                    append("%s %s(%s)", return_type.c_str(), function->outputName().c_str(), arguments.c_str());
                 }
-                if (function->has_asm) {
-                    append2(" __asm__(%s);\n", function->getModifier(function->has_asm + 1).c_str());
-                } else {
-                    append2(" SYMBOL(%s);\n", symbol.c_str());
-                }
+                append2(" SYMBOL(%s);\n", symbol.c_str());
             }
         }
 
@@ -767,12 +761,7 @@ namespace sclc {
             } else {
                 if (function->has_async) {
                     arguments = "struct _args_";
-                    if (function->isMethod) {
-                        arguments += "mt_" + function->member_type + "$";
-                    } else {
-                        arguments += "fn_";
-                    }
-                    arguments += function->name + "* scale_args";
+                    arguments += function->outputName() + "* scale_args";
                 } else {
                     if (function->isMethod) {
                         arguments = sclTypeToCType(result, function->args[function->args.size() - 1].type) + " Var_self";
@@ -793,7 +782,7 @@ namespace sclc {
             }
 
             if (function->has_lambda) {
-                append("%s fn_%s(%s) SYMBOL(%s);\n", return_type.c_str(), function->name.c_str(), arguments.c_str(), generateSymbolForFunction(function).c_str());
+                append("%s %s(%s) SYMBOL(%s);\n", return_type.c_str(), function->outputName().c_str(), arguments.c_str(), generateSymbolForFunction(function).c_str());
             }
 
             if (function->has_inline && !isMainFunction) {
@@ -816,11 +805,11 @@ namespace sclc {
                     errors.push_back(err);
                     continue;
                 }
-                append2("mt_%s$%s(%s) {\n", function->member_type.c_str(), function->name.c_str(), arguments.c_str());
+                append2("%s(%s) {\n", function->outputName().c_str(), arguments.c_str());
                 if (function->name_without_overload == "init" && currentStruct.super.size()) {
                     Method* parentInit = getMethodByName(result, "init", currentStruct.super);
                     if (parentInit && parentInit->args.size() == 1) {
-                        append("  mt_%s$%s((%s) ", parentInit->member_type.c_str(), parentInit->name.c_str(), sclTypeToCType(result, parentInit->member_type).c_str());
+                        append("  %s((%s) ", parentInit->outputName().c_str(), sclTypeToCType(result, parentInit->member_type).c_str());
                         if (UNLIKELY(function->has_async)) {
                             append2("scale_args->_");
                         }
@@ -828,7 +817,7 @@ namespace sclc {
                     }
                 }
             } else {
-                append2("fn_%s(%s) {\n", function->name.c_str(), arguments.c_str());
+                append2("%s(%s) {\n", function->outputName().c_str(), arguments.c_str());
             }
             emitFunction(function, fp, result, isMainFunction, errors, warns);
 

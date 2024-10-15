@@ -111,7 +111,7 @@ namespace sclc {
 
             append("scale_push(scale_any, ({\n");
             append("  scale_any* tmp = scale_alloc(sizeof(scale_any));\n");
-            append("  *tmp = fn_%s;\n", f->name.c_str());
+            append("  *tmp = %s;\n", f->outputName().c_str());
             append("  tmp;\n");
             append("}));\n");
             std::string lambdaType = "lambda(";
@@ -233,7 +233,7 @@ namespace sclc {
                         }
                         append("scale_push(scale_any, ({\n");
                         append("  scale_any* tmp = scale_alloc(sizeof(scale_any));\n");
-                        append("  *tmp = mt_%s$%s;\n", f->member_type.c_str(), f->name.c_str());
+                        append("  *tmp = %s;\n", f->outputName().c_str());
                         append("  tmp;\n");
                         append("}));\n");
                         std::string lambdaType = "lambda(";
@@ -350,7 +350,7 @@ namespace sclc {
                     }
                     append("scale_push(scale_any, ({\n");
                     append("  scale_any* tmp = scale_alloc(sizeof(scale_any));\n");
-                    append("  *tmp = mt_%s$%s;\n", f->member_type.c_str(), f->name.c_str());
+                    append("  *tmp = %s;\n", f->outputName().c_str());
                     append("  tmp;\n");
                     append("}));\n");
                     std::string lambdaType = "lambda(";

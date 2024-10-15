@@ -36,7 +36,7 @@
 #endif
 
 #ifndef C_VERSION
-#define C_VERSION "gnu20"
+#define C_VERSION "gnu99"
 #endif
 
 #ifndef SCALE_INSTALL_DIR

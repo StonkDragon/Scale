@@ -111,7 +111,6 @@ namespace sclc
         "sizeof",
         "typealias",
         "layout",
-        "asm",
         "nothing",
         "none",
         "int",
@@ -337,6 +336,14 @@ namespace sclc
             }
         }
         vec.push_back(str);
+    }
+
+    size_t findOrAdd(std::vector<std::string>& vec, const std::string& str) {
+        for (size_t i = 0; i < vec.size(); i++) {
+            if (vec[i] == str) return i;
+        }
+        vec.push_back(str);
+        return vec.size() - 1;
     }
 
     std::string replaceAll(const std::string& src, const std::string& from, const std::string& to) {
@@ -954,7 +961,7 @@ namespace sclc
                         path = "*" + path;
                     }
                     if (mutate) {
-                        path = "mt_" + f->member_type + "$" + f->name + "(" + path + ", ";
+                        path = f->outputName() + "(" + path + ", ";
                         std::vector<Function*> funcs;
                         for (auto&& f : result.functions) {
                             if (f->name_without_overload == v.type + "$operator$store" || f->name_without_overload == v.type + "$=>") {
@@ -976,11 +983,11 @@ namespace sclc
                                 path += "*";
                             }
                             if (f->args[0].type.front() == '@') {
-                                path += "fn_" + f->name + "(*tmp)";
+                                path += f->outputName() + "(*tmp)";
                             } else {
-                                path += "fn_" + f->name + "(tmp)";
+                                path += f->outputName() + "(tmp)";
                             }
-                            path += "fn_" + f->name + "(tmp)";
+                            path += f->outputName() + "(tmp)";
                             funcFound = true;
                         }
                         if (currentType.front() == '@') {
@@ -993,7 +1000,7 @@ namespace sclc
                         onComplete(path, currentType);
                         return;
                     } else {
-                        path = "mt_" + f->member_type + "$" + f->name + "(" + path + ")";
+                        path = f->outputName() + "(" + path + ")";
                     }
                 } else {
                     if (valueType) {
@@ -1091,9 +1098,9 @@ namespace sclc
                                 path += "*";
                             }
                             if (f->args[0].type.front() == '@') {
-                                path += "fn_" + f->name + "(*tmp)";
+                                path += f->outputName() + "(*tmp)";
                             } else {
-                                path += "fn_" + f->name + "(tmp)";
+                                path += f->outputName() + "(tmp)";
                             }
                             funcFound = true;
                         }
@@ -1115,10 +1122,10 @@ namespace sclc
                     }
 
                     if (getElem) {
-                        path = "mt_" + arrayType + "$" + m->name + "(" + path + ", " + index + ")";
+                        path = m->outputName() + "(" + path + ", " + index + ")";
                         currentType = m->return_type;
                     } else {
-                        path = "mt_" + arrayType + "$" + m->name + "(" + path + ", " + index + ", ";
+                        path = m->outputName() + "(" + path + ", " + index + ", ";
                         std::vector<Function*> funcs;
                         for (auto&& f : result.functions) {
                             if (f->name_without_overload == v.type + "$operator$store" || f->name_without_overload == v.type + "$=>") {
@@ -1141,9 +1148,9 @@ namespace sclc
                                 path += "*";
                             }
                             if (f->args[0].type.front() == '@') {
-                                path += "fn_" + f->name + "(*tmp)";
+                                path += f->outputName() + "(*tmp)";
                             } else {
-                                path += "fn_" + f->name + "(tmp)";
+                                path += f->outputName() + "(tmp)";
                             }
                             funcFound = true;
                         }
@@ -1185,9 +1192,9 @@ namespace sclc
                     path += "*";
                 }
                 if (f->args[0].type.front() == '@') {
-                    path += "fn_" + f->name + "(*tmp)";
+                    path += f->outputName() + "(*tmp)";
                 } else {
-                    path += "fn_" + f->name + "(tmp)";
+                    path += f->outputName() + "(tmp)";
                 }
                 funcFound = true;
             }

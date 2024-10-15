@@ -171,7 +171,7 @@ namespace sclc {
         append("scale_push(scale_any, ({\n");
         scopeDepth++;
         const std::string sym = generateSymbolForFunction(f);
-        append("%s fn_$%s$%s(%s)", sclTypeToCType(result, f->return_type).c_str(), name.c_str(), function->name.c_str(), arguments.c_str());
+        append("%s %s(%s)", sclTypeToCType(result, f->return_type).c_str(), f->outputName().c_str(), arguments.c_str());
         append2(" SYMBOL(%s);\n", sym.c_str());
         append("struct l$%s$%s {\n", name.c_str(), function->name.c_str());
         append("  scale_any func;\n");
@@ -192,7 +192,7 @@ namespace sclc {
         for (size_t i = 0; i < f->ref_captures.size(); i++) {
             append("tmp->ref_%s = &(Var_%s);\n", f->ref_captures[i].name.c_str(), f->ref_captures[i].name.c_str());
         }
-        append("tmp->func = fn_$%s$%s;\n", name.c_str(), function->name.c_str());
+        append("tmp->func = %s;\n", name.c_str(), function->outputName().c_str());
         append("(scale_any) tmp;\n");
         scopeDepth--;
         append("}));\n");

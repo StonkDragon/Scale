@@ -241,6 +241,7 @@ namespace sclc {
     int isBinDigit(char c);
     int isOperator(char c);
     void addIfAbsent(std::vector<Function*>& vec, Function* str);
+    size_t findOrAdd(std::vector<std::string>& vec, const std::string& str);
     std::string replaceAll(const std::string& src, const std::string& from, const std::string& to);
     std::string replaceFirstAfter(const std::string& src, const std::string& from, const std::string& to, int index);
     int lastIndexOf(char* src, char c);

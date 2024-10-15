@@ -2,10 +2,10 @@ import std.io
 import std.runtime.Process
 
 cdecl "scale_throw"
-expect foreign function throw(ex: Exception): nothing
+expect foreign function throw(ex: any): nothing
 
 cdecl "raise"
-private expect foreign unsafe function __c_raise(sigNum: int): int
+private expect foreign unsafe function __c_raise(sigNum: int32): int32
 cdecl "get_errno"
 expect foreign function errno(): int
 cdecl "get_errno_as_str"
@@ -28,7 +28,7 @@ function raise(sigNum: int): nothing
 end
 
 cdecl "getchar"
-private expect foreign unsafe function __c_getchar(): int8
+private expect foreign unsafe function __c_getchar(): int
 
 function breakPoint(): none
   "Hit breakPoint. Press enter to continue." puts

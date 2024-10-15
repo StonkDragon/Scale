@@ -156,7 +156,6 @@ namespace sclc {
                 type == tok_addr_ref ||
                 type == tok_store ||
                 type == tok_declare ||
-                type == tok_container_def ||
                 type == tok_repeat ||
                 type == tok_struct_def ||
                 type == tok_new ||

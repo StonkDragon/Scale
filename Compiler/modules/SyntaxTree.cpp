@@ -1056,7 +1056,7 @@ namespace sclc {
             builtinHash->addModifier("cdecl");
             builtinHash->addModifier("type_id");
             
-            builtinHash->addArgument(Variable("data", "[int8]"));
+            builtinHash->addArgument(Variable("data", "const [int8]"));
             
             builtinHash->return_type = "uint";
             functions.push_back(builtinHash);
@@ -1087,7 +1087,7 @@ namespace sclc {
             builtinTypeEquals->addModifier("scale_is_instance_of");
 
             builtinTypeEquals->addArgument(Variable("obj", "any"));
-            builtinTypeEquals->addArgument(Variable("type_id", "int32"));
+            builtinTypeEquals->addArgument(Variable("type_id", "uint"));
 
             builtinTypeEquals->return_type = "int";
             functions.push_back(builtinTypeEquals);
@@ -2726,8 +2726,7 @@ namespace sclc {
                                 t.value == "const" ||
                                 t.value == "final" ||
                                 t.value == "async" ||
-                                t.value == "open" ||
-                                t.value == "asm"
+                                t.value == "open"
                             ));
                 };
 

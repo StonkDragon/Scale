@@ -26,7 +26,6 @@ Function::Function(std::string name, bool isMethod, Token name_token) : namedRet
     this->has_constructor = 0;
     this->has_cdecl = 0;
     this->has_lambda = 0;
-    this->has_asm = 0;
     this->has_final = 0;
     this->has_unsafe = 0;
     this->has_operator = 0;
@@ -56,7 +55,6 @@ void Function::addModifier(std::string modifier) {
     else if (has_constructor == 0 && modifier == "<constructor>") has_constructor = modifiers.size();
     else if (has_destructor == 0 && modifier == "<destructor>") has_destructor = modifiers.size();
     else if (has_cdecl == 0 && modifier == "cdecl") has_cdecl = modifiers.size();
-    else if (has_asm == 0 && modifier == "asm") has_asm = modifiers.size();
     else if (has_lambda == 0 && modifier == "<lambda>") has_lambda = modifiers.size();
     else if (has_final == 0 && modifier == "final") has_final = modifiers.size();
     else if (has_unsafe == 0 && modifier == "unsafe") has_unsafe = modifiers.size();
@@ -150,6 +148,11 @@ Function* Function::clone() {
     f->overloads.insert(f->overloads.end(), overloads.begin(), overloads.end());
     overloads.push_back(f);
     return f;
+}
+std::string Function::outputName() {
+    std::string generateSymbolForFunction(Function* f);
+    std::string sym = generateSymbolForFunction(this);
+    return "g" + sym.substr(1, sym.size() - 2);
 }
 
 Method::Method(std::string member_type, std::string name, Token name_token) : Function(name, true, name_token) {

@@ -72,7 +72,7 @@ namespace sclc {
                 std::string return_type = sclTypeToCType(result, m->return_type);
 
                 for (int i = targets.size() - 1; i >= 0; i--) {
-                    append("scale_push(%s, mt_%s$%s(tmp, %d));\n", return_type.c_str(), type.c_str(), m->name.c_str(), i);
+                    append("scale_push(%s, %s(tmp, %d));\n", return_type.c_str(), m->outputName().c_str(), i);
                     typeStack.push_back(m->return_type);
                 }
             } else {

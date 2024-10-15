@@ -41,7 +41,6 @@ namespace sclc
         tok_addr_ref,               // ref
         tok_store,                  // store
         tok_declare,                // decl
-        tok_container_def,          // container
         tok_repeat,                 // repeat
         tok_struct_def,             // struct
         tok_union_def,              // union

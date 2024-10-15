@@ -152,14 +152,15 @@ static memory_layout_t** static_ptrs = nil;
 static scale_int static_ptrs_cap = 0;
 static scale_int static_ptrs_count = 0;
 
-scale_any scale_mark_static(memory_layout_t* layout) {
-	if (layout->flags & MEM_FLAG_STATIC) return layout;
+scale_any scale_mark_static(scale_any x) {
+	memory_layout_t* layout = x;
+	if (layout->flags & MEM_FLAG_STATIC) return x;
 	layout->flags |= MEM_FLAG_STATIC;
 	GC_alloc_lock();
 	for (scale_int i = 0; i < static_ptrs_count; i++) {
 		if (static_ptrs[i] == layout) {
 			GC_alloc_unlock();
-			return layout;
+			return x;
 		}
 	}
 	static_ptrs_count++;
@@ -169,7 +170,7 @@ scale_any scale_mark_static(memory_layout_t* layout) {
 	}
 	static_ptrs[static_ptrs_count - 1] = layout;
 	GC_alloc_unlock();
-	return layout;
+	return x;
 }
 
 static scale_int scale_on_stack(scale_any ptr) {
@@ -238,6 +239,7 @@ scale_nodiscard scale_any scale_alloc(scale_int size) {
 	GC_register_finalizer(ptr, (GC_finalization_proc) scale_finalize, nil, nil, nil);
 
 	((memory_layout_t*) ptr)->size = orig_size;
+	((memory_layout_t*) ptr)->flags = MEM_FLAG_HEAP;
 
 	return ptr + sizeof(memory_layout_t);
 }
@@ -302,7 +304,8 @@ scale_no_return void scale_runtime_error(int code, const scale_int8* msg, ...) {
 	char* str = vstrformat(msg, args);
 	va_end(args);
 
-	scale_RuntimeError ex = ALLOC(RuntimeError);
+	extern const TypeInfo $IRuntimeError;
+	scale_RuntimeError ex = scale_alloc_struct(&$IRuntimeError);
 	virtual_call(ex, "init(s;)V;", void, scale_create_string(str));
 	
 	scale_throw(ex);
@@ -357,7 +360,8 @@ static void scale_signal_handler(scale_int sig_num) {
 	handling_signal = sig_num;
 	with_errno = errno;
 
-	scale_SignalError sigErr = ALLOC(SignalError);
+	extern const TypeInfo $ISignalError;
+	scale_SignalError sigErr = scale_alloc_struct(&$ISignalError);
 	virtual_call(sigErr, "init(s;)V;", void, scale_create_string(signalString));
 
 	handling_signal = 0;
@@ -370,7 +374,8 @@ void scale_sleep(scale_int millis) {
 }
 
 void builtinUnreachable(void) {
-	scale_UnreachableError e = ALLOC(UnreachableError);
+	extern const TypeInfo $IUnreachableError;
+	scale_UnreachableError e = scale_alloc_struct(&$IUnreachableError);
 	virtual_call(e, "init(s;)V;", void, str_of_exact("Unreachable"));
 	scale_throw(e);
 }
@@ -522,7 +527,6 @@ scale_int scale_is_instance(scale_any ptr) {
 }
 
 scale_int scale_is_instance_of(scale_any ptr, ID_t type_id) {
-	if (unlikely(((scale_int) ptr) <= 0)) return 0;
 	if (unlikely(!scale_is_instance(ptr))) return 0;
 
 	Struct* ptrStruct = (Struct*) ptr;
@@ -591,7 +595,8 @@ scale_any scale_checked_cast(scale_any instance, ID_t target_type, const scale_i
 			scale_str* stackTrace;
 		}* scale_CastError;
 
-		scale_CastError e = ALLOC(CastError);
+		extern const TypeInfo $ICastError;
+		scale_CastError e = scale_alloc_struct(&$ICastError);
 		if (instance == nil) {
 			virtual_call(e, "init(s;)V;", void, str_of_exact(strformat("Cannot cast nil to type '%s'", target_type_name)));
 			scale_throw(e);
@@ -699,7 +704,8 @@ scale_int scale_array_elem_size(scale_any* arr) {
 void scale_array_check_bounds_or_throw_unchecked(scale_any* arr, scale_int index) {
 	scale_int size = scale_array_size_unchecked(arr);
 	if (index < 0 || index >= size) {
-		scale_IndexOutOfBoundsException e = ALLOC(IndexOutOfBoundsException);
+		extern const TypeInfo $IIndexOutOfBoundsException;
+		scale_IndexOutOfBoundsException e = scale_alloc_struct(&$IIndexOutOfBoundsException);
 		virtual_call(e, "init(s;)V;", void, scale_create_string(strformat("Index " SCALE_INT_FMT " out of bounds for array of size " SCALE_INT_FMT, index, size)));
 		scale_throw(e);
 	}

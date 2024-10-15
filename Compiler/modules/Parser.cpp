@@ -23,6 +23,8 @@ namespace sclc
     extern std::unordered_map<std::string, std::vector<Method*>> vtables;
     extern std::vector<std::string> typeStack;
     extern StructTreeNode* structTree;
+    extern std::vector<std::string> strings;
+    extern std::vector<std::string> cstrings;
 
     Parser::Parser(TPResult& result) : result(result) {}
 
@@ -220,10 +222,10 @@ namespace sclc
                             Function* f = new Function("static_init$" + v.name, v.name_token);
                             f->return_type = "none";
                             initFuncs.push_back(f);
-                            append("void fn_static_init$%s() {\n", v.name.c_str());
+                            append("void %s() {\n", f->outputName().c_str());
                             scopeDepth++;
                             append("%s tmp = scale_uninitialized_constant(%s);\n", type.c_str(), s.name.c_str());
-                            append("mt_%s$%s(tmp);\n", m->member_type.c_str(), m->name.c_str());
+                            append("%s(tmp);\n", m->outputName().c_str());
                             append("Var_%s = tmp;\n", v.name.c_str());
                             scopeDepth--;
                             append("}\n", v.name.c_str());
@@ -252,7 +254,7 @@ namespace sclc
         if (Main::options::embedded) {
             append("scale_constructor void scale_setup(void) {}\n");
         }
-        append("scale_constructor void init_this%llx() {\n", rand);
+        append("scale_constructor void init_this%llx(void) {\n", rand);
         scopeDepth++;
         append("scale_setup();\n");
         for (auto&& f : initFuncs) {
@@ -266,13 +268,13 @@ namespace sclc
                 continue;
             }
             if (!f->has_expect)
-                append("  fn_%s();\n", f->name.c_str());
+                append("  %s();\n", f->outputName().c_str());
         }
         scopeDepth--;
         append("}\n");
 
         append("\n");
-        append("scale_destructor void destroy_this%llx() {\n", rand);
+        append("scale_destructor void destroy_this%llx(void) {\n", rand);
         if (destroyFuncs.size()) {
             scopeDepth++;
             for (auto&& f : destroyFuncs) {
@@ -286,7 +288,7 @@ namespace sclc
                     continue;
                 }
                 if (!f->has_expect)
-                    append("  fn_%s();\n", f->name.c_str());
+                    append("  %s();\n", f->outputName().c_str());
             }
             scopeDepth--;
         }
@@ -295,13 +297,16 @@ namespace sclc
         fp.flush();
         std::string func_file_data = fp.str();
         fp = std::ostringstream();
+        std::ostringstream rt_head;
 
         std::string rt_file_data;
         if (structTree) {
-            structTree->forEach([&fp, &isFrameworkFile](StructTreeNode* node) {
+            structTree->forEach([&fp, &rt_head, &isFrameworkFile](StructTreeNode* node) {
                 const Struct& s = node->s;
                 bool isTemplate = strstarts(s.name, "$T");
-
+                
+                rt_head << "extern const TypeInfo $I" << s.name << ";\n";
+                
                 const std::string& file = s.name_token.location.file;
                 if (
                     s.isExtern() ||
@@ -362,7 +367,7 @@ namespace sclc
                 append(".funcs = {\n");
                 scopeDepth++;
                 for (auto&& m : vtable->second) {
-                    append("(const scale_function) mt_%s$%s,\n", m->member_type.c_str(), m->name.c_str());
+                    append("(const scale_function) %s,\n", m->outputName().c_str());
                 }
                 append("0\n");
                 scopeDepth--;
@@ -396,10 +401,21 @@ namespace sclc
         headerFile << "// Begin headers\n";
         headerFile << header_file_data;
         headerFile << "// End headers\n";
+        headerFile << "// Begin runtime headers\n";
+        headerFile << rt_head.str();
+        headerFile << "// End runtime headers\n";
         headerFile.close();
 
         std::ofstream outputFile(file, std::ios::out);
         outputFile << "#include \"" << std::filesystem::path(header).filename().string() << "\"\n";
+        outputFile << "// Begin strings\n";
+        for (size_t i = 0; i < cstrings.size(); i++) {
+            outputFile << "STATIC_CSTRING(\"" << cstrings[i] << "\", " << i << ");\n";
+        }
+        for (size_t i = 0; i < strings.size(); i++) {
+            outputFile << "STATIC_STRING(\"" << strings[i] << "\", 0x" << std::hex << id(strings[i].c_str()) << std::dec << ", " << i << ", " << findOrAdd(cstrings, strings[i]) << ");\n";
+        }
+        outputFile << "// End strings\n";
         outputFile << "// Begin functions\n";
         outputFile << func_file_data;
         outputFile << "// End functions\n";
@@ -407,6 +423,40 @@ namespace sclc
         outputFile << rt_file_data;
         outputFile << "// End runtime\n";
         outputFile.close();
+
+        std::unordered_map<std::string, Function*> funcs;
+        for (auto&& f : result.functions) {
+            std::string name = f->outputName();
+            if (funcs.find(name) != funcs.end() && !binaryCompatible(f, funcs[name])) {
+                if (funcs[name]->has_reified) {
+                    funcs[name] = f;
+                    continue;
+                }
+                FPResult result;
+                result.success = false;
+                if (f->isMethod) {
+                    result.message = "Method ";
+                } else {
+                    result.message = "Function ";
+                }
+                result.message += "'" + sclFunctionNameToFriendlyString(f) + "' has identical symbol to function '" + sclFunctionNameToFriendlyString(funcs[name]) + "'";
+                result.location = f->name_token.location;
+                result.type = f->name_token.type;
+                result.value = f->name_token.value;
+                errors.push_back(result);
+
+                FPResult note;
+                note.success = false;
+                note.isNote = true;
+                note.message = "Function '" + sclFunctionNameToFriendlyString(funcs[name]) + "' defined here";
+                note.location = funcs[name]->name_token.location;
+                note.type = funcs[name]->name_token.type;
+                note.value = funcs[name]->name_token.value;
+                errors.push_back(note);
+            } else {
+                funcs[name] = f;
+            }
+        }
 
         if (Main::options::Werror) {
             errors.insert(errors.end(), warns.begin(), warns.end());

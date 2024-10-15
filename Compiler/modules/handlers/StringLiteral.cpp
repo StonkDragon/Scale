@@ -5,6 +5,9 @@
 #include <Functions.hpp>
 
 namespace sclc {
+    std::vector<std::string> strings;
+    extern std::vector<std::string> cstrings;
+    
     handler(StringLiteral) {
         noUnused;
         std::string str = unquote(body[i].value);
@@ -13,8 +16,11 @@ namespace sclc {
             errors.push_back(err);
             return;
         }
-        ID_t hash = id(str.c_str());
-        append("scale_push(scale_str, scale_static_string(\"%s\", 0x%lxUL));\n", body[i].value.c_str(), hash);
+        str = body[i].value;
+        size_t index = findOrAdd(strings, str);
+        size_t cindex = findOrAdd(cstrings, str);
+        append("scale_mark_static(&static_cstr_%lu.layout);\n", cindex);
+        append("scale_push(scale_str, (scale_str) (scale_mark_static(&static_str_%lu.layout) + sizeof(memory_layout_t)));\n", index);
         typeStack.push_back("str");
     }
 } // namespace sclc

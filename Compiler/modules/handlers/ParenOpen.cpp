@@ -38,7 +38,7 @@ namespace sclc {
                     }
                     append("{\n");
                     scopeDepth++;
-                    append("scale_Range tmp = ALLOC(Range);\n");
+                    append("scale_Range tmp = scale_alloc_struct(&$IRange);\n");
                     append("scale_push(scale_Range, tmp);\n");
                     typeStack.push_back("Range");
                     methodCall(getMethodByName(result, "init", "Range"), fp, result, warns, errors, body, i);
@@ -74,7 +74,7 @@ namespace sclc {
                     }
                     append("{\n");
                     scopeDepth++;
-                    append("scale_UnboundRange tmp = ALLOC(UnboundRange);\n");
+                    append("scale_UnboundRange tmp = scale_alloc_struct(&$IUnboundRange);\n");
                     append("scale_push(scale_UnboundRange, tmp);\n");
                     typeStack.push_back("UnboundRange");
                     methodCall(getMethodByName(result, "init", "UnboundRange"), fp, result, warns, errors, body, i);
@@ -108,7 +108,7 @@ namespace sclc {
             }
             append("{\n");
             scopeDepth++;
-            append("scale_Pair tmp = ALLOC(Pair);\n");
+            append("scale_Pair tmp = scale_alloc_struct(&$IPair);\n");
             append("scale_push(scale_Pair, tmp);\n");
             typeStack.push_back("Pair");
             methodCall(getMethodByName(result, "init", "Pair"), fp, result, warns, errors, body, i);
@@ -125,7 +125,7 @@ namespace sclc {
             }
             append("{\n");
             scopeDepth++;
-            append("scale_Triple tmp = ALLOC(Triple);\n");
+            append("scale_Triple tmp = scale_alloc_struct(&$ITriple);\n");
             append("scale_push(scale_Triple, tmp);\n");
             typeStack.push_back("Triple");
             methodCall(getMethodByName(result, "init", "Triple"), fp, result, warns, errors, body, i);

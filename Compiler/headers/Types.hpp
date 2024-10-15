@@ -8,6 +8,7 @@ namespace sclc {
     bool structExtends(TPResult& result, Struct& s, std::string name);
     bool isPrimitiveIntegerType(std::string s, bool doRemoveMods);
     bool argsAreIdentical(std::vector<Variable>& methodArgs, std::vector<Variable>& functionArgs);
+    bool binaryCompatible(Function* a, Function* b);
     std::string argVectorToString(std::vector<Variable>& args);
     std::string argVectorToString(std::vector<std::string>& args);
     bool canBeCastTo(TPResult& r, const Struct& one, const Struct& other);

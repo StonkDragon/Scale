@@ -25,7 +25,7 @@ namespace sclc {
         scopeDepth--;
         if (wasCatch()) {
             append("} else {\n");
-            append("  fn_throw((scale_Exception) scale_exception_handler.exception);\n");
+            append("  scale_throw(scale_exception_handler.exception);\n");
             append("}\n");
             scopeDepth--;
         }

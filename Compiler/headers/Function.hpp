@@ -37,7 +37,6 @@ namespace sclc
         long has_constructor;
         long has_cdecl;
         long has_lambda;
-        long has_asm;
         long has_final;
         long has_unsafe;
         long has_operator;
@@ -71,6 +70,7 @@ namespace sclc
         virtual bool isCVarArgs();
         virtual Variable& varArgsParam();
         virtual Function* clone();
+        virtual std::string outputName();
 
         virtual bool operator==(const Function& other) const;
         virtual bool operator!=(const Function& other) const;

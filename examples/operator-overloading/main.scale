@@ -56,5 +56,5 @@ function main(): none
     f || puts
     f ++ puts
     f -- puts
-    f @ puts
+    f:@ puts
 end

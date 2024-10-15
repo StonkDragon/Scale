@@ -66,7 +66,7 @@ namespace sclc {
             append("%s Var_%s = 0.0;\n", type.c_str(), v.name.c_str());
         } else {
             if (s != Struct::Null && !s.isStatic() && m != nullptr) {
-                append("%s Var_%s = ALLOC(%s);\n", type.c_str(), v.name.c_str(), s.name.c_str());
+                append("%s Var_%s = scale_alloc_struct(&$I%s);\n", type.c_str(), v.name.c_str(), s.name.c_str());
                 append("scale_push(%s, Var_%s);\n", type.c_str(), v.name.c_str());
                 typeStack.push_back(removeTypeModifiers(v.type));
                 methodCall(m, fp, result, warns, errors, body, i);

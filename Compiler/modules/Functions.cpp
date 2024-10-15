@@ -171,7 +171,7 @@ namespace sclc {
             errors.push_back(err);
             return;
         } else {
-            append2("fn_%s(%s)", f->name.c_str(), args.c_str());
+            append2("%s(%s)", f->outputName().c_str(), args.c_str());
         }
         if (closeThePush) {
             append2(")");
@@ -220,10 +220,6 @@ namespace sclc {
     }
 
     std::string generateSymbolForFunction(Function* f) {
-        if (f->has_asm) {
-            return "_FUNCTION_ASM_" + f->name;
-        }
-
         if (f->has_cdecl) {
             return format("\"%s\"", f->getModifier(f->has_cdecl + 1).c_str());
         }
@@ -554,12 +550,12 @@ namespace sclc {
         if (self->has_nonvirtual || self->has_final) {
             if (self->has_async) {
                 if (asyncImmediatelyAwaited) {
-                    append2("scale_sync(mt_%s$%s, %s, %s)", self->member_type.c_str(), self->name.c_str(), functionArgsToStructBody(self, result).c_str(), args.c_str());
+                    append2("scale_sync(%s, %s, %s)", self->outputName().c_str(), functionArgsToStructBody(self, result).c_str(), args.c_str());
                 } else {
-                    append2("scale_async(mt_%s$%s, %s, %s)", self->member_type.c_str(), self->name.c_str(), functionArgsToStructBody(self, result).c_str(), args.c_str());
+                    append2("scale_async(%s, %s, %s)", self->outputName().c_str(), functionArgsToStructBody(self, result).c_str(), args.c_str());
                 }
             } else {
-                append2("mt_%s$%s(%s)", self->member_type.c_str(), self->name.c_str(), args.c_str());
+                append2("%s(%s)", self->outputName().c_str(), args.c_str());
             }
             found = true;
         } else if (getInterfaceByName(result, self->member_type) == nullptr) {
@@ -873,12 +869,7 @@ namespace sclc {
         } else {
             if (f->has_async) {
                 arguments = "struct _args_";
-                if (f->isMethod) {
-                    arguments += "mt_" + f->member_type + "$";
-                } else {
-                    arguments += "fn_";
-                }
-                arguments += f->name + "* scale_args";
+                arguments += f->outputName() + "* scale_args";
             } else {
                 if (f->isMethod) {
                     arguments = sclTypeToCType(result, f->args[f->args.size() - 1].type) + " Var_self";
@@ -903,16 +894,8 @@ namespace sclc {
                 f->body[i] = Token(tok_identifier, reified_mappings.at(f->body[i].value), SourceLocation("<generated>", 1, 1));
             }
         }
-        if (f->isMethod) {
-            append("%s mt_%s$%s(%s)", sclTypeToCType(result, f->return_type).c_str(), f->member_type.c_str(), f->name.c_str(), arguments.c_str());
-        } else if (!f->has_reified) {
-            append("%s fn_%s(%s)", sclTypeToCType(result, f->return_type).c_str(), f->name.c_str(), arguments.c_str());
-        }
-        if (f->has_asm) {
-            append2(" __asm__(%s);\n", f->getModifier(f->has_asm + 1).c_str());
-        } else {
-            append2(" SYMBOL(%s);\n", generateSymbolForFunction(f).c_str());
-        }
+        append("%s %s(%s)", sclTypeToCType(result, f->return_type).c_str(), f->outputName().c_str(), arguments.c_str());
+        append2(" SYMBOL(%s);\n", generateSymbolForFunction(f).c_str());
         return f;
     }
 
@@ -1247,15 +1230,15 @@ namespace sclc {
         if (self->has_async) {
             if (asyncImmediatelyAwaited) {
                 if (rtype != "none" && rtype != "nothing") {
-                    append2("scale_sync(%s, fn_%s, %s%s%s)", sclTypeToCType(result, self->return_type).c_str(), self->name.c_str(), functionArgsToStructBody(self, result).c_str(), args.size() ? ", " : "", args.c_str());
+                    append2("scale_sync(%s, %s, %s%s%s)", sclTypeToCType(result, self->return_type).c_str(), self->outputName().c_str(), functionArgsToStructBody(self, result).c_str(), args.size() ? ", " : "", args.c_str());
                 } else {
-                    append2("scale_sync_v(fn_%s, %s%s%s)", self->name.c_str(), functionArgsToStructBody(self, result).c_str(), args.size() ? ", " : "", args.c_str());
+                    append2("scale_sync_v(%s, %s%s%s)", self->outputName().c_str(), functionArgsToStructBody(self, result).c_str(), args.size() ? ", " : "", args.c_str());
                 }
             } else {
-                append2("scale_async(fn_%s, %s%s%s)", self->name.c_str(), functionArgsToStructBody(self, result).c_str(), args.size() ? ", " : "", args.c_str());
+                append2("scale_async(%s, %s%s%s)", self->outputName().c_str(), functionArgsToStructBody(self, result).c_str(), args.size() ? ", " : "", args.c_str());
             }
         } else {
-            append2("fn_%s(%s)", self->name.c_str(), args.c_str());
+            append2("%s(%s)", self->outputName().c_str(), args.c_str());
         }
         if (closeThePush) {
             append2(")");

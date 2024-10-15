@@ -80,6 +80,15 @@ namespace sclc {
         return true;
     }
 
+    bool binaryCompatible(Function* a, Function* b) {
+        if (!typeEquals(a->return_type, b->return_type)) return false;
+        if (a->args.size() != b->args.size()) return false;
+        for (size_t i = 0; i < a->args.size(); i++) {
+            if (!typeEquals(a->args[i].type, b->args[i].type)) return false;
+        }
+        return true;
+    }
+
     std::string retemplate(std::string type);
 
     std::string argVectorToString(std::vector<Variable>& args) {
@@ -233,11 +242,14 @@ namespace sclc {
         if (a == "?" || b == "?") {
             return true;
         }
-        if (removeTypeModifiers(a) == removeTypeModifiers(b)) {
-            return true;
-        }
+
         std::string a2 = removeTypeModifiers(a);
         std::string b2 = removeTypeModifiers(b);
+        if (a2 == b2) {
+            return true;
+        } else if (isPrimitiveIntegerType(a2, false) && isPrimitiveIntegerType(b2, false)) {
+            return intBitWidth(a2) == intBitWidth(b2) && a2.front() == b2.front();
+        }
         if (a2.front() == '[') {
             std::string aType = a2.substr(1, a2.size() - 2);
             if (b2.front() == '[') {
@@ -248,7 +260,7 @@ namespace sclc {
             std::string aType = a2.substr(1);
             if (b2.front() == '*') {
                 std::string bType = b2.substr(1);
-                return removeTypeModifiers(aType) == removeTypeModifiers(bType);
+                return typeEquals(aType, bType);
             }
         } else if (strstarts(a2, "lambda(") && strstarts(b2, "lambda(")) {
             return lambdasEqual(a2, b2);
@@ -502,14 +514,14 @@ namespace sclc {
 
     std::string sclIntTypeToConvert(std::string type) {
         if (type == "int") return "";
-        if (type == "uint") return "fn_int$toUInt";
-        if (type == "int8") return "fn_int$toInt8";
-        if (type == "int16") return "fn_int$toInt16";
-        if (type == "int32") return "fn_int$toInt32";
+        if (type == "uint") return "_F10int$toUIntlL";
+        if (type == "int8") return "_F10int$toInt8lb";
+        if (type == "int16") return "_F11int$toInt16ls";
+        if (type == "int32") return "_F11int$toInt32li";
         if (type == "int64") return "";
-        if (type == "uint8") return "fn_int$toUInt8";
-        if (type == "uint16") return "fn_int$toUInt16";
-        if (type == "uint32") return "fn_int$toUInt32";
+        if (type == "uint8") return "_F11int$toUInt8lB";
+        if (type == "uint16") return "_F12int$toUInt16lS";
+        if (type == "uint32") return "_F12int$toUInt32lI";
         if (type == "uint64") return "";
         return "never_happens";
     }
@@ -586,36 +598,46 @@ namespace sclc {
     }
 
     std::string typeToSymbol(std::string type) {
-        if (type.size() && type.front() == '@') {
-            return "P" + typeToSymbol(type.substr(1));
-        }
+        static std::unordered_map<std::string, std::string> cache = {
+            {"any", "a"},
+            {"bool", "g"},
+            {"int", "l"},
+            {"int8", "b"},
+            {"int16", "s"},
+            {"int32", "i"},
+            {"int64", "l"},
+            {"uint", "L"},
+            {"uint8", "B"},
+            {"uint16", "S"},
+            {"uint32", "I"},
+            {"uint64", "L"},
+            {"float", "d"},
+            {"float32", "f"},
+            {"str", "E"},
+            {"none", "v"},
+            {"[int8]", "c"},
+            {"[any]", "p"},
+            {"?", "Q"},
+            {"lambda", "F"},
+        };
+
         type = removeTypeModifiers(type);
-        if (type == "any") return "a";
-        if (type == "int") return "l";
-        if (type == "bool") return "g";
-        if (type == "int8") return "b";
-        if (type == "int16") return "s";
-        if (type == "int32") return "i";
-        if (type == "int64") return "k";
-        if (type == "float") return "d";
-        if (type == "float32") return "f";
-        if (type == "str") return "E";
-        if (type == "none") return "v";
-        if (type == "[int8]") return "c";
-        if (type == "[any]") return "p";
-        if (type == "lambda" || strstarts(type, "lambda(")) return "F";
-        if (type.size() > 2 && type.front() == '[' && type.back() == ']') {
-            return "A" + typeToSymbol(type.substr(1, type.size() - 2));
+        auto it = cache.find(type);
+        if (it != cache.end()) return it->second;
+
+        if (type.size() && type.front() == '@') {
+            cache[type] = "P" + typeToSymbol(type.substr(1));
+        } else if (strstarts(type, "lambda(")) {
+            cache[type] = "F";
+        } else if (type.size() > 2 && type.front() == '[' && type.back() == ']') {
+            cache[type] =  "A" + typeToSymbol(type.substr(1, type.size() - 2));
+        } else if (!type.empty() && type.front() == '*') {
+            cache[type] =  "r" + typeToSymbol(type.substr(1));
+        } else {
+            cache[type] = std::to_string(type.length()) + type;
         }
-        if (!type.empty() && type.front() == '*') {
-            return "r" + typeToSymbol(type.substr(1));
-        }
-        if (type == "uint") return capitalize(typeToSymbol(type.substr(1)));
-        if (type == "uint8") return capitalize(typeToSymbol(type.substr(1)));
-        if (type == "uint16") return capitalize(typeToSymbol(type.substr(1)));
-        if (type == "uint32") return capitalize(typeToSymbol(type.substr(1)));
-        if (type == "uint64") return capitalize(typeToSymbol(type.substr(1)));
-        return std::to_string(type.length()) + type;
+
+        return cache[type];
     }
 
     std::string argsToRTSignature(Function* f) {
