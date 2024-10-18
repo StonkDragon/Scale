@@ -53,6 +53,7 @@ sclc
 test.txt
 .vscode
 .fleet
+.idea
 private
 private-tests
 build
