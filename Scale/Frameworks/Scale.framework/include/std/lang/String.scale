@@ -2,18 +2,12 @@ import std.math
 
 cdecl "strlen"
 private expect foreign unsafe function __c_strlen(cstr: [int8]): int
-cdecl "strcmp"
-private expect foreign unsafe function __c_strcmp(firstCStr: [int8], secondCStr: [int8]): int
 cdecl "s_strdup"
 private expect foreign unsafe function __c_strdup(cstr: [int8]): [int8]
 cdecl "strncmp"
 private expect foreign unsafe function __c_strncmp(firstCStr: [int8], secondCStr: [int8], amount: int): int
-cdecl "s_memcpy"
-private expect foreign unsafe function __c_memcpy(dest: [int8], src: [int8], count: int): [int8]
 cdecl "strcat"
 private expect foreign unsafe function __c_strcat(dest: [int8], src: [int8]): [int8]
-cdecl "strtok"
-private expect foreign unsafe function __c_strtok(:any, :[int8]): [int8]?
 
 final struct str is Iterable
   decl data: readonly [int8]
@@ -465,7 +459,7 @@ final struct str is Iterable
     secondCStr __c_strlen => decl len2: int
     new<int8>[len len2 + 1 +] => decl out: [int8]
 
-    out firstCStr len __c_memcpy drop
+    out firstCStr len memcpy drop
     out secondCStr __c_strcat drop
 
     out return
@@ -478,7 +472,7 @@ final struct str is Iterable
       else
         unsafe
           what:size => decl len: int
-          new<int8>[len 1 +] what len __c_memcpy return
+          new<int8>[len 1 +] what len memcpy return
         end
       fi
     else

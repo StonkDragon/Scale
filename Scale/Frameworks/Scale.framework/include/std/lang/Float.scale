@@ -1,142 +1,92 @@
 cdecl "snprintf"
 private expect foreign unsafe function __c_snprintf(:[int8], :int, :[int8], :varargs): int
-cdecl "atof"
-private expect foreign unsafe function __c_atof(:[int8]): float
+cdecl "strtod"
+private expect foreign unsafe function __c_strtod(:[int8], :*[int8]): float
+cdecl "strtof"
+private expect foreign unsafe function __c_strtof(:[int8], :*[int8]): float32
 
 final static struct float
-    (1023) => decl maxExponent: const int
-    (-1022) => decl minExponent: const int
+  (1023) => decl maxExponent: const int
+  (-1022) => decl minExponent: const int
 
-    function toString(x: float): str
-        new<int8>[64] => decl out: [int8]
-        unsafe
-            out 63 c"%f" varargs x __c_snprintf drop
-        end
-        out str::new return
+  function toString(x: float): str
+    new<int8>[64] => decl out: [int8]
+    unsafe
+      out 63 c"%f" varargs x __c_snprintf drop
     end
+    out str::new return
+  end
 
-    function toPrecisionString(x: float): str
-        new<int8>[64] => decl out: [int8]
-        unsafe
-            out 63 c"%.17f" varargs x __c_snprintf drop
-        end
-        out str::new return
+  function toPrecisionString(x: float): str
+    new<int8>[64] => decl out: [int8]
+    unsafe
+      out 63 c"%.17f" varargs x __c_snprintf drop
     end
+    out str::new return
+  end
 
-    function toHexString(x: float): str
-        new<int8>[19] => decl out: [int8]
-        unsafe
-            out 18 c"0x%016lx" varargs x:bits __c_snprintf drop
-        end
-        out str::new return
+  function toHexString(x: float): str
+    new<int8>[19] => decl out: [int8]
+    unsafe
+      out 18 c"0x%016lx" varargs x:bits __c_snprintf drop
     end
+    out str::new return
+  end
 
-    function parse(s: str): float
-        unsafe
-            s:view __c_atof return
-        end
-    end
+  function parse(s: str): float unsafe s:view nil __c_strtod return end end
 
-    function bits(x: float): int
-        unsafe
-            ref x as *int @ return
-        end
-    end
+  function bits(x: float): int unsafe ref x as *int @ return end end
+  function fromBits(bits: any): float unsafe ref bits as *float @ return end end
 
-    expect foreign function isInfinite(x: float): bool
+  expect foreign function isInfinite(x: float): bool
+  expect foreign function isNaN(x: float): bool
+  function isFinite(x: float): bool x float::isInfinite ! x float::isNaN ! && return end
+  function isNotNaN(x: float): bool x float::isNaN ! return end
 
-    expect foreign function isNaN(x: float): bool
+  function asReference(f: float): Box<float> Box<float> { f => value } return end
 
-    function isFinite(x: float): bool
-        x float::isInfinite ! x float::isNaN ! && return
-    end
-
-    function isNotNaN(x: float): bool
-        x float::isNaN ! return
-    end
-
-    function asReference(f: float): Box<float>
-        Box<float> {
-            f => value
-        } return
-    end
-
-    function fromBits(bits: any): float
-        unsafe
-            ref bits as *float @ return
-        end
-    end
-
-    function =>(x: int): float
-        x as float return
-    end
+  function =>(x: int): float x as float return end
 end
 
 final static struct float32
-    (127) => decl maxExponent: const int
-    (-126) => decl minExponent: const int
+  (127) => decl maxExponent: const int
+  (-126) => decl minExponent: const int
 
-    function toString(x: float32): str
-        new<int8>[64] => decl out: [int8]
-        unsafe
-            out 63 c"%f" varargs x __c_snprintf drop
-        end
-        out str::new return
+  function toString(x: float32): str
+    new<int8>[64] => decl out: [int8]
+    unsafe
+      out 63 c"%f" varargs x __c_snprintf drop
     end
+    out str::new return
+  end
 
-    function toPrecisionString(x: float32): str
-        new<int8>[64] => decl out: [int8]
-        unsafe
-            out 63 c"%.17f" varargs x __c_snprintf drop
-        end
-        out str::new return
+  function toPrecisionString(x: float32): str
+    new<int8>[64] => decl out: [int8]
+    unsafe
+      out 63 c"%.17f" varargs x __c_snprintf drop
     end
+    out str::new return
+  end
 
-    function toHexString(x: float32): str
-        new<int8>[19] => decl out: [int8]
-        unsafe
-            out 18 c"0x%016lx" varargs x:bits __c_snprintf drop
-        end
-        out str::new return
+  function toHexString(x: float32): str
+    new<int8>[19] => decl out: [int8]
+    unsafe
+      out 18 c"0x%016lx" varargs x:bits __c_snprintf drop
     end
+    out str::new return
+  end
 
-    function parse(s: str): float32
-        unsafe
-            s:view __c_atof as float32 return
-        end
-    end
+  function parse(s: str): float32 unsafe s:view nil __c_strtof return end end
 
-    function bits(x: float32): int
-        unsafe
-            ref x as *int32 @ return
-        end
-    end
+  function bits(x: float32): int unsafe ref x as *int32 @ return end end
+  function fromBits(bits: any): float32 unsafe ref bits as *float32 @ return end end
 
-    expect foreign function isInfinite(x: float32): bool
+  expect foreign function isInfinite(x: float32): bool
+  expect foreign function isNaN(x: float32): bool
+  function isFinite(x: float32): bool x float32::isInfinite ! x float32::isNaN ! && return end
+  function isNotNaN(x: float32): bool x float32::isNaN ! return end
 
-    expect foreign function isNaN(x: float32): bool
-
-    function isFinite(x: float32): bool
-        x float32::isInfinite ! x float32::isNaN ! && return
-    end
-
-    function isNotNaN(x: float32): bool
-        x float32::isNaN ! return
-    end
-
-    function asReference(f: float32): Box<float32>
-        Box<float32> {
-            f => value
-        } return
-    end
-
-    function fromBits(bits: any): float32
-        unsafe
-            ref bits as *float32 @ return
-        end
-    end
-
-    function =>(x: int): float32
-        x as float32 return
-    end
+  function asReference(f: float32): Box<float32> Box<float32> { f => value } return end
+  
+  function =>(x: int): float32 x as float32 return end
 end

@@ -151,7 +151,6 @@ namespace sclc
         t.writeHeader();
         t.writeContainers();
         t.writeGlobals();
-        t.writeFunctionHeaders();
 
         fp.flush();
         std::string header_file_data = fp.str();
@@ -297,6 +296,12 @@ namespace sclc
         fp.flush();
         std::string func_file_data = fp.str();
         fp = std::ostringstream();
+        
+        t.writeFunctionHeaders();
+        fp.flush();
+        std::string func_headers = fp.str();
+        
+        fp = std::ostringstream();
         std::ostringstream rt_head;
 
         std::string rt_file_data;
@@ -401,6 +406,9 @@ namespace sclc
         headerFile << "// Begin headers\n";
         headerFile << header_file_data;
         headerFile << "// End headers\n";
+        headerFile << "// Begin function headers\n";
+        headerFile << func_headers;
+        headerFile << "// End function headers\n";
         headerFile << "// Begin runtime headers\n";
         headerFile << rt_head.str();
         headerFile << "// End runtime headers\n";

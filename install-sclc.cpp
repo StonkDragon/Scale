@@ -163,7 +163,6 @@ std::vector<fs::path> listFiles(const fs::path& dir, std::string ext) {
 }
 
 void exec_command(std::string cmd) {
-    // std::cout << cmd << std::endl;
     int x = std::system(cmd.c_str());
     if (x) std::exit(x);
 }
@@ -484,10 +483,6 @@ int real_main(int argc, char const *argv[]) {
     }
     exec_command(create_command(link_command));
     
-    // await(runtime_cmd);
-    // await(cxx_runtime_cmd);
-    // await(gc_lib_cmd);
-
     exec_command(create_command({ // Link runtime
         CXX,
         "-fvisibility=default",

@@ -175,7 +175,8 @@ namespace sclc {
                         append("%s %s(%s)", return_type.c_str(), function->outputName().c_str(), arguments.c_str());
                     }
                 }
-                append2(" SYMBOL(%s);\n", symbol.c_str());
+                if (function->has_cdecl) append2(" SYMBOL(%s);\n", symbol.c_str());
+                else append2(";\n");
                 if (UNLIKELY(function->has_foreign)) {
                     if (UNLIKELY(function->member_type.size() && hasMethod(result, function->name, function->member_type))) {
                         FPResult res;
@@ -203,7 +204,8 @@ namespace sclc {
                 } else {
                     append("%s %s(%s)", return_type.c_str(), function->outputName().c_str(), arguments.c_str());
                 }
-                append2(" SYMBOL(%s);\n", symbol.c_str());
+                if (function->has_cdecl) append2(" SYMBOL(%s);\n", symbol.c_str());
+                else append2(";\n");
             }
         }
 
@@ -779,10 +781,6 @@ namespace sclc {
                         }
                     }
                 }
-            }
-
-            if (function->has_lambda) {
-                append("%s %s(%s) SYMBOL(%s);\n", return_type.c_str(), function->outputName().c_str(), arguments.c_str(), generateSymbolForFunction(function).c_str());
             }
 
             if (function->has_inline && !isMainFunction) {

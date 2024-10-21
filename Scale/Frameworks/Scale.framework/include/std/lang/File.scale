@@ -6,8 +6,6 @@ cdecl "scale_get_stdout"
 private expect foreign unsafe function __c_stdout(): any
 cdecl "scale_get_stderr"
 private expect foreign unsafe function __c_stderr(): any
-cdecl "strlen"
-private expect foreign unsafe function __c_strlen(cstr: [int8]): int
 cdecl "getline"
 private expect foreign unsafe function __c_getline(cstr: *[int8], size: *int, file: __c_file): int
 

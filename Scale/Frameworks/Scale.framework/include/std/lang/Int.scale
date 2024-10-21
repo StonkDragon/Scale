@@ -1,104 +1,270 @@
-cdecl "atoll"
-private expect foreign unsafe function __c_atoll(:[int8]): int64
+cdecl "strtoll"
+private expect foreign unsafe function __c_strtoll(:[int8], :*[int8], :int): int64
+cdecl "strtoull"
+private expect foreign unsafe function __c_strtoull(:[int8], :*[int8], :int): uint64
+
 cdecl "snprintf"
 private expect foreign unsafe function __c_snprintf(:[int8], :int, :[int8], :varargs): int
-cdecl "printf"
-private expect foreign unsafe function __c_printf(:[int8], :varargs): int
 
-macro! IntStruct(type) {
-  final static struct $type
-    (1u sizeof $type 8 * 1 - <<     as $type) => decl minValue: const $type
-    (1u sizeof $type 8 * 1 - << 1 - as $type) => decl maxValue: const $type
+final static struct int
+  (0x7fffffffffffffffi) => decl minValue: const int
+  (0x8000000000000000i) => decl maxValue: const int
 
-    function toString(x: $type): str
-      new<int8>[32] => decl out: [int8]
-      unsafe
-        out 31 c"%ld" varargs x __c_snprintf drop
-      end
-      out:resizeToFit str::new return
+  function toString(x: int): str
+    new<int8>[32] => decl out: [int8]
+    unsafe
+      out 31 c"%ld" varargs x __c_snprintf drop
     end
-
-    function toHexString(x: $type): str
-      new<int8>[32] => decl out: [int8]
-      unsafe
-        sizeof $type switch
-          case 1 out 31 c"0x%02lx"  varargs x __c_snprintf drop esac
-          case 2 out 31 c"0x%04lx"  varargs x __c_snprintf drop esac
-          case 4 out 31 c"0x%08lx"  varargs x __c_snprintf drop esac
-          case 8 out 31 c"0x%016lx" varargs x __c_snprintf drop esac
-        done
-      end
-      out:resizeToFit str::new return
-    end
-
-    function parse(s: str): $type
-      unsafe
-        s:view __c_atoll as $type return
-      end
-    end
-
-    function asReference(i: $type): Box<$type>
-      Box<$type> {
-        i => value
-      } return
-    end
-
-    function =>(x: float): $type
-      x as $type return
-    end
-
-    function =>(x: float32): $type
-      x as $type return
-    end
+    out:resizeToFit str::new return
   end
-}
-macro! UIntStruct(type) {
-  final static struct $type
-    (0  as $type) => decl minValue: const $type
-    (-1 as $type) => decl maxValue: const $type
 
-    function toString(x: $type): str
-      new<int8>[32] => decl out: [int8]
-      unsafe
-        out 31 c"%lu" varargs x __c_snprintf drop
-      end
-      out:resizeToFit str::new return
+  function toHexString(x: int): str
+    new<int8>[32] => decl out: [int8]
+    unsafe
+      out 31 c"0x%016lx" varargs x __c_snprintf drop
     end
-
-    function toHexString(x: $type): str
-      new<int8>[32] => decl out: [int8]
-      unsafe
-        sizeof $type switch
-          case 1 out 31 c"0x%02lx"  varargs x __c_snprintf drop esac
-          case 2 out 31 c"0x%04lx"  varargs x __c_snprintf drop esac
-          case 4 out 31 c"0x%08lx"  varargs x __c_snprintf drop esac
-          case 8 out 31 c"0x%016lx" varargs x __c_snprintf drop esac
-        done
-      end
-      out:resizeToFit str::new return
-    end
-
-    function parse(s: str): $type
-      unsafe
-        s:view __c_atoll as $type return
-      end
-    end
-
-    function asReference(i: $type): Box<$type>
-      Box<$type> {
-        i => value
-      } return
-    end
-
-    function =>(x: float): $type
-      x as $type return
-    end
-
-    function =>(x: float32): $type
-      x as $type return
-    end
+    out:resizeToFit str::new return
   end
-}
+
+  function parse(s: str): int               unsafe s:view nil as *[int8] 0 __c_strtoll return end end
+  function asReference(i: int): Box<int>  Box<int> { i => value } return end
+  function =>(x: float): int                x as int return end
+  function =>(x: float32): int              x as int return end
+end
+
+final static struct int64
+  (0x7fffffffffffffffi64) => decl minValue: const int64
+  (0x8000000000000000i64) => decl maxValue: const int64
+
+  function toString(x: int64): str
+    new<int8>[32] => decl out: [int8]
+    unsafe
+      out 31 c"%ld" varargs x __c_snprintf drop
+    end
+    out:resizeToFit str::new return
+  end
+
+  function toHexString(x: int64): str
+    new<int8>[32] => decl out: [int8]
+    unsafe
+      out 31 c"0x%016lx" varargs x __c_snprintf drop
+    end
+    out:resizeToFit str::new return
+  end
+
+  function parse(s: str): int64               unsafe s:view nil as *[int8] 0 __c_strtoll return end end
+  function asReference(i: int64): Box<int64>  Box<int64> { i => value } return end
+  function =>(x: float): int64                x as int64 return end
+  function =>(x: float32): int64              x as int64 return end
+end
+
+final static struct int32
+  (0x7fffffffi64) => decl minValue: const int32
+  (0x80000000i64) => decl maxValue: const int32
+
+  function toString(x: int32): str
+    new<int8>[32] => decl out: [int8]
+    unsafe
+      out 31 c"%ld" varargs x __c_snprintf drop
+    end
+    out:resizeToFit str::new return
+  end
+
+  function toHexString(x: int32): str
+    new<int8>[32] => decl out: [int8]
+    unsafe
+      out 31 c"0x%08lx" varargs x __c_snprintf drop
+    end
+    out:resizeToFit str::new return
+  end
+
+  function parse(s: str): int32               unsafe s:view nil as *[int8] 0 __c_strtoll return end end
+  function asReference(i: int32): Box<int32>  Box<int32> { i => value } return end
+  function =>(x: float): int32                x as int32 return end
+  function =>(x: float32): int32              x as int32 return end
+end
+
+final static struct int16
+  (0x7fffi64) => decl minValue: const int16
+  (0x8000i64) => decl maxValue: const int16
+
+  function toString(x: int16): str
+    new<int8>[32] => decl out: [int8]
+    unsafe
+      out 31 c"%ld" varargs x __c_snprintf drop
+    end
+    out:resizeToFit str::new return
+  end
+
+  function toHexString(x: int16): str
+    new<int8>[32] => decl out: [int8]
+    unsafe
+      out 31 c"0x%04lx" varargs x __c_snprintf drop
+    end
+    out:resizeToFit str::new return
+  end
+
+  function parse(s: str): int16               unsafe s:view nil as *[int8] 0 __c_strtoll return end end
+  function asReference(i: int16): Box<int16>  Box<int16> { i => value } return end
+  function =>(x: float): int16                x as int16 return end
+  function =>(x: float32): int16              x as int16 return end
+end
+
+final static struct int8
+  (0x7fi64) => decl minValue: const int8
+  (0x80i64) => decl maxValue: const int8
+
+  function toString(x: int8): str
+    new<int8>[32] => decl out: [int8]
+    unsafe
+      out 31 c"%ld" varargs x __c_snprintf drop
+    end
+    out:resizeToFit str::new return
+  end
+
+  function toHexString(x: int8): str
+    new<int8>[32] => decl out: [int8]
+    unsafe
+      out 31 c"0x%02lx" varargs x __c_snprintf drop
+    end
+    out:resizeToFit str::new return
+  end
+
+  function parse(s: str): int8              unsafe s:view nil as *[int8] 0 __c_strtoll return end end
+  function asReference(i: int8): Box<int8>  Box<int8> { i => value } return end
+  function =>(x: float): int8               x as int8 return end
+  function =>(x: float32): int8             x as int8 return end
+end
+
+final static struct uint
+  (0x0000000000000000u) => decl minValue: const uint
+  (0xffffffffffffffffu) => decl maxValue: const uint
+
+  function toString(x: uint): str
+    new<int8>[32] => decl out: [int8]
+    unsafe
+      out 31 c"%ld" varargs x __c_snprintf drop
+    end
+    out:resizeToFit str::new return
+  end
+
+  function toHexString(x: uint): str
+    new<int8>[32] => decl out: [int8]
+    unsafe
+      out 31 c"0x%016lx" varargs x __c_snprintf drop
+    end
+    out:resizeToFit str::new return
+  end
+
+  function parse(s: str): uint                unsafe s:view nil as *[int8] 0 __c_strtoull return end end
+  function asReference(i: uint): Box<uint>  Box<uint> { i => value } return end
+  function =>(x: float): uint                 x as uint return end
+  function =>(x: float32): uint               x as uint return end
+end
+
+final static struct uint64
+  (0x0000000000000000u64) => decl minValue: const uint64
+  (0xffffffffffffffffu64) => decl maxValue: const uint64
+
+  function toString(x: uint64): str
+    new<int8>[32] => decl out: [int8]
+    unsafe
+      out 31 c"%ld" varargs x __c_snprintf drop
+    end
+    out:resizeToFit str::new return
+  end
+
+  function toHexString(x: uint64): str
+    new<int8>[32] => decl out: [int8]
+    unsafe
+      out 31 c"0x%016lx" varargs x __c_snprintf drop
+    end
+    out:resizeToFit str::new return
+  end
+
+  function parse(s: str): uint64                unsafe s:view nil as *[int8] 0 __c_strtoull return end end
+  function asReference(i: uint64): Box<uint64>  Box<uint64> { i => value } return end
+  function =>(x: float): uint64                 x as uint64 return end
+  function =>(x: float32): uint64               x as uint64 return end
+end
+
+final static struct uint32
+  (0x00000000u32) => decl minValue: const uint32
+  (0xffffffffu32) => decl maxValue: const uint32
+
+  function toString(x: uint32): str
+    new<int8>[32] => decl out: [int8]
+    unsafe
+      out 31 c"%ld" varargs x __c_snprintf drop
+    end
+    out:resizeToFit str::new return
+  end
+
+  function toHexString(x: uint32): str
+    new<int8>[32] => decl out: [int8]
+    unsafe
+      out 31 c"0x%08lx" varargs x __c_snprintf drop
+    end
+    out:resizeToFit str::new return
+  end
+
+  function parse(s: str): uint32                unsafe s:view nil as *[int8] 0 __c_strtoull return end end
+  function asReference(i: uint32): Box<uint32>  Box<uint32> { i => value } return end
+  function =>(x: float): uint32                 x as uint32 return end
+  function =>(x: float32): uint32               x as uint32 return end
+end
+
+final static struct uint16
+  (0x0000u16) => decl minValue: const uint16
+  (0xffffu16) => decl maxValue: const uint16
+
+  function toString(x: uint16): str
+    new<int8>[32] => decl out: [int8]
+    unsafe
+      out 31 c"%ld" varargs x __c_snprintf drop
+    end
+    out:resizeToFit str::new return
+  end
+
+  function toHexString(x: uint16): str
+    new<int8>[32] => decl out: [int8]
+    unsafe
+      out 31 c"0x%04lx" varargs x __c_snprintf drop
+    end
+    out:resizeToFit str::new return
+  end
+
+  function parse(s: str): uint16                unsafe s:view nil as *[int8] 0 __c_strtoull return end end
+  function asReference(i: uint16): Box<uint16>  Box<uint16> { i => value } return end
+  function =>(x: float): uint16                 x as uint16 return end
+  function =>(x: float32): uint16               x as uint16 return end
+end
+
+final static struct uint8
+  (0x00u8) => decl minValue: const uint8
+  (0xffu8) => decl maxValue: const uint8
+
+  function toString(x: uint8): str
+    new<int8>[32] => decl out: [int8]
+    unsafe
+      out 31 c"%ld" varargs x __c_snprintf drop
+    end
+    out:resizeToFit str::new return
+  end
+
+  function toHexString(x: uint8): str
+    new<int8>[32] => decl out: [int8]
+    unsafe
+      out 31 c"0x%02lx" varargs x __c_snprintf drop
+    end
+    out:resizeToFit str::new return
+  end
+
+  function parse(s: str): uint8               unsafe s:view nil as *[int8] 0 __c_strtoull return end end
+  function asReference(i: uint8): Box<uint8>  Box<uint8> { i => value } return end
+  function =>(x: float): uint8                x as uint8 return end
+  function =>(x: float32): uint8              x as uint8 return end
+end
 
 final static struct bool
   function toString(x: bool): str
@@ -128,28 +294,9 @@ final static struct bool
 end
 
 final static struct Char
-  function toString(x: int8): str
-    new<int8> {
-      x,
-      0
-    } str::new return
-  end
-
-  function parse(s: str): int8
-    s[0] return
-  end
+  function toString(x: int8): str new<int8> { x, 0 } str::new return end
+  function parse(s: str): int8    s[0] return end
 end
-
-IntStruct! int8
-IntStruct! int16
-IntStruct! int32
-IntStruct! int64
-IntStruct! int
-UIntStruct! uint8
-UIntStruct! uint16
-UIntStruct! uint32
-UIntStruct! uint64
-UIntStruct! uint
 
 reified @NumericOperator operator "add" function +  <Lhs, Rhs>(:Lhs, :Rhs): Numeric
 reified @NumericOperator operator "sub" function -  <Lhs, Rhs>(:Lhs, :Rhs): Numeric

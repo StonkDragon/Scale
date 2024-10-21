@@ -88,8 +88,6 @@ bool hasCompatibleArgs(const std::vector<Variable>& argsA, const std::vector<Var
 bool Function::operator==(const Function& other) const {
     if (isMethod != other.isMethod) return false;
     if (name != other.name) return false;
-    // if (has_reified != other.has_reified) return false;
-    // if (hasCompatibleArgs(args, other.args)) return false;
     return member_type == other.member_type;
 }
 bool Function::operator!=(const Function* other) const {
@@ -150,9 +148,12 @@ Function* Function::clone() {
     return f;
 }
 std::string Function::outputName() {
+    if (has_cdecl) {
+        return "C_" + this->modifiers[has_cdecl];
+    }
     std::string generateSymbolForFunction(Function* f);
     std::string sym = generateSymbolForFunction(this);
-    return "g" + sym.substr(1, sym.size() - 2);
+    return sym.substr(1, sym.size() - 2);
 }
 
 Method::Method(std::string member_type, std::string name, Token name_token) : Function(name, true, name_token) {

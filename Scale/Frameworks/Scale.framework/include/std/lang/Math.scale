@@ -10,8 +10,6 @@ cdecl "rand"
 private expect foreign unsafe function __c_rand(): int32
 cdecl "srand"
 private expect foreign unsafe function __c_srand(:int): none
-cdecl "time"
-private expect foreign unsafe function __c_time(:[int]?): int
 
 construct function mathInitialization(): none
   unsafe

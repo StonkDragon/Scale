@@ -5,7 +5,7 @@
 #include <Functions.hpp>
 
 namespace sclc {
-    Function* generateReifiedFunction(Function* self, std::ostream& fp, TPResult& result, std::vector<FPResult>& errors, std::vector<Token>& body, size_t& i, std::vector<std::string>& types);
+    Function* generateReifiedFunction(Function* self, TPResult& result, std::vector<FPResult>& errors, std::vector<Token>& body, size_t& i, std::vector<std::string>& types);
 
     handler(AddrRef) {
         noUnused;
@@ -100,7 +100,7 @@ namespace sclc {
                 }
                 if (have_reified) {
                     found = true;
-                    f = generateReifiedFunction(have_reified, fp, result, errors, body, i, argTypes);
+                    f = generateReifiedFunction(have_reified, result, errors, body, i, argTypes);
                 }
                 if (!found) {
                     transpilerError("No overload of '" + f->name + "' with arguments [ " + argVectorToString(argTypes) + " ] found", begin);

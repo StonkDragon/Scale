@@ -761,7 +761,7 @@ namespace sclc {
         return stack;
     }
 
-    Function* generateReifiedFunction(Function* self, std::ostream& fp, TPResult& result, std::vector<FPResult>& errors, std::vector<Token>& body, size_t& i, std::vector<std::string>& types) {
+    Function* generateReifiedFunction(Function* self, TPResult& result, std::vector<FPResult>& errors, std::vector<Token>& body, size_t& i, std::vector<std::string>& types) {
         if (!self->has_reified) {
             transpilerError("Non-reified function passed to generateReifiedFunction()", i);
             errors.push_back(err);
@@ -780,19 +780,6 @@ namespace sclc {
             }
             reified_mappings[declassifyReify(param)] = reifyType(param, removeTypeModifiers(types[i]));
         }
-        // bool hasLhs = false;
-        // bool hasRhs = false;
-        // bool isOperator = false;
-        // if (reified_mappings.size() == 2) {
-        //     for (auto&& f : reified_mappings) {
-        //         if (f.first == "Lhs") {
-        //             hasLhs = true;
-        //         } else if (f.first == "Rhs") {
-        //             hasRhs = true;
-        //         }
-        //     }
-        //     isOperator = hasLhs && hasRhs;
-        // }
         if (contains<std::string>(self->modifiers, "NumericOperator")) {
             std::string biggestType;
             bool hasFloat32 = false;
@@ -894,8 +881,6 @@ namespace sclc {
                 f->body[i] = Token(tok_identifier, reified_mappings.at(f->body[i].value), SourceLocation("<generated>", 1, 1));
             }
         }
-        append("%s %s(%s)", sclTypeToCType(result, f->return_type).c_str(), f->outputName().c_str(), arguments.c_str());
-        append2(" SYMBOL(%s);\n", generateSymbolForFunction(f).c_str());
         return f;
     }
 
@@ -945,7 +930,7 @@ namespace sclc {
                 types.push_back(typeStack[i]);
             }
         }
-        Function* f = generateReifiedFunction(self, fp, result, errors, body, i, types);
+        Function* f = generateReifiedFunction(self, result, errors, body, i, types);
         if (f == nullptr) return nullptr;
         if (f->has_reified) {
             transpilerError("Generated function has 'reified' modifier!", i);
@@ -1069,7 +1054,7 @@ namespace sclc {
             }
             if (have_reified) {
                 found = true;
-                self = generateReifiedFunction(have_reified, fp, result, errors, body, i, argTypes);
+                self = generateReifiedFunction(have_reified, result, errors, body, i, argTypes);
                 if (self == nullptr) {
                     return;
                 }

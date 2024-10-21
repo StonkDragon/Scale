@@ -1200,7 +1200,6 @@ namespace sclc
             }
             if (!funcFound) {
                 path = "scale_putlocal(" + path + ", ";
-                // path += " = ";
                 if (currentType.front() == '@') {
                     path += "*";
                 }
@@ -1479,8 +1478,6 @@ void operator delete(void* x) noexcept {
     adata.delete_calls++;
     size_t* a = (size_t*) ((ptrdiff_t) x - sizeof(size_t));
     adata.bytes_freed += *a;
-
-    // free(a);
 }
 
 void* operator new(size_t x, std::nothrow_t&) noexcept

@@ -207,7 +207,6 @@ namespace sclc {
         scopeDepth--;
         append("}\n");
         if (i + 1 < body.size() && body[i + 1].type == tok_ticked) {
-            // safeInc();
             goto nextDoMode;
         }
     }
