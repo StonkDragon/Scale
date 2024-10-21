@@ -884,7 +884,7 @@ namespace sclc {
         return f;
     }
 
-    Function* reifiedPreamble(Function* self, std::ostream& fp, TPResult& result, std::vector<FPResult>& errors, std::vector<Token>& body, size_t& i) {
+    Function* reifiedPreamble(Function* self, TPResult& result, std::vector<FPResult>& errors, std::vector<Token>& body, size_t& i) {
         std::vector<std::string> types;
         if (i + 2 < body.size() && body[i + 1].type == tok_double_column) {
             safeInc(nullptr);
@@ -941,7 +941,7 @@ namespace sclc {
     }
 
     void createReifiedCall(Function* self, std::ostream& fp, TPResult& result, std::vector<FPResult>& warns, std::vector<FPResult>& errors, std::vector<Token>& body, size_t& i) {
-        Function* f = reifiedPreamble(self, fp, result, errors, body, i);
+        Function* f = reifiedPreamble(self, result, errors, body, i);
         if (f == nullptr) {
             return;
         }
@@ -1104,7 +1104,7 @@ namespace sclc {
                         }
                     }
                 }
-                self = reifiedPreamble(self, fp, result, errors, body, i);
+                self = reifiedPreamble(self, result, errors, body, i);
                 if (self == nullptr) {
                     return;
                 }
