@@ -66,7 +66,7 @@ struct Box
             (other as Box<T>).value self.value == return
         elif other is T then
             unsafe
-                other reinterpret self.value == return
+                ref other as *T @ self.value == return
             end
         else
             false return
@@ -77,12 +77,5 @@ struct Box
     end
     function !=(other: any): bool
         other self:equals ! return
-    end
-
-    private static unsafe function reinterpret(ptr: any): T
-        decl value: T?
-        c!
-            return *(typeof(value)) ptr;
-        end
     end
 end

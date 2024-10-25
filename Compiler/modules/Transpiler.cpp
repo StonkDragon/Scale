@@ -197,9 +197,9 @@ namespace sclc {
                     }
                     append("};\n");
                     if (function->return_type.front() != '@') {
-                        append("%s %s(struct _args_%s$%s*)", return_type.c_str(), function->outputName().c_str(), function->outputName().c_str());
+                        append("%s %s(struct _args_%s*)", return_type.c_str(), function->outputName().c_str(), function->outputName().c_str());
                     } else {
-                        append("%s* %s(struct _args_%s$%s*)", return_type.c_str(), function->outputName().c_str(), function->outputName().c_str());
+                        append("%s* %s(struct _args_%s*)", return_type.c_str(), function->outputName().c_str(), function->outputName().c_str());
                     }
                 } else {
                     append("%s %s(%s)", return_type.c_str(), function->outputName().c_str(), arguments.c_str());
@@ -472,39 +472,39 @@ namespace sclc {
     void Transpiler::filePreamble() {
         currentStruct = Struct::Null;
 
-        append("#if defined(__clang__)\n");
-        append("#pragma clang diagnostic push\n");
-        append("#pragma clang diagnostic ignored \"-Wint-to-void-pointer-cast\"\n");
-        append("#pragma clang diagnostic ignored \"-Wint-to-pointer-cast\"\n");
-        append("#pragma clang diagnostic ignored \"-Wpointer-to-int-cast\"\n");
-        append("#pragma clang diagnostic ignored \"-Wvoid-pointer-to-int-cast\"\n");
-        append("#pragma clang diagnostic ignored \"-Wincompatible-pointer-types\"\n");
-        append("#pragma clang diagnostic ignored \"-Wint-conversion\"\n");
-        append("#pragma clang diagnostic ignored \"-Winteger-overflow\"\n");
-        append("#pragma clang diagnostic ignored \"-Wout-of-scope-function\"\n");
-        append("#pragma clang diagnostic ignored \"-Wconstant-conversion\"\n");
-        append("#pragma clang diagnostic ignored \"-Wpointer-integer-compare\"\n");
-        append("#elif defined(__GNUC__)\n");
-        append("#pragma gcc diagnostic push\n");
-        append("#pragma gcc diagnostic ignored \"-Wint-to-void-pointer-cast\"\n");
-        append("#pragma gcc diagnostic ignored \"-Wint-to-pointer-cast\"\n");
-        append("#pragma gcc diagnostic ignored \"-Wpointer-to-int-cast\"\n");
-        append("#pragma gcc diagnostic ignored \"-Wvoid-pointer-to-int-cast\"\n");
-        append("#pragma gcc diagnostic ignored \"-Wincompatible-pointer-types\"\n");
-        append("#pragma gcc diagnostic ignored \"-Wint-conversion\"\n");
-        append("#pragma gcc diagnostic ignored \"-Winteger-overflow\"\n");
-        append("#pragma gcc diagnostic ignored \"-Wout-of-scope-function\"\n");
-        append("#pragma gcc diagnostic ignored \"-Wconstant-conversion\"\n");
-        append("#pragma gcc diagnostic ignored \"-Wpointer-integer-compare\"\n");
-        append("#endif\n\n");
+        // append("#if defined(__clang__)\n");
+        // append("#pragma clang diagnostic push\n");
+        // append("#pragma clang diagnostic ignored \"-Wint-to-void-pointer-cast\"\n");
+        // append("#pragma clang diagnostic ignored \"-Wint-to-pointer-cast\"\n");
+        // append("#pragma clang diagnostic ignored \"-Wpointer-to-int-cast\"\n");
+        // append("#pragma clang diagnostic ignored \"-Wvoid-pointer-to-int-cast\"\n");
+        // append("#pragma clang diagnostic ignored \"-Wincompatible-pointer-types\"\n");
+        // append("#pragma clang diagnostic ignored \"-Wint-conversion\"\n");
+        // append("#pragma clang diagnostic ignored \"-Winteger-overflow\"\n");
+        // append("#pragma clang diagnostic ignored \"-Wout-of-scope-function\"\n");
+        // append("#pragma clang diagnostic ignored \"-Wconstant-conversion\"\n");
+        // append("#pragma clang diagnostic ignored \"-Wpointer-integer-compare\"\n");
+        // append("#elif defined(__GNUC__)\n");
+        // append("#pragma gcc diagnostic push\n");
+        // append("#pragma gcc diagnostic ignored \"-Wint-to-void-pointer-cast\"\n");
+        // append("#pragma gcc diagnostic ignored \"-Wint-to-pointer-cast\"\n");
+        // append("#pragma gcc diagnostic ignored \"-Wpointer-to-int-cast\"\n");
+        // append("#pragma gcc diagnostic ignored \"-Wvoid-pointer-to-int-cast\"\n");
+        // append("#pragma gcc diagnostic ignored \"-Wincompatible-pointer-types\"\n");
+        // append("#pragma gcc diagnostic ignored \"-Wint-conversion\"\n");
+        // append("#pragma gcc diagnostic ignored \"-Winteger-overflow\"\n");
+        // append("#pragma gcc diagnostic ignored \"-Wout-of-scope-function\"\n");
+        // append("#pragma gcc diagnostic ignored \"-Wconstant-conversion\"\n");
+        // append("#pragma gcc diagnostic ignored \"-Wpointer-integer-compare\"\n");
+        // append("#endif\n\n");
     }
 
     void Transpiler::filePostamble() {
-        append("#if defined(__clang__)\n");
-        append("#pragma clang diagnostic pop\n");
-        append("#elif defined(__GNUC__)\n");
-        append("#pragma gcc diagnostic pop\n");
-        append("#endif\n");
+        // append("#if defined(__clang__)\n");
+        // append("#pragma clang diagnostic pop\n");
+        // append("#elif defined(__GNUC__)\n");
+        // append("#pragma gcc diagnostic pop\n");
+        // append("#endif\n");
     }
 
     int n_captures = 0;
@@ -590,7 +590,7 @@ namespace sclc {
             if (UNLIKELY(typeCanBeNil(arg.type) || hasEnum(result, arg.type) || arg.type == "varargs" || (hasTypealias(result, arg.type) && typealiasCanBeNil(result, arg.type)))) continue;
 
             if (!arg.name.empty() && arg.type.front() != '@') {
-                append("scale_assert_fast(REINTERPRET_CAST(scale_int, Var_%s), \"Argument '%s' is nil\");\n", arg.name.c_str(), arg.name.c_str());
+                append("scale_assert_fast(REINTERPRET_CAST(scale_any, Var_%s), \"Argument '%s' is nil\");\n", arg.name.c_str(), arg.name.c_str());
             }
         }
         if (!function->has_async) {

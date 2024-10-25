@@ -11,7 +11,7 @@ namespace sclc {
         noUnused;
         std::string str = body[i].value;
         size_t index = findOrAdd(cstrings, str);
-        append("scale_push(scale_int8*, (scale_str) (scale_mark_static(&static_cstr_%lu.layout) + sizeof(memory_layout_t)));\n", index);
+        append("scale_push(scale_int8*, (scale_int8*) static_cstr_%lu.data);\n", index);
         typeStack.push_back("[int8]");
     }
 } // namespace sclc

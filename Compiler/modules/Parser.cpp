@@ -38,6 +38,9 @@ namespace sclc
     std::string sclFunctionNameToFriendlyString(std::string name);
     std::string argsToRTSignature(Function* f);
 
+    std::vector<std::string> uconsts;
+    std::vector<std::string> uconst_ctypes;
+
     void Parser::parse(FPResult& output, const std::string& file, const std::string& header) {
         std::vector<FPResult> errors;
         std::vector<FPResult> warns;
@@ -223,7 +226,7 @@ namespace sclc
                             initFuncs.push_back(f);
                             append("void %s() {\n", f->outputName().c_str());
                             scopeDepth++;
-                            append("%s tmp = scale_uninitialized_constant(%s);\n", type.c_str(), s.name.c_str());
+                            append("%s tmp = &static_uconst_%ld.data;\n", type.c_str(), add(uconsts, s.name));
                             append("%s(tmp);\n", m->outputName().c_str());
                             append("Var_%s = tmp;\n", v.name.c_str());
                             scopeDepth--;
@@ -256,6 +259,7 @@ namespace sclc
         append("scale_constructor void init_this%llx(void) {\n", rand);
         scopeDepth++;
         append("scale_setup();\n");
+        append("scale_add_root(static_root);\n");
         for (auto&& f : initFuncs) {
             const std::string& file = f->name_token.location.file;
             if (
@@ -332,7 +336,7 @@ namespace sclc
                     return;
                 }
                 append("\n");
-                append("static const scale_methodinfo_t $M%s = {\n", vtable->first.c_str());
+                append("static const SCALE_VTABLE_INFO(%ld) $M%s = {\n", vtable->second.size() + 1, vtable->first.c_str());
                 scopeDepth++;
                 append(".layout = {\n");
                 scopeDepth++;
@@ -360,7 +364,7 @@ namespace sclc
                 scopeDepth--;
                 append("};\n");
                 
-                append("static const scale_vtable $V%s = {\n", s.name.c_str());
+                append("static const SCALE_VTABLE(%ld) $V%s = {\n", vtable->second.size() + 1, s.name.c_str());
                 scopeDepth++;
                 append(".layout = {\n");
                 scopeDepth++;
@@ -424,6 +428,31 @@ namespace sclc
             outputFile << "STATIC_STRING(\"" << strings[i] << "\", 0x" << std::hex << id(strings[i].c_str()) << std::dec << ", " << i << ", " << findOrAdd(cstrings, strings[i]) << ");\n";
         }
         outputFile << "// End strings\n";
+        outputFile << "// Begin static instances\n";
+        for (size_t i = 0; i < uconsts.size(); i++) {
+            outputFile << "STATIC_INSTANCE(" << uconsts[i] << ", " << i << ");\n";
+        }
+        for (size_t i = 0; i < uconst_ctypes.size(); i++) {
+            outputFile << "STATIC_LAYOUT(" << uconst_ctypes[i] << ", " << i << ");\n";
+        }
+        outputFile << "// End static instances\n";
+        outputFile << "// Begin static root\n";
+        outputFile << "static memory_layout_t* static_root[] = {\n";
+        for (size_t i = 0; i < cstrings.size(); i++) {
+            outputFile << "  &static_cstr_" << i << ".layout,\n";
+        }
+        for (size_t i = 0; i < strings.size(); i++) {
+            outputFile << "  &static_str_" << i << ".layout,\n";
+        }
+        for (size_t i = 0; i < uconsts.size(); i++) {
+            outputFile << "  &static_uconst_" << i << ".layout,\n";
+        }
+        for (size_t i = 0; i < uconst_ctypes.size(); i++) {
+            outputFile << "  &static_uconstc_" << i << ".layout,\n";
+        }
+        outputFile << "  nil,\n";
+        outputFile << "};\n";
+        outputFile << "// End static root\n";
         outputFile << "// Begin functions\n";
         outputFile << func_file_data;
         outputFile << "// End functions\n";

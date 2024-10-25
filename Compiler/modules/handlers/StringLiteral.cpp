@@ -18,9 +18,8 @@ namespace sclc {
         }
         str = body[i].value;
         size_t index = findOrAdd(strings, str);
-        size_t cindex = findOrAdd(cstrings, str);
-        append("scale_mark_static(&static_cstr_%lu.layout);\n", cindex);
-        append("scale_push(scale_str, (scale_str) (scale_mark_static(&static_str_%lu.layout) + sizeof(memory_layout_t)));\n", index);
+        findOrAdd(cstrings, str);
+        append("scale_push(scale_str, (scale_str) &static_str_%lu.data);\n", index);
         typeStack.push_back("str");
     }
 } // namespace sclc

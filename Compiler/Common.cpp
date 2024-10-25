@@ -346,6 +346,11 @@ namespace sclc
         return vec.size() - 1;
     }
 
+    size_t add(std::vector<std::string>& vec, const std::string& str) {
+        vec.push_back(str);
+        return vec.size() - 1;
+    }
+
     std::string replaceAll(const std::string& src, const std::string& from, const std::string& to) {
         if (from.empty())
             return src;
@@ -680,7 +685,7 @@ namespace sclc
             const std::string& name = funcNameIdents.at(name2);
             return getMethodByName0(result, name, removeTypeModifiers(type));
         } catch (std::out_of_range& _) {
-            return getMethodByName0(result, name2.substr(0, name2.find("$$ol")), removeTypeModifiers(type));
+            return getMethodByName0(result, name2, removeTypeModifiers(type));
         }
     }
     Method* getMethodByNameOnThisType0(TPResult& result, const std::string& name, const std::string& type) {
@@ -701,7 +706,7 @@ namespace sclc
             const std::string& name = funcNameIdents.at(name2);
             return getMethodByNameOnThisType0(result, name, removeTypeModifiers(type));
         } catch (std::out_of_range& _) {
-            return getMethodByNameOnThisType0(result, name2.substr(0, name2.find("$$ol")), removeTypeModifiers(type));
+            return getMethodByNameOnThisType0(result, name2, removeTypeModifiers(type));
         }
     }
 

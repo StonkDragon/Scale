@@ -528,8 +528,6 @@ namespace sclc {
         return std::string(1, c);
     }
 
-    std::vector<Token> parseString(std::string s);
-
     struct MacroArg {
         std::string name;
         std::string type;
@@ -781,8 +779,8 @@ namespace sclc {
             scale_migrate_array = getFunction<typeof(scale_migrate_array)>(this->lib, "scale_migrate_foreign_array");
             scale_array_size = getFunction<typeof(scale_array_size)>(this->lib, "scale_array_size");
             alloc = getFunction<typeof(alloc)>(this->lib, "scale_alloc");
-            str$of = getFunction<typeof(str$of)>(this->lib, "_F3str2ofcE");
-            str$view = getFunction<typeof(str$view)>(this->lib, "_M3str4viewc");
+            str$of = getFunction<typeof(str$of)>(this->lib, "_FE2ofcE");
+            str$view = getFunction<typeof(str$view)>(this->lib, "_ME4viewc");
         }
 
         ~NativeMacro() {
@@ -1537,10 +1535,10 @@ namespace sclc {
                         for (std::string& s : nextAttributes) {
                             currentFunction->addModifier(s);
                         }
-                        Function* f = findFunctionByName(currentFunction->name);
-                        if (f) {
-                            currentFunction->name = currentFunction->name + "$$ol" + argsToRTSignatureIdent(currentFunction);
-                        }
+                        // Function* f = findFunctionByName(currentFunction->name);
+                        // if (f) {
+                        //     currentFunction->name = currentFunction->name + "$$ol" + argsToRTSignatureIdent(currentFunction);
+                        // }
                         if (currentFunction->has_expect || currentFunction->has_operator) {
                             functions.push_back(currentFunction);
                             currentFunction = nullptr;
@@ -1570,10 +1568,10 @@ namespace sclc {
                         for (std::string& s : nextAttributes) {
                             currentFunction->addModifier(s);
                         }
-                        Function* f = findMethodByName(currentFunction->name, currentFunction->member_type);
-                        if (f) {
-                            currentFunction->name = currentFunction->name + "$$ol" + argsToRTSignatureIdent(currentFunction);
-                        }
+                        // Function* f = findMethodByName(currentFunction->name, currentFunction->member_type);
+                        // if (f) {
+                        //     currentFunction->name = currentFunction->name + "$$ol" + argsToRTSignatureIdent(currentFunction);
+                        // }
                         if (currentFunction->has_expect || currentFunction->has_operator) {
                             functions.push_back(currentFunction);
                             currentFunction = nullptr;
@@ -1593,10 +1591,10 @@ namespace sclc {
                         for (std::string& s : nextAttributes) {
                             currentFunction->addModifier(s);
                         }
-                        Function* f = findFunctionByName(currentFunction->name);
-                        if (f) {
-                            currentFunction->name = currentFunction->name + "$$ol" + argsToRTSignatureIdent(currentFunction);
-                        }
+                        // Function* f = findFunctionByName(currentFunction->name);
+                        // if (f) {
+                        //     currentFunction->name = currentFunction->name + "$$ol" + argsToRTSignatureIdent(currentFunction);
+                        // }
                         if (currentFunction->has_expect || currentFunction->has_operator) {
                             functions.push_back(currentFunction);
                             currentFunction = nullptr;
@@ -1627,10 +1625,10 @@ namespace sclc {
                         for (std::string& s : nextAttributes) {
                             currentFunction->addModifier(s);
                         }
-                        Function* f = findMethodByName(currentFunction->name, currentFunction->member_type);
-                        if (f) {
-                            currentFunction->name = currentFunction->name + "$$ol" + argsToRTSignatureIdent(currentFunction);
-                        }
+                        // Function* f = findMethodByName(currentFunction->name, currentFunction->member_type);
+                        // if (f) {
+                        //     currentFunction->name = currentFunction->name + "$$ol" + argsToRTSignatureIdent(currentFunction);
+                        // }
                         if (currentFunction->has_expect || currentFunction->has_operator) {
                             functions.push_back(currentFunction);
                             currentFunction = nullptr;
@@ -1739,15 +1737,15 @@ namespace sclc {
                     for (std::string& s : nextAttributes) {
                         currentFunction->addModifier(s);
                     }
-                    Function* f;
-                    if (currentFunction->isMethod) {
-                        f = findMethodByName(currentFunction->name, ((Method*) currentFunction)->member_type);
-                    } else {
-                        f = findFunctionByName(currentFunction->name);
-                    }
-                    if (f) {
-                        currentFunction->name = currentFunction->name + "$$ol" + argsToRTSignatureIdent(currentFunction);
-                    }
+                    // Function* f;
+                    // if (currentFunction->isMethod) {
+                    //     f = findMethodByName(currentFunction->name, ((Method*) currentFunction)->member_type);
+                    // } else {
+                    //     f = findFunctionByName(currentFunction->name);
+                    // }
+                    // if (f) {
+                    //     currentFunction->name = currentFunction->name + "$$ol" + argsToRTSignatureIdent(currentFunction);
+                    // }
                     if (currentFunction->has_expect || currentFunction->has_operator) {
                         functions.push_back(currentFunction);
                         currentFunction = nullptr;
@@ -2810,10 +2808,10 @@ namespace sclc {
                     for (std::string& s : nextAttributes) {
                         currentFunction->addModifier(s);
                     }
-                    Function* f = findMethodByName(currentFunction->name, currentFunction->member_type);
-                    if (f) {
-                        currentFunction->name = currentFunction->name + "$$ol" + argsToRTSignatureIdent(currentFunction);
-                    }
+                    // Function* f = findMethodByName(currentFunction->name, currentFunction->member_type);
+                    // if (f) {
+                    //     currentFunction->name = currentFunction->name + "$$ol" + argsToRTSignatureIdent(currentFunction);
+                    // }
                     if (currentFunction->name_without_overload == "init") {
                         currentFunction->addModifier("<constructor>");
                     }

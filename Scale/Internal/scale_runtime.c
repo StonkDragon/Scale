@@ -152,25 +152,49 @@ static memory_layout_t** static_ptrs = nil;
 static scale_int static_ptrs_cap = 0;
 static scale_int static_ptrs_count = 0;
 
-scale_any scale_mark_static(scale_any x) {
+static memory_layout_t*** static_roots = nil;
+static scale_int static_roots_cap = 0;
+static scale_int static_roots_count = 0;
+
+scale_bool scale_is_static(scale_any x) {
 	memory_layout_t* layout = x;
-	if (layout->flags & MEM_FLAG_STATIC) return x;
-	layout->flags |= MEM_FLAG_STATIC;
+
 	GC_alloc_lock();
-	for (scale_int i = 0; i < static_ptrs_count; i++) {
-		if (static_ptrs[i] == layout) {
-			GC_alloc_unlock();
-			return x;
+	for (scale_int i = 0; i < static_roots_count; i++) {
+		for (memory_layout_t** root = static_roots[i]; *root; root++) {
+			if (*root == layout) {
+				layout->flags |= MEM_FLAG_STATIC;
+				GC_alloc_unlock();
+				return 1;
+			}
 		}
 	}
-	static_ptrs_count++;
-	if (static_ptrs_count >= static_ptrs_cap) {
-		static_ptrs_cap = static_ptrs_cap == 0 ? 16 : (static_ptrs_cap * 2);
-		static_ptrs = realloc(static_ptrs, static_ptrs_cap * sizeof(memory_layout_t*));
+	for (scale_int i = 0; i < static_ptrs_count; i++) {
+		if (static_ptrs[i] == layout) {
+			layout->flags |= MEM_FLAG_STATIC;
+			GC_alloc_unlock();
+			return 1;
+		}
 	}
-	static_ptrs[static_ptrs_count - 1] = layout;
 	GC_alloc_unlock();
-	return x;
+	return 0;
+}
+
+void scale_add_root(memory_layout_t** root) {
+	GC_alloc_lock();
+	for (scale_int i = 0; i < static_roots_count; i++) {
+		if (static_roots[i] == root) {
+			GC_alloc_unlock();
+			return;
+		}
+	}
+	static_roots_count++;
+	if (static_roots_count >= static_roots_cap) {
+		static_roots_cap = static_roots_cap == 0 ? 16 : (static_roots_cap * 2);
+		static_roots = realloc(static_roots, static_roots_cap * sizeof(memory_layout_t**));
+	}
+	static_roots[static_roots_count - 1] = root;
+	GC_alloc_unlock();
 }
 
 static scale_int scale_on_stack(scale_any ptr) {
@@ -187,23 +211,17 @@ static scale_int scale_on_stack(scale_any ptr) {
 
 static memory_layout_t* scale_get_memory_layout(scale_any ptr) {
 	if (unlikely(ptr == nil)) return nil;
-	if (likely(GC_is_heap_ptr(ptr))) {
-		return (memory_layout_t*) GC_base(ptr);
-	}
 	ptr -= sizeof(memory_layout_t);
 	if (scale_on_stack(ptr)) {
 		return (memory_layout_t*) ptr;
 	}
-	GC_alloc_lock();
-	memory_layout_t* l = nil;
-	for (scale_int i = 0; i < static_ptrs_count; i++) {
-		if (static_ptrs[i] == ptr) {
-			l = ptr;
-			break;
-		}
+	if (scale_is_static(ptr)) {
+		return (memory_layout_t*) ptr;
 	}
-	GC_alloc_unlock();
-	return l;
+	if (GC_is_heap_ptr(ptr)) {
+		return (memory_layout_t*) GC_base(ptr);
+	}
+	return nil;
 }
 
 scale_int scale_sizeof(scale_any ptr) {
@@ -236,7 +254,7 @@ scale_nodiscard scale_any scale_alloc(scale_int size) {
 	if (unlikely(ptr == nil)) {
 		raise(SIGSEGV);
 	}
-	GC_register_finalizer(ptr, (GC_finalization_proc) scale_finalize, nil, nil, nil);
+	// GC_register_finalizer(ptr, (GC_finalization_proc) scale_finalize, nil, nil, nil);
 
 	((memory_layout_t*) ptr)->size = orig_size;
 	((memory_layout_t*) ptr)->flags = MEM_FLAG_HEAP;
@@ -265,7 +283,7 @@ scale_nodiscard scale_any scale_realloc(scale_any ptr, scale_int size) {
 	if (unlikely(ptr == nil)) {
 		raise(SIGSEGV);
 	}
-	GC_register_finalizer(ptr, (GC_finalization_proc) scale_finalize, nil, nil, nil);
+	// GC_register_finalizer(ptr, (GC_finalization_proc) scale_finalize, nil, nil, nil);
 
 	((memory_layout_t*) ptr)->size = orig_size;
 	
@@ -748,10 +766,6 @@ scale_any* scale_array_resize(scale_int new_size, scale_any* arr) {
 	return new_arr;
 }
 
-void scale_trace_remove(struct scale_backtrace* bt) {
-	bt->marker = 0;
-}
-
 void scale_throw(scale_any ex) {
 	// scale_bool is_error = scale_is_instance_of(ex, type_id("Error"));
 	// if (is_error) {
@@ -918,7 +932,7 @@ scale_any scale_run_await(scale_any _args) {
 	return ret;
 }
 
-void scale_yield() {
+void scale_yield(void) {
 #ifdef _WIN32
 	SwitchToThread();
 #else

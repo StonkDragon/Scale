@@ -33,7 +33,7 @@ final static struct float
     out str::new return
   end
 
-  function parse(s: str): float unsafe s:view nil __c_strtod return end end
+  function parse(s: str): float unsafe s:view nil as *[int8] __c_strtod return end end
 
   function bits(x: float): int unsafe ref x as *int @ return end end
   function fromBits(bits: any): float unsafe ref bits as *float @ return end end
@@ -76,7 +76,7 @@ final static struct float32
     out str::new return
   end
 
-  function parse(s: str): float32 unsafe s:view nil __c_strtof return end end
+  function parse(s: str): float32 unsafe s:view nil as *[int8] __c_strtof return end end
 
   function bits(x: float32): int unsafe ref x as *int32 @ return end end
   function fromBits(bits: any): float32 unsafe ref bits as *float32 @ return end end

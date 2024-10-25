@@ -4,7 +4,12 @@ struct Lock
     final function lock(): none self Process::lock end
     final function unlock(): none self Process::unlock end
 
-    function deinit(): none
+    init()
+        self:lock
+        self:unlock
+    end
+
+    deinit()
         ref self.mutex __c_std_recursive_mutex_delete
     end
 

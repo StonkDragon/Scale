@@ -23,11 +23,7 @@ namespace sclc {
                 append("return;\n");
             }
         } else {
-            if (function->return_type.front() == '@' && function->has_async) {
-                append("return (%s*) ({\n", sclTypeToCType(result, function->return_type).c_str());
-            } else {
-                append("return (%s) ({\n", sclTypeToCType(result, function->return_type).c_str());
-            }
+            append("{\n");
             scopeDepth++;
 
             std::string returningType = typeStackTop;
@@ -74,12 +70,16 @@ namespace sclc {
                             errors.push_back(err);
                         }
                     }
-                    append("scale_assert_fast(REINTERPRET_CAST(scale_int, retVal), \"Tried returning nil from function returning not-nil type '%s'!\");\n", function->return_type.c_str());
+                    append("scale_assert_fast(REINTERPRET_CAST(scale_any, retVal), \"Tried returning nil from function returning not-nil type '%s'!\");\n", function->return_type.c_str());
                 }
             }
-            append("retVal;\n");
+            if (function->return_type.front() == '@' && function->has_async) {
+                append("return (%s*) retVal;\n", sclTypeToCType(result, function->return_type).c_str());
+            } else {
+                append("return (%s) retVal;\n", sclTypeToCType(result, function->return_type).c_str());
+            }
             scopeDepth--;
-            append("});\n");
+            append("}\n");
         }
         for (long t = typeStack.size() - 1; t >= 0; t--) {
             typePop;

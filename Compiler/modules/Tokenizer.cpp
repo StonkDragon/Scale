@@ -51,7 +51,6 @@ namespace sclc
         warns.clear();
         source = nullptr;
         current = 0;
-        additional = false;
         line = 1;
         column = 1;
         begin = 1;
@@ -171,6 +170,7 @@ namespace sclc
         stringLiteral:
             c = source[++current];
             column++;
+            std::vector<Token> interpTokens;
             while (c != '"') {
                 if (c == '\n' || c == '\r' || c == '\0') {
                     syntaxError("Unterminated string");
@@ -193,6 +193,53 @@ namespace sclc
                             column++;
                             break;
                         
+                        case '(': {
+                            if (stringType == StringType::CString) {
+                                syntaxError("String interpolation is not allowed in C strings");
+                            } else {
+                                value += "%s";
+                                Token openParen(tok_paren_open, "(", SourceLocation{filename, line, column});
+                                c = source[++current];
+                                column++;
+                                int parenCount = 1;
+                                std::cout << "c: " << c << std::endl;
+                                if (interpTokens.empty()) {
+                                    interpTokens.push_back(Token(tok_varargs, "varargs", openParen.location));
+                                }
+                                interpTokens.push_back(openParen);
+                                while (parenCount > 0) {
+                                    if (c == '\n' || c == '\r' || c == '\0') {
+                                        syntaxError("Unterminated string interpolation");
+                                        break;
+                                    }
+                                    Token tok = nextToken();
+                                    std::cout << "Token: " << tok.toString() << std::endl;
+                                    if (tok.type == tok_paren_open) {
+                                        parenCount++;
+                                    } else if (tok.type == tok_paren_close) {
+                                        parenCount--;
+                                    }
+                                    interpTokens.push_back(tok);
+                                    for (auto&& tok : extraTokens) {
+                                        interpTokens.push_back(tok);
+                                        std::cout << "  Extra Token: " << tok.toString() << std::endl;
+                                        if (tok.type == tok_paren_open) {
+                                            parenCount++;
+                                        } else if (tok.type == tok_paren_close) {
+                                            parenCount--;
+                                        }
+                                    }
+                                    extraTokens.clear();
+                                }
+                                interpTokens.pop_back();
+                                interpTokens.push_back(Token(tok_paren_close, ")", SourceLocation{filename, line, column - 1}));
+                                interpTokens.push_back(Token(tok_column, ":", SourceLocation{filename, line, column - 1}));
+                                interpTokens.push_back(Token(tok_identifier, "toString", SourceLocation{filename, line, column - 1}));                        
+                                c = source[current];
+                            }
+                            break;
+                        }
+                        
                         default:
                             syntaxError("Unknown escape sequence: '\\" + std::to_string(c) + "'");
                             break;
@@ -205,6 +252,18 @@ namespace sclc
             }
             current++;
             column++;
+
+            if (!interpTokens.empty()) {
+                interpTokens.push_back(Token(tok_identifier, "str", SourceLocation{filename, line, column}));
+                interpTokens.push_back(Token(tok_double_column, "::", SourceLocation{filename, line, column}));
+                interpTokens.push_back(Token(tok_identifier, "format", SourceLocation{filename, line, column}));
+            }
+
+            for (auto&& tok : interpTokens) {
+                std::cout << "Extra Token: " << tok.toString() << std::endl;
+                extraTokens.push_back(tok);
+            }
+
             switch (stringType) {
                 case StringType::CString: return Token(tok_char_string_literal, value, line, filename, begin);
                 case StringType::UnicodeString: return Token(tok_utf_string_literal, value, line, filename, begin);
@@ -392,8 +451,7 @@ namespace sclc
         }
         
         if (value == "+>" || value == "->" || value == "*>" || value == "/>" || value == "&>" || value == "|>" || value == "^>" || value == "%>") {
-            additional = true;
-            additionalToken = Token(tok_store, "=>", line, filename, begin);
+            extraTokens.push_back(Token(tok_store, "=>", line, filename, begin));
             return Token(tok_identifier, std::string(1, value.front()), line, filename, begin);
         }
 
@@ -566,10 +624,10 @@ namespace sclc
 
         while (token.type != tok_eof) {
             this->tokens.push_back(token);
-            if (additional) {
-                this->tokens.push_back(additionalToken);
-                additional = false;
+            for (auto&& tok : this->extraTokens) {
+                this->tokens.push_back(tok);
             }
+            this->extraTokens.clear();
             token = nextToken();
         }
 

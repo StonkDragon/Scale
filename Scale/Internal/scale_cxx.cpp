@@ -21,7 +21,7 @@ wrap scale_any cxx_std_recursive_mutex_new(void) {
 }
 wrap void cxx_std_recursive_mutex_delete(scale_any* mutex) {
     std::recursive_mutex** x = (std::recursive_mutex**) mutex;
-    if (*x) {
+    if (x && *x) {
         delete *x;
         *x = nullptr;
     }

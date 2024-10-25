@@ -26,7 +26,7 @@ namespace sclc {
         if (hasLayout(result, type.value)) {
             append("{\n");
             append("  scale_int sz = scale_sizeof(scale_top(scale_any));\n");
-            append("  scale_assert(sz >= sizeof(struct Layout_%s), \"Layout '%s' requires more memory than the pointer has available (required: \" SCALE_INT_FMT \" found: \" SCALE_INT_FMT \")\", sizeof(struct Layout_%s), sz);", type.value.c_str(), type.value.c_str(), type.value.c_str());
+            append("  scale_assert((scale_any) (scale_int64) (sz >= sizeof(struct Layout_%s)), \"Layout '%s' requires more memory than the pointer has available (required: \" SCALE_INT_FMT \" found: \" SCALE_INT_FMT \")\", sizeof(struct Layout_%s), sz);", type.value.c_str(), type.value.c_str(), type.value.c_str());
             append("}\n");
             typePop;
             typeStack.push_back(type.value);
@@ -39,7 +39,7 @@ namespace sclc {
 
         if (!typeCanBeNil(type.value) && !typealiasCanBeNil(result, type.value)) {
             if (!doesCheckedCast && typeCanBeNil(typeStackTop)) {
-                append("scale_assert_fast(scale_top(scale_int), \"Nil cannot be cast to non-nil type '%s'!\");\n", type.value.c_str());
+                append("scale_assert_fast(scale_top(scale_any), \"Nil cannot be cast to non-nil type '%s'!\");\n", type.value.c_str());
             }
         } else {
             if (!typeCanBeNil(typeStackTop) && !isPrimitiveType(type.value)) {

@@ -89,7 +89,7 @@ namespace sclc {
         if (type.size() > 2 && type.front() == '[' && type.back() == ']') {
             append("%s %s = scale_pop(%s);\n", sclTypeToCType(result, typeStackTop).c_str(), iterator_name.c_str(), sclTypeToCType(result, typeStackTop).c_str());
             typePop;
-            append("for (scale_int i = 0; i < scale_array_size(%s); i++) {\n", iterator_name.c_str());
+            append("for (scale_int i = 0; i < scale_array_size((scale_any*) %s); i++) {\n", iterator_name.c_str());
             scopeDepth++;
 
             varScopePush();

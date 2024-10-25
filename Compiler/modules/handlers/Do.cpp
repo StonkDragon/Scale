@@ -199,7 +199,7 @@ namespace sclc {
 
         append("scale_push(%s, array);\n", sclTypeToCType(result, arrayType).c_str());
         typeStack.push_back(arrayType);
-        append("scale_push(%s, executor);\n", sclTypeToCType(result, lambdaType).c_str());
+        append("scale_push(%s, (%s) executor);\n", sclTypeToCType(result, lambdaType).c_str(), sclTypeToCType(result, lambdaType).c_str());
         typeStack.push_back(lambdaType);
 
         functionCall(f, fp, result, warns, errors, body, i);

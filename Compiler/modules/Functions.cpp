@@ -191,27 +191,75 @@ namespace sclc {
         append("}\n");
     }
 
+    const std::unordered_map<std::string, std::string> funcNameToSymbol = {
+        std::pair("operator$add", "pl"),
+        std::pair("operator$sub", "mi"),
+        std::pair("operator$mul", "ml"),
+        std::pair("operator$div", "dv"),
+        std::pair("operator$mod", "rm"),
+        std::pair("operator$logic_and", "an"),
+        std::pair("operator$logic_or", "or"),
+        std::pair("operator$logic_xor", "eo"),
+        std::pair("operator$logic_not", "co"),
+        std::pair("operator$logic_lsh", "ls"),
+        std::pair("operator$logic_rol", "lr"),
+        std::pair("operator$logic_rsh", "rs"),
+        std::pair("operator$logic_ror", "rr"),
+        std::pair("operator$pow", "pw"),
+        std::pair("operator$dot", "dt"),
+        std::pair("operator$less", "lt"),
+        std::pair("operator$less_equal", "le"),
+        std::pair("operator$more", "gt"),
+        std::pair("operator$more_equal", "ge"),
+        std::pair("operator$equal", "eq"),
+        std::pair("operator$not", "nt"),
+        std::pair("operator$assert_not_nil", "nn"),
+        std::pair("operator$not_equal", "ne"),
+        std::pair("operator$bool_and", "aa"),
+        std::pair("operator$bool_or", "oo"),
+        std::pair("operator$inc", "pp"),
+        std::pair("operator$dec", "mm"),
+        std::pair("operator$at", "at"),
+        std::pair("operator$store", "st"),
+        std::pair("operator$set", "ss"),
+        std::pair("operator$get", "sg"),
+        std::pair("operator$wildcard", "wc"),
+        std::pair("operator$elvis", "el"),
+        std::pair("operator$lcm", "lc"),
+        std::pair("operator$gcd", "gc"),
+        std::pair("operator$max", "mx"),
+        std::pair("operator$min", "mn"),
+    };
+
     std::string generateInternal(Function* f) {
         std::string symbol;
+        std::string typeToSymbol(std::string type);
 
         std::string name = f->name_without_overload;
         if (f->member_type.size()) {
             if (!f->isMethod) {
                 name = name.substr(f->member_type.size() + 1);
             }
-            symbol += std::to_string(f->member_type.length()) + f->member_type;
+            symbol += typeToSymbol(f->member_type);
         }
         if (f->has_lambda) {
             name = name.substr(8);
             std::string count = name.substr(0, name.find("$"));
             name = generateInternal(f->container) + "$" + count;
         } else {
-            name = name.substr(0, name.find("$$ol"));
-            symbol += std::to_string(name.length());
+            if (!strstarts(name, "operator$") && name != "init" && name != "deinit") {
+                symbol += std::to_string(name.length());
+            }
+        }
+        if (strstarts(name, "operator$")) {
+            name = funcNameToSymbol.at(name);
+        } else if (name == "init") {
+            name = "C";
+        } else if (name == "deinit") {
+            name = "D";
         }
         symbol += name;
 
-        std::string typeToSymbol(std::string type);
         for (size_t i = 0; i < f->args.size() - ((size_t) f->isMethod); i++) {
             symbol += typeToSymbol(f->args[i].type);
         }
@@ -252,7 +300,7 @@ namespace sclc {
         for (Function* f : result.functions) {
             if (!f->isMethod) continue;
             Method* m = (Method*) f;
-            std::string name = m->name.substr(0, m->name.find("$$ol"));
+            std::string name = m->name;
             if ((name == self->name) && m->member_type == self->member_type) {
                 if (currentFunction) {
                     if (m->name_token.location.file == currentFunction->name_token.location.file) {
@@ -282,7 +330,7 @@ namespace sclc {
     }
 
     bool opFunc(std::string name) {
-        name = name.substr(0, name.find("$$ol"));
+        // name = name.substr(0, name.find("$$ol"));
         for (auto&& p : funcNameIdents) {
             if (p.first == name || p.second == name) {
                 return true;
@@ -1244,7 +1292,7 @@ namespace sclc {
     }
 
     std::string sclFunctionNameToFriendlyString(std::string name) {
-        name = name.substr(0, name.find("$$ol"));
+        // name = name.substr(0, name.find("$$ol"));
         for (auto&& p : funcNameIdents) {
             if (p.second == name) {
                 name = p.first;

@@ -28,6 +28,8 @@ namespace sclc {
 
     extern std::vector<std::string> strings;
     extern std::vector<std::string> cstrings;
+    extern std::vector<std::string> uconsts;
+    extern std::vector<std::string> uconst_ctypes;
 
     handler(Typeof) {
         noUnused;
@@ -50,7 +52,7 @@ namespace sclc {
             }
             lambdaType += "):" + f->return_type;
             findOrAdd(cstrings, lambdaType);
-            append("scale_push(scale_str, (scale_str) (scale_mark_static(&static_str_%lu.layout) + sizeof(memory_layout_t)));\n", findOrAdd(strings, lambdaType));
+            append("scale_push(scale_str, static_str_%lu.data);\n", findOrAdd(strings, lambdaType));
         } else if (body[i].type == tok_paren_open) {
             append("{\n");
             scopeDepth++;
@@ -66,13 +68,13 @@ namespace sclc {
                 append("scale_top(scale_str) = scale_create_string(scale_top(scale_SclObject)->$type->type_name);\n");
             } else if (hasLayout(result, typeStackTop)) {
                 findOrAdd(cstrings, retemplate(typeStackTop));
-                append("scale_top(scale_str) = (scale_str) (scale_mark_static(&static_str_%lu.layout) + sizeof(memory_layout_t));\n", findOrAdd(strings, retemplate(typeStackTop)));
+                append("scale_top(scale_str) = &static_str_%lu.data;\n", findOrAdd(strings, retemplate(typeStackTop)));
             } else if (e.name.size()) {
                 append("scale_top(scale_str) = ((scale_str[]){\n");
                 scopeDepth++;
                 for (auto&& x : e.member_types) {
                     findOrAdd(cstrings, x.second);
-                    append("[%ld] = (scale_str) (scale_mark_static(&static_str_%lu.layout) + sizeof(memory_layout_t)),\n", e.members[x.first], findOrAdd(strings, x.second));
+                    append("[%ld] = &static_str_%lu.data,\n", e.members[x.first], findOrAdd(strings, x.second));
                 }
                 scopeDepth--;
                 append("})[scale_top(%s)];\n", sclTypeToCType(result, typeStackTop).c_str());
@@ -81,7 +83,7 @@ namespace sclc {
                     append("scale_top(scale_str) = scale_create_string(scale_typename_or_else(scale_top(%s), \"%s\"));\n", sclTypeToCType(result, typeStackTop).c_str(), retemplate(typeStackTop).c_str());
                 } else {
                     findOrAdd(cstrings, retemplate(typeStackTop));
-                    append("scale_top(scale_str) = (scale_str) (scale_mark_static(&static_str_%lu.layout) + sizeof(memory_layout_t));\n", findOrAdd(strings, retemplate(typeStackTop)));
+                    append("scale_top(scale_str) = &static_str_%lu.data;\n", findOrAdd(strings, retemplate(typeStackTop)));
                 }
             }
             scopeDepth--;
@@ -94,7 +96,7 @@ namespace sclc {
                 return;
             }
             findOrAdd(cstrings, retemplate(res.value));
-            append("scale_push(scale_str, (scale_str) (scale_mark_static(&static_str_%lu.layout) + sizeof(memory_layout_t)));\n", findOrAdd(strings, retemplate(res.value)));
+            append("scale_push(scale_str, static_str_%lu.data);\n", findOrAdd(strings, retemplate(res.value)));
         }
         typeStack.push_back("str");
     }
@@ -162,7 +164,7 @@ namespace sclc {
         safeInc();
         if (hasVar(body[i].value)) {
             findOrAdd(cstrings, body[i].value);
-            append("scale_push(scale_str, (scale_str) (scale_mark_static(&static_str_%lu.layout) + sizeof(memory_layout_t)));\n", findOrAdd(strings, body[i].value));
+            append("scale_push(scale_str, static_str_%lu.data);\n", findOrAdd(strings, body[i].value));
             typeStack.push_back("str");
         } else {
             transpilerError("Unknown Variable: '" + body[i].value + "'", i);
@@ -383,7 +385,7 @@ namespace sclc {
                     append("%s tmp = scale_alloc_struct(&$I%s);\n", sclTypeToCType(result, s.name).c_str(), s.name.c_str());
                 } else if (body[i].value == "static") {
                     safeInc();
-                    append("%s tmp = scale_uninitialized_constant(%s);\n", sclTypeToCType(result, s.name).c_str(), s.name.c_str());
+                    append("%s tmp = &static_uconst_%ld.data;\n", sclTypeToCType(result, s.name).c_str(), add(uconsts, s.name));
                 } else if (body[i].value == "local") {
                     safeInc();
                     append("%s tmp = scale_stack_alloc(%s);\n", sclTypeToCType(result, s.name).c_str(), s.name.c_str());
@@ -433,11 +435,11 @@ namespace sclc {
                     Method* mutator = attributeMutator(result, s.name, body[i].value);
                     
                     if (mutator) {
-                        append("%s(tmp, scale_pop(%s));\n", mutator->outputName().c_str(), sclTypeToCType(result, lastType).c_str());
+                        append("%s(tmp, (%s) scale_pop(%s));\n", mutator->outputName().c_str(), sclTypeToCType(result, v.type).c_str(), sclTypeToCType(result, lastType).c_str());
                     } else if (v.type.front() == '@' && lastType.front() != '@') {
-                        append("tmp->%s = *scale_pop(%s);\n", v.name.c_str(), sclTypeToCType(result, lastType).c_str());
+                        append("tmp->%s = (%s) *scale_pop(%s);\n", v.name.c_str(), sclTypeToCType(result, v.type).c_str(), sclTypeToCType(result, lastType).c_str());
                     } else {
-                        append("tmp->%s = scale_pop(%s);\n", v.name.c_str(), sclTypeToCType(result, lastType).c_str());
+                        append("tmp->%s = (%s) scale_pop(%s);\n", v.name.c_str(), sclTypeToCType(result, v.type).c_str(), sclTypeToCType(result, lastType).c_str());
                     }
                     typePop;
                     scopeDepth--;
@@ -529,7 +531,7 @@ namespace sclc {
                     append("%s tmp = scale_alloc(sizeof(struct Layout_%s));\n", sclTypeToCType(result, l.name).c_str(), l.name.c_str());
                 } else if (body[i].value == "static") {
                     safeInc();
-                    append("%s tmp = scale_uninitialized_constant_ctype(struct Layout_%s);\n", sclTypeToCType(result, l.name).c_str(), l.name.c_str());
+                    append("%s tmp = &static_uconstc_%ld;\n", sclTypeToCType(result, l.name).c_str(), add(uconst_ctypes, l.name));
                 } else if (body[i].value == "local") {
                     safeInc();
                     append("%s tmp = scale_stack_alloc_ctype(struct Layout_%s);\n", sclTypeToCType(result, l.name).c_str(), l.name.c_str());
@@ -582,9 +584,9 @@ namespace sclc {
                         return;
                     }
                     if (v.type.front() == '@' && lastType.front() != '@') {
-                        append("tmp->%s = *scale_pop(%s);\n", body[i].value.c_str(), sclTypeToCType(result, lastType).c_str());
+                        append("tmp->%s = (%s) *scale_pop(%s);\n", body[i].value.c_str(), sclTypeToCType(result, v.type).c_str(), sclTypeToCType(result, lastType).c_str());
                     } else {
-                        append("tmp->%s = scale_pop(%s);\n", body[i].value.c_str(), sclTypeToCType(result, lastType).c_str());
+                        append("tmp->%s = (%s) scale_pop(%s);\n", body[i].value.c_str(), sclTypeToCType(result, v.type).c_str(), sclTypeToCType(result, lastType).c_str());
                     }
                     typePop;
                     scopeDepth--;

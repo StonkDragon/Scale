@@ -160,6 +160,8 @@ function clamp(x: int, lower: int, upper: int): int
 end
 
 function gcd(a: int, b: int): int
+  a abs => a
+  b abs => b
   if a 0 == then
     b return
   fi
@@ -173,39 +175,5 @@ function gcd(a: int, b: int): int
 end
 
 function lcm(a: int, b: int): int
-  (a b * abs) (a b gcd) / return
-end
-
-function gcd(a: float32, b: float32): float32
-  if a 0f == then
-    b return
-  fi
-  if b 0f == then
-    a return
-  fi
-  if a b < then
-    b a gcd return
-  fi
-  b a as float b as float fmod as float32 gcd return
-end
-
-function lcm(a: float32, b: float32): float32
-  (a b * abs) (a b gcd) / return
-end
-
-function gcd(a: float, b: float): float
-  if a 0d == then
-    b return
-  fi
-  if b 0d == then
-    a return
-  fi
-  if a b < then
-    b a gcd return
-  fi
-  b a b fmod gcd return
-end
-
-function lcm(a: float, b: float): float
   (a b * abs) (a b gcd) / return
 end

@@ -166,14 +166,7 @@ extern "C" {
 
 typedef void*				scale_any;
 
-#if __SIZEOF_LONG__ == 8
-typedef long				scale_int;
-typedef unsigned long		scale_uint;
-#define SCALE_INT_FMT		"%ld"
-#define SCALE_UINT_FMT		"%lu"
-#define SCALE_INT_HEX_FMT	"%lx"
-#define SCALE_PTR_HEX_FMT	"0x%016lx"
-#elif __SIZEOF_LONG_LONG__ == 8
+#if __SIZEOF_LONG_LONG__ == 8
 typedef long long			scale_int;
 typedef unsigned long long	scale_uint;
 #define SCALE_INT_FMT		"%lld"
@@ -240,10 +233,10 @@ typedef unsigned int		scale_uint32;
 typedef unsigned short		scale_uint16;
 typedef unsigned char		scale_uint8;
 
-#define SCALE_LAMBDA_TYPE(rtype, ...) struct { rtype(*func)(__VA_ARGS__ __VA_OPT__(,) void*); }*
-
 typedef void(*scale_function)(void);
-typedef SCALE_LAMBDA_TYPE(void) scale_lambda;
+typedef struct {
+	void(*func)(void*);
+}* scale_lambda;
 
 typedef scale_uint ID_t;
 
@@ -338,15 +331,15 @@ struct scale_methodinfo {
 	const ID_t							signature;
 };
 
-typedef struct {
-	memory_layout_t						layout;
-	scale_function						funcs[];
-} scale_vtable;
+#define SCALE_VTABLE(_len) struct { \
+	memory_layout_t						layout; \
+	scale_function						funcs[_len]; \
+}
 
-typedef struct {
-	memory_layout_t						layout;
-	struct scale_methodinfo				infos[];
-} scale_methodinfo_t;
+#define SCALE_VTABLE_INFO(_len) struct { \
+	memory_layout_t						layout; \
+	struct scale_methodinfo				infos[_len]; \
+}
 
 typedef struct TypeInfo {
 	const ID_t							type;
@@ -373,33 +366,26 @@ struct Struct_str {
 // Get the offset of a member in a struct
 #define scale_offsetof(type, member) ((scale_int)&((type*)0)->member)
 
-#define REINTERPRET_CAST(_type, _value) ({ \
-	union { \
-		typeof(_value) a; \
-		_type b; \
-	} _tmp = {0}; \
-	_tmp.a = _value; \
-	_tmp.b; \
-})
+#define REINTERPRET_CAST(_type, _value) (*(_type*) &(_value))
 
 #define scale_async(x, structbody, ...) ({ \
 	scale_any func = (x); \
 	struct structbody tmp = { __VA_ARGS__ }; \
-	typeof(tmp)* args = malloc(sizeof(tmp)); \
+	struct structbody* args = malloc(sizeof(tmp)); \
 	memcpy(args, &tmp, sizeof(tmp)); \
 	scale_push(scale_any, scale_run_async(func, args)); \
 })
 #define scale_sync(rtype, x, structbody, ...) ({ \
-	rtype(*func)(scale_any) = (typeof(func)) (x); \
+	rtype(*func)(scale_any) = (rtype(*)(scale_any)) (x); \
 	struct structbody tmp = { __VA_ARGS__ }; \
 	scale_push(rtype, func(&tmp)); \
 })
 #define scale_sync_v(x, structbody, ...) ({ \
-	void(*func)(scale_any) = (typeof(func)) (x); \
+	void(*func)(scale_any) = (void(*)(scale_any)) (x); \
 	struct structbody tmp = { __VA_ARGS__ }; \
 	func(&tmp); \
 })
-#define scale_await(rtype) (scale_top(rtype) = scale_run_await(scale_top(scale_any)))
+#define scale_await(rtype) ({ scale_any tmp = scale_run_await(scale_top(scale_any)); scale_top(rtype) = REINTERPRET_CAST(rtype, tmp); })
 #define scale_await_void() scale_run_await(scale_pop(scale_any))
 
 #define SYMBOL(name)		__asm__(LABEL_PREFIX name)
@@ -415,29 +401,31 @@ struct Struct_str {
 						struct scale_exception_handler scale_exception_handler; \
 						scale_exception_handler.marker = EXCEPTION_HANDLER_MARKER; \
 						scale_exception_handler.finalizer = nil; \
-						if (setjmp(scale_exception_handler.jmp) != 666)
+						if (expect(setjmp(scale_exception_handler.jmp) != 666))
 #define 			TRY_FINALLY(_then, _with) \
 						struct scale_exception_handler scale_exception_handler; \
 						scale_exception_handler.marker = EXCEPTION_HANDLER_MARKER; \
 						scale_exception_handler.finalizer = _then; \
 						scale_exception_handler.finalization_data = _with; \
-						if (setjmp(scale_exception_handler.jmp) != 666)
+						if (expect(setjmp(scale_exception_handler.jmp) != 666))
 
 #ifndef SCALE_EMBEDDED
 #define				SCALE_BACKTRACE(_func_name) \
-						struct scale_backtrace _scale_backtrace_cur __attribute__((cleanup(scale_trace_remove))) = { .marker = TRACE_MARKER, .func_name = (_func_name) }
+						struct scale_backtrace volatile _scale_backtrace_cur __attribute__((cleanup(scale_trace_remove))) = { .marker = TRACE_MARKER, .func_name = (_func_name) }
 #else
 #define				SCALE_BACKTRACE(_func_name)
 #endif
 
-void				scale_trace_remove(struct scale_backtrace*);
+static inline scale_always_inline void scale_trace_remove(struct scale_backtrace volatile* bt) {
+	bt->marker = 0;
+}
 
 #include "preproc.h"
 
 // call a method on an instance
 #define virtual_call(instance, methodIdentifier, rtype, ...) ({ \
-		typeof((instance)) _tmp = (instance); \
-		((rtype(*)(typeof((instance)) __VA_OPT__(, _SCALE_TYPES(__VA_ARGS__)))) scale_get_vtable_function(_tmp, (methodIdentifier)))(_tmp, ##__VA_ARGS__); \
+		scale_any _tmp = (instance); \
+		((rtype(*)(scale_any __VA_OPT__(, _SCALE_TYPES(__VA_ARGS__)))) scale_get_vtable_function(_tmp, (methodIdentifier)))(_tmp, ##__VA_ARGS__); \
 	})
 
 scale_no_return void	scale_runtime_error(int code, const scale_int8* msg, ...);
@@ -490,21 +478,6 @@ void					scale_setup(void);
 						}).data \
 					)
 
-#define scale_uninitialized_constant_ctype(_type) ({ \
-						static struct { \
-							memory_layout_t layout; \
-							_type data; \
-						} _constant __asm__("lscale_const" scale_macro_to_string(__COUNTER__)) = { \
-							.layout = { \
-								.array_elem_size = 0, \
-								.flags = MEM_FLAG_INSTANCE, \
-								.size = sizeof(_type), \
-							}, \
-							.data = {}, \
-						}; \
-						&((typeof(_constant)*) scale_mark_static(&_constant.layout))->data; \
-					})
-
 #define STATIC_MEMORY(type) static struct { \
 							memory_layout_t layout; \
 							type data; \
@@ -514,6 +487,7 @@ void					scale_setup(void);
 							type data[size]; \
 						}
 
+#define LAYOUT_LAYOUT(type) LAYOUT(0, sizeof(type), 0)
 #define INSTANCE_LAYOUT(type) LAYOUT(MEM_FLAG_INSTANCE, sizeof(type), 0)
 #define ARRAY_LAYOUT(type, size) LAYOUT(MEM_FLAG_ARRAY, size, sizeof(type))
 #define LAYOUT(_flags, _size, _array_elem_size) { \
@@ -539,24 +513,20 @@ void					scale_setup(void);
 		}, \
 	}
 
-#define scale_uninitialized_constant(_type) ({ \
-						extern const TypeInfo $I ## _type; \
-						scale_ ## _type _t; \
-						static struct { \
-							memory_layout_t layout; \
-							typeof(*_t) data; \
-						} _constant __asm__("lscale_const" scale_macro_to_string(__COUNTER__)) = { \
-							.layout = { \
-								.array_elem_size = 0, \
-								.flags = MEM_FLAG_INSTANCE, \
-								.size = sizeof(*_t), \
-							}, \
-							.data = { \
-								.$type = &$I ## _type, \
-							}, \
-						}; \
-						&((typeof(_constant)*) scale_mark_static(&_constant.layout))->data; \
-					})
+#define STATIC_INSTANCE(_type, _num) \
+	extern const TypeInfo $I ## _type; \
+	STATIC_MEMORY(struct Struct_ ## _type) static_uconst_ ## _num = { \
+		.layout = INSTANCE_LAYOUT(struct Struct_ ## _type), \
+		.data = { \
+			.$type = &$I ## _type, \
+		}, \
+	}
+
+#define STATIC_LAYOUT(_type, _num) \
+	STATIC_MEMORY(struct Layout_ ## _type) static_uconstc_ ## _num = { \
+		.layout = LAYOUT_LAYOUT(struct Layout_ ## _type), \
+		.data = {0}, \
+	}
 
 #define varargs(...)				_SCALE_PREPROC_NARG(__VA_ARGS__), _SCALE_VARARGS_SAFE(__VA_ARGS__)
 #define scale_varargs				scale_int $count, ...
@@ -583,9 +553,7 @@ ID_t					type_id(const scale_int8* data);
 
 scale_int				scale_identity_hash(scale_any obj);
 scale_int				scale_is_instance(scale_any ptr);
-#ifndef SCALE_EMBEDDED
-scale_any				scale_mark_static(scale_any x);
-#endif
+void					scale_add_root(memory_layout_t** root);
 scale_int				scale_is_instance_of(scale_any ptr, ID_t type_id);
 scale_any				scale_get_vtable_function(scale_any instance, const scale_int8* methodIdentifier);
 scale_any				scale_checked_cast(scale_any instance, ID_t target_type, const scale_int8* target_type_name);
@@ -616,7 +584,7 @@ void					scale_thread_detach(scale_any thread);
 scale_any				scale_run_async(scale_any func, scale_any func_args);
 scale_any				scale_run_sync(scale_any func, scale_any func_args);
 scale_any				scale_run_await(scale_any _args);
-void					scale_yield();
+void					scale_yield(void);
 
 // BEGIN C++ Concurrency API wrappers
 scale_any				cxx_std_recursive_mutex_new(void);
@@ -723,11 +691,11 @@ static inline scale_always_inline void scale_reset_local_buffer(scale_int* ptr) 
 #define scale_at(a)						(*((a)))
 #define scale_inc(a)					((a) + 1)
 #define scale_dec(a)					((a) - 1)
-#define scale_ann(a)					({ __auto_type _a = (a); scale_assert_fast(_a, "Expected non-nil value"); _a; })
-#define scale_elvis(a, b)				({ __auto_type _a = (a); _a ? _a : (b); })
+#define scale_ann(a)					({ typeof((a)) _a = (a); scale_assert_fast(REINTERPRET_CAST(scale_any, _a), "Expected non-nil value"); _a; })
+#define scale_elvis(a, b)				({ typeof((a)) _a = (a); _a ? _a : (b); })
 #if !defined(UNSAFE_ARRAY_ACCESS) && !defined(SCALE_EMBEDDED)
-#define scale_checked_index(a, i)		({ __auto_type _a = (a); __auto_type _i = (i); scale_array_check_bounds_or_throw((scale_any*) _a, _i); _a[_i]; })
-#define scale_checked_write(a, i, w)	({ __auto_type _a = (a); __auto_type _i = (i); scale_array_check_bounds_or_throw((scale_any*) _a, _i); scale_putlocal(_a[_i], (w)); })
+#define scale_checked_index(a, i)		({ typeof((a)) _a = (a); typeof((i)) _i = (i); scale_array_check_bounds_or_throw((scale_any*) _a, _i); _a[_i]; })
+#define scale_checked_write(a, i, w)	({ typeof((a)) _a = (a); typeof((i)) _i = (i); scale_array_check_bounds_or_throw((scale_any*) _a, _i); scale_putlocal(_a[_i], (w)); })
 #else
 #define scale_checked_index(a, i)		((a)[(i)])
 #define scale_checked_write(a, i, w)	scale_putlocal((a)[(i)], (w))
@@ -748,25 +716,21 @@ static inline scale_uint64 scale_rol64(scale_uint64 a, scale_int b) { return (a 
 		scale_int8: scale_ror8, scale_uint8: scale_ror8, \
 		scale_int16: scale_ror16, scale_uint16: scale_ror16, \
 		scale_int32: scale_ror32, scale_uint32: scale_ror32, \
-		scale_int64: scale_ror64, scale_uint64: scale_ror64, \
-		scale_int: scale_ror64, scale_uint: scale_ror64 \
+		scale_int64: scale_ror64, scale_uint64: scale_ror64 \
 	))((a), (b))
 #define scale_rol(a, b)	(_Generic((a), \
 		scale_int8: scale_ror8, scale_uint8: scale_ror8, \
 		scale_int16: scale_ror16, scale_uint16: scale_ror16, \
 		scale_int32: scale_ror32, scale_uint32: scale_ror32, \
-		scale_int64: scale_ror64, scale_uint64: scale_ror64, \
-		scale_int: scale_ror64, scale_uint: scale_ror64 \
+		scale_int64: scale_ror64, scale_uint64: scale_ror64 \
 	))((a), (b))
 
 #ifdef SCALE_EMBEDDED
-static inline scale_any scale_mark_static(scale_any x) { return x; }
-
 scale_constructor
 void scale_setup(void);
 
 #define scale_assert_fast scale_assert
-static inline scale_int scale_assert(scale_int b, const scale_int8* msg, ...) {
+static inline scale_any scale_assert(scale_any b, const scale_int8* msg, ...) {
 	if (unlikely(!b)) {
 		va_list va;
 		va_start(va, msg);
@@ -777,18 +741,18 @@ static inline scale_int scale_assert(scale_int b, const scale_int8* msg, ...) {
 	return b;
 }
 #else
-static inline scale_int scale_assert_fast(scale_int b, const scale_int8* msg) {
+static inline scale_any scale_assert_fast(scale_any b, const scale_int8* msg) {
 	if (unlikely(!b)) {
 		extern const TypeInfo $IAssertError;
 		scale_any e = scale_alloc_struct(&$IAssertError);
 		scale_str x = str_of_exact(msg);
-		void AssertError$init(scale_any, scale_str) SYMBOL("_M5Error4initEv");
+		void AssertError$init(scale_any, scale_str) SYMBOL("_M5ErrorCEv");
 		AssertError$init(e, x);
 		scale_throw(e);
 	}
 	return b;
 }
-static inline scale_int scale_assert(scale_int b, const scale_int8* msg, ...) {
+static inline scale_any scale_assert(scale_any b, const scale_int8* msg, ...) {
 	if (unlikely(!b)) {
 		va_list va;
 		va_start(va, msg);

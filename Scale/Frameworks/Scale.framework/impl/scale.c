@@ -117,6 +117,7 @@ scale_str* Process$stackTrace(void) {
 	}
 
 	scale_int trace_frames = count_trace_frames(stack_bottom, stack_top, iteration_direction);
+	// printf("trace_frames: %lld\n", trace_frames);
 
 	scale_str* arr = (scale_str*) scale_new_array_by_size(trace_frames - 1, sizeof(scale_str));
 
@@ -125,13 +126,19 @@ scale_str* Process$stackTrace(void) {
 		if (*stack_top == TRACE_MARKER) {
 			if (i) {
 				struct scale_backtrace* bt = (struct scale_backtrace*) stack_top;
-				arr[i - 1] = str_of_exact(bt->func_name);
+				// printf("bt->func_name: %s\n", bt->func_name);
+				if (bt->func_name == nil) {
+					arr[i - 1] = str_of_exact("<unknown>");
+				} else {
+					arr[i - 1] = str_of_exact(bt->func_name);
+				}
 			}
 			i++;
 		}
 
 		stack_top += iteration_direction;
 	}
+	// printf("arr[0]: %s\n", arr[0]->data);
 	return arr;
 }
 
@@ -257,7 +264,7 @@ void GarbageCollector$run0(void) {
 scale_int GarbageCollector$heapSize(void) {
 	scale_uint heapSize;
 	GC_get_heap_usage_safe(
-		&heapSize,
+		(GC_word*) &heapSize,
 		nil,
 		nil,
 		nil,
@@ -270,7 +277,7 @@ scale_int GarbageCollector$freeBytesEstimate(void) {
 	scale_uint freeBytes;
 	GC_get_heap_usage_safe(
 		nil,
-		&freeBytes,
+		(GC_word*) &freeBytes,
 		nil,
 		nil,
 		nil
@@ -283,7 +290,7 @@ scale_int GarbageCollector$bytesSinceLastCollect(void) {
 	GC_get_heap_usage_safe(
 		nil,
 		nil,
-		&bytesSinceLastCollect,
+		(GC_word*) &bytesSinceLastCollect,
 		nil,
 		nil
 	);
@@ -296,7 +303,7 @@ scale_int GarbageCollector$totalMemory(void) {
 		nil,
 		nil,
 		nil,
-		&totalMemory,
+		(GC_word*) &totalMemory,
 		nil
 	);
 	return (scale_int) totalMemory;
@@ -347,7 +354,7 @@ scale_str scale_array_to_string(scale_any* arr) {
 	if (scale_expect(!scale_is_array(arr), 0)) {
 		scale_runtime_error(EX_INVALID_ARGUMENT, "Array must be initialized with 'new[]')");
 	}
-	scale_int size = scale_array_size(arr);
+	scale_int size = scale_array_size((scale_any*) arr);
 	scale_int element_size = scale_array_elem_size(arr);
 
 	scale_str _F4int88toStringbE(scale_int8);

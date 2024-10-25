@@ -50,7 +50,7 @@ namespace sclc {
                 scopeDepth++;
                 append("scale_any tmp = scale_pop(scale_any);\n");
                 std::string t = type;
-                append("scale_push(scale_str, (scale_str) (scale_mark_static(&static_str_%lu.layout) + sizeof(memory_layout_t)));\n", findOrAdd(strings, body[i].value));
+                append("scale_push(scale_str, (scale_str) &static_str_%lu.data);\n", findOrAdd(strings, body[i].value));
                 typeStack.push_back("str");
                 append("scale_push(scale_any, tmp);\n");
                 typeStack.push_back(t);
@@ -141,7 +141,7 @@ namespace sclc {
         typeStack.push_back(mem.type);
         if (deref) {
             std::string path = dot.value + "@" + body[i].value;
-            append("scale_assert_fast(scale_top(scale_int), \"Tried dereferencing nil pointer '%s'!\");", path.c_str());
+            append("scale_assert_fast(scale_top(scale_any), \"Tried dereferencing nil pointer '%s'!\");", path.c_str());
             append("scale_top(scale_any) = *scale_top(scale_any*);\n");
             std::string type = typeStackTop;
             typePop;

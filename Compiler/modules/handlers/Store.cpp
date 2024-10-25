@@ -77,8 +77,8 @@ namespace sclc {
                 }
             } else {
                 std::string return_type = sclTypeToCType(result, type.substr(1, type.size() - 2));
-                append("scale_int size = scale_array_size(tmp);\n");
-                append("scale_assert_fast(size >= %zu, \"Array too small for destructuring\");\n", targets.size());
+                append("scale_int size = scale_array_size((scale_any*) tmp);\n");
+                append("scale_assert_fast((scale_any) (scale_int64) (size >= %zu), \"Array too small for destructuring\");\n", targets.size());
                 for (int i = targets.size() - 1; i >= 0; i--) {
                     append("scale_push(%s, tmp[%d]);\n", return_type.c_str(), i);
                     typeStack.push_back(type.substr(1, type.size() - 2));
@@ -149,9 +149,9 @@ namespace sclc {
             #define TYPEALIAS_CAN_BE_NIL(result, ta) (hasTypealias(result, ta) && typealiasCanBeNil(result, ta))
             if (!v.canBeNil && !TYPEALIAS_CAN_BE_NIL(result, v.type)) {
                 if (v.type.front() == '@' && typeStackTop.front() != '@') {
-                    append("scale_assert_fast(scale_top(scale_int), \"Tried dereferencing nil pointer!\");\n");
+                    append("scale_assert_fast(scale_top(scale_any), \"Tried dereferencing nil pointer!\");\n");
                 } else {
-                    append("scale_assert_fast(scale_top(scale_int), \"Nil cannot be stored in non-nil variable '%s'!\");\n", v.name.c_str());
+                    append("scale_assert_fast(scale_top(scale_any), \"Nil cannot be stored in non-nil variable '%s'!\");\n", v.name.c_str());
                 }
             }
             if (doCheckTypes && !typesCompatible(result, typeStackTop, v.type, true)) {
@@ -294,9 +294,10 @@ namespace sclc {
                     errors.push_back(err);
                 }
                 if (!typeCanBeNil(currentType) && !TYPEALIAS_CAN_BE_NIL(result, currentType)) {
-                    append("scale_assert_fast(scale_top(scale_int), \"Nil cannot be stored in non-nil variable '%s'!\");\n", v.name.c_str());
+                    append("scale_assert_fast(scale_top(scale_any), \"Nil cannot be stored in non-nil variable '%s'!\");\n", v.name.c_str());
                 }
-                append("%s tmp = scale_pop(%s);\n", sclTypeToCType(result, typeStackTop).c_str(), sclTypeToCType(result, typeStackTop).c_str());
+                auto type = sclTypeToCType(result, currentType);
+                append("%s tmp = (%s) scale_pop(%s);\n", type.c_str(), type.c_str(), sclTypeToCType(result, typeStackTop).c_str());
                 append("%s;\n", path.c_str());
                 typePop;
             });

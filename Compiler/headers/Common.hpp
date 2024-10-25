@@ -131,8 +131,7 @@ namespace sclc {
         std::vector<FPResult> warns;
         char* source;
         size_t current;
-        bool additional;
-        Token additionalToken;
+        std::vector<Token> extraTokens;
         size_t sourceLen;
 
         int line = 1;
@@ -242,6 +241,7 @@ namespace sclc {
     int isOperator(char c);
     void addIfAbsent(std::vector<Function*>& vec, Function* str);
     size_t findOrAdd(std::vector<std::string>& vec, const std::string& str);
+    size_t add(std::vector<std::string>& vec, const std::string& str);
     std::string replaceAll(const std::string& src, const std::string& from, const std::string& to);
     std::string replaceFirstAfter(const std::string& src, const std::string& from, const std::string& to, int index);
     int lastIndexOf(char* src, char c);

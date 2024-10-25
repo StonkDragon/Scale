@@ -15,7 +15,7 @@ Function::Function(std::string name, bool isMethod, Token name_token) : namedRet
 
     this->name_token = name_token;
     this->name = name;
-    this->name_without_overload = this->name.substr(0, this->name.find("$$ol"));
+    this->name_without_overload = this->name;
     this->isMethod = isMethod;
     this->member_type = "";
 

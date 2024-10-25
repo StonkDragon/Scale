@@ -13,6 +13,10 @@ function puts(value: [int8]): none
     end
 end
 
+function puts(value: str): none
+    value.data puts::<[int8]>
+end
+
 reified function puts<T>(value: T): none
     value:toString.data puts::<[int8]>
 end
@@ -21,6 +25,10 @@ function eputs(value: [int8]): none
     unsafe
         value __c_get_stderr __c_fputs c"\n" __c_get_stderr __c_fputs
     end
+end
+
+function eputs(value: str): none
+    value.data eputs::<[int8]>
 end
 
 reified function eputs<T>(value: T): none

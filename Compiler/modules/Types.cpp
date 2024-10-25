@@ -232,17 +232,11 @@ namespace sclc {
         return typeEquals(returnTypeA, returnTypeB);
     }
 
-    bool typeEquals(const std::string& a, const std::string& b) {
+    bool typeEquals0(const std::string& a, const std::string& b) {
         if (a.empty() || b.empty()) {
             return false;
         }
-        if (b == "any") {
-            return true;
-        }
-        if (a == "?" || b == "?") {
-            return true;
-        }
-
+        
         std::string a2 = removeTypeModifiers(a);
         std::string b2 = removeTypeModifiers(b);
         if (a2 == b2) {
@@ -260,12 +254,21 @@ namespace sclc {
             std::string aType = a2.substr(1);
             if (b2.front() == '*') {
                 std::string bType = b2.substr(1);
-                return typeEquals(aType, bType);
+                return typeEquals0(aType, bType);
             }
         } else if (strstarts(a2, "lambda(") && strstarts(b2, "lambda(")) {
             return lambdasEqual(a2, b2);
         }
         return false;
+    }
+    bool typeEquals(const std::string& a, const std::string& b) {
+        if (b == "any") {
+            return true;
+        }
+        if (a == "?" || b == "?") {
+            return true;
+        }
+        return typeEquals0(a, b);
     }
 
     bool typeIsUnsigned(std::string s) {
@@ -605,18 +608,19 @@ namespace sclc {
             {"int8", "b"},
             {"int16", "s"},
             {"int32", "i"},
-            {"int64", "l"},
+            {"int64", "t"},
             {"uint", "L"},
             {"uint8", "B"},
             {"uint16", "S"},
             {"uint32", "I"},
-            {"uint64", "L"},
+            {"uint64", "T"},
             {"float", "d"},
             {"float32", "f"},
             {"str", "E"},
             {"none", "v"},
             {"[int8]", "c"},
             {"[any]", "p"},
+            {"*any", "ra"},
             {"?", "Q"},
             {"lambda", "F"},
         };
@@ -629,6 +633,8 @@ namespace sclc {
             cache[type] = "P" + typeToSymbol(type.substr(1));
         } else if (strstarts(type, "lambda(")) {
             cache[type] = "F";
+        } else if (strstarts(type, "async<")) {
+            cache[type] = "W" + typeToSymbol(type.substr(6, type.size() - 7));
         } else if (type.size() > 2 && type.front() == '[' && type.back() == ']') {
             cache[type] =  "A" + typeToSymbol(type.substr(1, type.size() - 2));
         } else if (!type.empty() && type.front() == '*') {

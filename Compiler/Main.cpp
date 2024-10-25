@@ -159,10 +159,12 @@ namespace sclc
         Token token = tk.nextToken();
         while (token.type != tok_eof) {
             tk.tokens.push_back(token);
-            if (tk.additional) {
-                tk.tokens.push_back(tk.additionalToken);
-                tk.additional = false;
+            std::cout << "Token: " << token.toString() << std::endl;
+            for (auto&& tok : tk.extraTokens) {
+                tk.tokens.push_back(tok);
+                std::cout << "  Extra Token: " << tok.toString() << std::endl;
             }
+            tk.extraTokens.clear();
             token = tk.nextToken();
         }
 
@@ -302,7 +304,6 @@ namespace sclc
                         std::cout << Color::RED << "Compilation of framework '" + framework + "' failed with error code " << compile_command << Color::RESET << std::endl;
                         std::exit(compile_command);
                     }
-
                     
                     std::filesystem::current_path(curPath);
                 };
