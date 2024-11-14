@@ -112,25 +112,39 @@ namespace sclc {
         }
         
         Struct s = getStructByName(result, typeStackTop);
-        if (s == Struct::Null) {
+        bool isIterable = !s.name.empty() && structImplements(result, s, "Iterable");
+        bool isIterator = !s.name.empty() && structImplements(result, s, "Iterator");
+        if (s.name.empty()) {
             const Layout& l = getLayout(result, typeStackTop);
+            isIterable = hasMethod(result, "iterate", l.name);
+            isIterator = (hasMethod(result, "next", l.name) && hasMethod(result, "hasNext", l.name));
             if (l.name.empty()) {
                 transpilerError("Can only iterate over structs, layouts and arrays, but got '" + typeStackTop + "'", i);
                 errors.push_back(err);
                 return;
             }
-        } else if (!structImplements(result, s, "Iterable")) {
-            transpilerError("Struct '" + typeStackTop + "' is not iterable", i);
-            errors.push_back(err);
-            return;
         }
-        Method* iterateMethod = getMethodByName(result, "iterate", typeStackTop);
-        if (iterateMethod == nullptr) {
-            transpilerError("Could not find method 'iterate' on type '" + typeStackTop + "'", i);
-            errors.push_back(err);
-            return;
+        
+        if (!isIterable && !isIterator) {
+            if (s.name.empty()) {
+                transpilerError("Layout '" + typeStackTop + "' is not iterable", i);
+                errors.push_back(err);
+                return;
+            } else {
+                transpilerError("Struct '" + typeStackTop + "' is not iterable", i);
+                errors.push_back(err);
+                return;
+            }
         }
-        methodCall(iterateMethod, fp, result, warns, errors, body, i);
+        if (isIterable) {
+            Method* iterateMethod = getMethodByName(result, "iterate", typeStackTop);
+            if (iterateMethod == nullptr) {
+                transpilerError("Could not find method 'iterate' on type '" + typeStackTop + "'", i);
+                errors.push_back(err);
+                return;
+            }
+            methodCall(iterateMethod, fp, result, warns, errors, body, i);
+        }
         append("%s %s = scale_pop(%s);\n", sclTypeToCType(result, typeStackTop).c_str(), iterator_name.c_str(), sclTypeToCType(result, typeStackTop).c_str());
         type = typeStackTop;
         typePop;

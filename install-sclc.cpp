@@ -163,6 +163,17 @@ std::vector<fs::path> listFiles(const fs::path& dir, std::string ext) {
 }
 
 void exec_command(std::string cmd) {
+    static enum {
+        YES,
+        NO,
+        UNSET
+    } printCommands = UNSET;
+    if (printCommands == UNSET) {
+        printCommands = std::getenv("PRINT_COMMANDS") ? YES : NO;
+    }
+    if (printCommands == YES) {
+        std::cout << Color::RESET << "+ " << cmd << std::endl;
+    }
     int x = std::system(cmd.c_str());
     if (x) std::exit(x);
 }

@@ -1,0 +1,4 @@
+function main(): none
+  "John" => decl name: str
+  "Hello, \(name)!" puts
+end
