@@ -623,6 +623,7 @@ namespace sclc {
             {"*any", "ra"},
             {"?", "Q"},
             {"lambda", "F"},
+            {"varargs", "j"},
         };
 
         type = removeTypeModifiers(type);

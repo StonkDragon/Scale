@@ -202,7 +202,6 @@ namespace sclc
                                 c = source[++current];
                                 column++;
                                 int parenCount = 1;
-                                std::cout << "c: " << c << std::endl;
                                 if (interpTokens.empty()) {
                                     interpTokens.push_back(Token(tok_varargs, "varargs", openParen.location));
                                 }
@@ -213,7 +212,6 @@ namespace sclc
                                         break;
                                     }
                                     Token tok = nextToken();
-                                    std::cout << "Token: " << tok.toString() << std::endl;
                                     if (tok.type == tok_paren_open) {
                                         parenCount++;
                                     } else if (tok.type == tok_paren_close) {
@@ -222,7 +220,6 @@ namespace sclc
                                     interpTokens.push_back(tok);
                                     for (auto&& tok : extraTokens) {
                                         interpTokens.push_back(tok);
-                                        std::cout << "  Extra Token: " << tok.toString() << std::endl;
                                         if (tok.type == tok_paren_open) {
                                             parenCount++;
                                         } else if (tok.type == tok_paren_close) {
@@ -260,7 +257,6 @@ namespace sclc
             }
 
             for (auto&& tok : interpTokens) {
-                std::cout << "Extra Token: " << tok.toString() << std::endl;
                 extraTokens.push_back(tok);
             }
 
