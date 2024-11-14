@@ -1,4 +1,4 @@
-import std.fs
+import std.File
 
 enum Foo
     Foo

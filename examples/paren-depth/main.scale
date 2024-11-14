@@ -1,5 +1,5 @@
 import std.functional.Transform
-import std.math
+import std.Math
 
 function main(): none
     c"(1+(2*3)+((8)/4))+1" => decl data: [int8]

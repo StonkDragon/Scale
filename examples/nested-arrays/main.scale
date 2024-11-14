@@ -1,4 +1,4 @@
-import std.math
+import std.Math
 
 function main(): none
     new<[int]> {

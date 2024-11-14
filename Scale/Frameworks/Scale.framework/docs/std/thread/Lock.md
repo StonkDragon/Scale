@@ -1,0 +1,6 @@
+## struct Lock
+### function Lock:lock(): none
+Locks `self` on the current thread, blocking if another thread has already locked `self`.
+
+### function Lock:unlock(): none
+Unlocks `self` on the current thread.

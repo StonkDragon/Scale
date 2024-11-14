@@ -58,6 +58,28 @@ namespace sclc
         sourceLen = 0;
     }
 
+    FPResult Tokenizer::tokenizeString(std::string s) {
+        this->source = strdup(s.c_str());
+        this->current = 0;
+
+        Token token = this->nextToken();
+        while (token.type != tok_eof) {
+            this->tokens.push_back(token);
+            std::cout << "Token: " << token.toString() << std::endl;
+            for (auto&& tok : this->extraTokens) {
+                this->tokens.push_back(tok);
+                std::cout << "  Extra Token: " << tok.toString() << std::endl;
+            }
+            this->extraTokens.clear();
+            token = this->nextToken();
+        }
+
+        FPResult result;
+        result.errors = this->errors;
+        result.warns = this->warns;
+        return result;
+    }
+
     Token Tokenizer::nextToken() {
         if (current >= sourceLen) {
             return Token(tok_eof, "", line, filename, begin);

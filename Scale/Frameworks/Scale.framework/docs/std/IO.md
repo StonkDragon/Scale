@@ -1,0 +1,12 @@
+## IO
+### function puts<T>(value: T): none
+Writes the string representation of `value` to stdout.
+
+### function puts(value: [int8]): none
+Writes the C-String `value` to stdout.
+
+### function eputs<T>(value: T): none
+Writes the string representation of `value` to stderr.
+
+### function eputs(value: [int8]): none
+Writes the C-String `value` to stderr.

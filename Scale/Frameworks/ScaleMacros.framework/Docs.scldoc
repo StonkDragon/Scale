@@ -1,3 +1,0 @@
-# Scale Macro Library
-%include include/std/compiler/Utils.scldoc
-%include include/std/macros/Macros.scldoc

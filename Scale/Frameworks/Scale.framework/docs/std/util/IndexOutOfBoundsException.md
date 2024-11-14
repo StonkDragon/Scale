@@ -1,0 +1,6 @@
+## Util: IndexOutOfBoundsException
+### final struct IndexOutOfBoundsException: Exception
+The struct `IndexOutOfBoundsException` represents an exception that is thrown when an index is out of bounds.
+
+### static function IndexOutOfBoundsException::new(s: str): IndexOutOfBoundsException
+Returns a new instance of `IndexOutOfBoundsException` with the message `s`.

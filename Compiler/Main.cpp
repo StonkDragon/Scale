@@ -104,8 +104,6 @@ namespace sclc
         std::cout << "  -no-error-location          Do not print an overview of the file on error" << std::endl;
         std::cout << "  -verbose-linker             Tells the linker to run in verbose mode for debugging purposes" << std::endl;
         std::cout << "  -nowarn <regex>             Do not print any diagnostics where the message matches the given regular expression" << std::endl;
-        std::cout << "  -doc                        Print documentation" << std::endl;
-        std::cout << "  -doc-for <framework>        Print documentation for Framework" << std::endl;
         std::cout << "  -stack-size <sz>            Sets the starting stack size. Must be a multiple of 2" << std::endl;
         std::cout << "  -no-scale-std               Do not depend on Scale.framework" << std::endl;
         std::cout << "  -no-link-scale              Do not dynamically link to Scale.framework library" << std::endl;
@@ -149,27 +147,6 @@ namespace sclc
             return entries.end();
         }
     };
-
-    std::vector<Token> parseString(std::string s) {
-        Tokenizer tk;
-
-        tk.source = strdup(s.c_str());
-        tk.current = 0;
-
-        Token token = tk.nextToken();
-        while (token.type != tok_eof) {
-            tk.tokens.push_back(token);
-            std::cout << "Token: " << token.toString() << std::endl;
-            for (auto&& tok : tk.extraTokens) {
-                tk.tokens.push_back(tok);
-                std::cout << "  Extra Token: " << tok.toString() << std::endl;
-            }
-            tk.extraTokens.clear();
-            token = tk.nextToken();
-        }
-
-        return tk.tokens;
-    }
 
     auto listFiles(const std::filesystem::path& dir, std::string ext) -> std::vector<std::filesystem::path> {
         std::vector<std::filesystem::path> files;
@@ -219,9 +196,6 @@ namespace sclc
                 
                 DragonConfig::StringEntry* implHeaderDirTag = root->getString("implHeaderDir");
                 std::string implHeaderDir = implHeaderDirTag == nullptr ? "" : implHeaderDirTag->getValue();
-
-                DragonConfig::StringEntry* docfileTag = root->getString("docfile");
-                Main::options::mapFrameworkDocfiles[framework] = docfileTag == nullptr ? "" : path + DIR_SEP + framework + ".framework" DIR_SEP + docfileTag->getValue();
 
                 Version ver = Version(version);
                 Version compilerVersion = Version(VERSION);
@@ -371,283 +345,8 @@ namespace sclc
         return s.substr(i);
     }
 
-    std::string compileLine(std::string line) {
-        std::string out = "";
-        out.reserve(line.size());
-        bool inCode = false;
-        for (size_t i = 0; i < line.size(); i++) {
-            if (line[i] == '`') {
-                inCode = !inCode;
-            } else {
-                if (inCode) {
-                    std::string theCode = line.substr(i, line.find("`", i) - i);
-                    i += theCode.size();
-                    auto tokens = parseString(theCode);
-                    theCode = "";
-                    for (size_t i = 0; i < tokens.size(); i++) {
-                        if (tokens[i].type == tok_eof) continue;
-                        auto t = tokens[i];
-                        size_t spacesBetween = 0;
-                        if (((ssize_t) i) - 1 >= 0 && tokens[i - 1].type != tok_eof) {
-                            spacesBetween = t.location.column - tokens[i - 1].location.column - tokens[i - 1].value.size();
-                        }
-                        theCode += std::string(spacesBetween, ' ');
-                        theCode += t.formatted();
-                    }
-                    inCode = false;
-                    out += Color::RESET + theCode + Color::GREEN;
-                } else {
-                    out += line[i];
-                }
-            }
-        }
-        return out;
-    }
-
-    Documentation parseSclDoc(std::string file) {
-        FILE* docFile = fopen(file.c_str(), "rb");
-        if (!docFile) {
-            std::cerr << "Failed to open documentation file: " << strerror(errno) << std::endl;
-            std::exit(1);
-        }
-        
-        if (docFile) fseek(docFile, 0, SEEK_END);
-        long sz = ftell(docFile);
-        if (docFile) fseek(docFile, 0, SEEK_SET);
-
-        char* data = new char[sz];
-
-        fread(data, 1, sz, docFile);
-        fclose(docFile);
-
-        Documentation docs;
-
-        std::vector<std::string> lines = split(std::string(data), "\n");
-
-        for (size_t i = 0; i < lines.size(); i++) {
-            std::string line = lines[i];
-            if (strstarts(line, "%include")) {
-                std::string includeFile = trimLeft(line.substr(8));
-                std::string includePath = std::filesystem::path(file).parent_path().string() + DIR_SEP + includeFile;
-                FILE* include = fopen(includePath.c_str(), "rb");
-                if (!include) {
-                    std::cerr << Color::RED << "Failed to open include file " << includePath << ": " << strerror(errno) << Color::RESET << std::endl;
-                    exit(1);
-                }
-                fseek(include, 0, SEEK_END);
-                long sz = ftell(include);
-                fseek(include, 0, SEEK_SET);
-
-                char* data = new char[sz];
-
-                fread(data, 1, sz, include);
-                fclose(include);
-
-                std::string includeData = std::string(data);
-                std::vector<std::string> includeLines = split(includeData, "\n");
-                lines.erase(lines.begin() + i);
-                for (size_t i = 0; i < includeLines.size(); i++) {
-                    lines.insert(lines.begin() + i, includeLines[i]);
-                }
-            }
-        }
-
-        std::string current = "";
-        std::string currentModule = "";
-        std::string implementedAt = "";
-        std::string parentPath = std::filesystem::path(file).parent_path().string();
-        for (size_t i = 0; i < lines.size(); i++) {
-            std::string line = lines[i];
-            if (strstarts(line, "@") && !strstarts(line, "@@")) {
-                currentModule = trimLeft(line.substr(1));
-            } else if (strstarts(line, "@@")) {
-                implementedAt = trimLeft(line.substr(2));
-            } else if (strstarts(line, "##") && !strstarts(line, "###")) {
-                current = line.substr(3);
-                docs.entries[current] = DocumentationEntries();
-            } else if (strstarts(line, "###")) {
-                std::string key = line.substr(4);
-                DocumentationEntry e;
-                e.name = key;
-                e.module = currentModule;
-                implementedAt = replaceAll(implementedAt, R"(\{scaleFolder\})", scaleFolder);
-                implementedAt = replaceAll(implementedAt, R"(\{framework\})", Main::options::printDocFor);
-                implementedAt = replaceAll(implementedAt, R"(\{module\})", currentModule);
-                implementedAt = replaceAll(implementedAt, R"(\{frameworkPath\})", parentPath);
-                e.file = implementedAt;
-                
-                line = lines[++i];
-                auto isNextLine = [](std::string line) -> bool {
-                    return strstarts(line, "##") || strstarts(line, "@");
-                };
-                while (i < lines.size()) {
-                    line = lines[i++];
-                    if (isNextLine(line)) {
-                        i -= 2;
-                        break;
-                    }
-                    e.description += "  " + compileLine(line) + "\n";
-                }
-                docs.entries[current].push_back(e);
-            }
-        }
-        return docs;
-    }
-
-    auto docHandler(std::vector<std::string> args) {
-        Documentation docs;
-        std::vector<std::string> tmpFlags;
-        std::vector<std::string> frameworks = {Main::options::printDocFor}; 
-        bool hasCppFiles;
-        Version FrameworkMinimumVersion(FRAMEWORK_VERSION_REQ);
-        if (!checkFramework(Main::options::printDocFor, tmpFlags, frameworks, hasCppFiles, FrameworkMinimumVersion)) {
-            return 1;
-        }
-        
-        struct {
-            std::vector<std::string> find;
-            std::vector<std::string> find_category;
-            bool help;
-            bool categories;
-        } DocOps = {
-            std::vector<std::string>(),
-            std::vector<std::string>(),
-            false,
-            false
-        };
-
-        for (size_t i = Main::options::docPrinterArgsStart + 1; i < args.size(); i++) {
-            std::string arg = args[i];
-            if (arg == "find") {
-                if (i + 1 < args.size()) {
-                    DocOps.find.push_back(args[i + 1]);
-                    i++;
-                } else {
-                    std::cerr << "Error: find requires an argument" << std::endl;
-                    return 1;
-                }
-            } else if (arg == "find-category") {
-                if (i + 1 < args.size()) {
-                    DocOps.find_category.push_back(args[i + 1]);
-                    i++;
-                } else {
-                    std::cerr << "Error: find requires an argument" << std::endl;
-                    return 1;
-                }
-            } else if (arg == "help" || arg == "-h" || arg == "--help") {
-                DocOps.help = true;
-            } else if (arg == "categories") {
-                DocOps.categories = true;
-            } else if (arg == "for") {
-                if (i + 1 < args.size()) {
-                    Main::options::printDocFor = args[i + 1];
-                    i++;
-                } else {
-                    std::cerr << "Error: for requires an argument" << std::endl;
-                    return 1;
-                }
-            } else {
-                std::cout << "Unknown argument: " << arg << std::endl;
-                DocOps.help = true;
-            }
-        }
-
-        if (DocOps.help) {
-            std::cout << "Scale Doc-Viewer help:" << std::endl;
-            std::cout << "" << std::endl;
-            std::cout << "  find <regex>             Find <regex> in documentation." << std::endl;
-            std::cout << "  find-category <category> Find <category> in documentation." << std::endl;
-            std::cout << "  help                     Display this help." << std::endl;
-            std::cout << "  categories               Display categories." << std::endl;
-            std::cout << "" << std::endl;
-            return 0;
-        }
-        std::string file = Main::options::mapFrameworkDocfiles[Main::options::printDocFor];
-        std::string docFileFormat = Main::options::indexDrgFiles[Main::options::printDocFor]->getStringOrDefault("docfile-format", "markdown")->getValue();
-
-        if (file.empty() || !std::filesystem::exists(file)) {
-            std::cerr << Color::RED << "Framework '" + Main::options::printDocFor + "' has no docfile!" << Color::RESET << std::endl;
-            return 1;
-        }
-
-        std::string includeFolder = Main::options::mapFrameworkIncludeFolders[Main::options::printDocFor];
-        Main::options::docsIncludeFolder = includeFolder;
-
-        if (docFileFormat == "markdown") {
-            std::cerr << "Markdown Docfiles are not supported anymore!" << std::endl;
-            return 1;
-        } else if (docFileFormat == "scldoc") {
-            docs = parseSclDoc(file);
-        } else {
-            std::cerr << Color::RED << "Invalid Docfile format: " << docFileFormat << Color::RESET << std::endl;
-            return 1;
-        }
-
-        if (DocOps.categories) {
-            std::cout << "Documentation for " << Main::options::printDocFor << std::endl;
-            std::cout << "Categories: " << std::endl;
-
-            std::string current = "";
-            for (auto section : docs) {
-                current = section.first;
-                std::cout << "  " << Color::BOLDBLUE << current << Color::RESET << std::endl;
-            }
-            return 0;
-        }
-
-        std::cout << "Documentation for " << Main::options::printDocFor << std::endl;
-
-        std::string current = "";
-        for (auto&& section : docs) {
-            current = section.first;
-
-            bool found = true;
-            if (DocOps.find_category.size()) {
-                found = false;
-                for (auto&& cat : DocOps.find_category) {
-                    if (std::regex_search(current, std::regex(cat))) {
-                        found = true;
-                        break;
-                    }
-                }
-            }
-            if (!found) continue;
-
-            std::vector<DocumentationEntry> foundIn;
-
-            for (DocumentationEntry e : section.second) {
-                if (DocOps.find.size()) {
-                    for (auto&& f : DocOps.find) {
-                        if (
-                            std::regex_search(e.name.begin(), e.name.end(), std::regex(f, std::regex::icase)) ||
-                            std::regex_search(e.module.begin(), e.module.end(), std::regex(f, std::regex::icase)) ||
-                            std::regex_search(e.description.begin(), e.description.end(), std::regex(f, std::regex::icase))
-                        ) {
-                            foundIn.push_back(e);
-                        }
-                    }
-                } else {
-                    foundIn.push_back(e);
-                }
-            }
-
-            if (foundIn.empty()) continue;
-            std::cout << Color::BOLDBLUE << current << ":" << Color::RESET << std::endl;
-            for (DocumentationEntry e : foundIn) {
-                std::cout << Color::BLUE << e.name << "\n";
-                if (e.module.size()) {
-                    std::cout << Color::CYAN << "Module: " << e.module;
-                    if (e.file.empty()) std::cout << "\n";
-                }
-                if (e.file.size()) {
-                    std::cout << " (" << e.file << ")\n";
-                }
-                std::cout << Color::GREEN << e.description;
-            }
-        }
-
-        return 0;
-    }
+    void logWarns(std::vector<FPResult>& warns);
+    void logErrors(std::vector<FPResult>& errors);
 
     int makeFramework(std::string name) {
         std::filesystem::create_directories(name + ".framework");
@@ -662,8 +361,6 @@ namespace sclc
         framework->addString("headerDir", "include");
         framework->addString("implDir", "impl");
         framework->addString("implHeaderDir", "impl");
-        framework->addString("docfile", "");
-        framework->addString("docfile-format", "scldoc");
         
         auto implementers = new DragonConfig::ListEntry();
         implementers->setKey("implementers");
@@ -682,9 +379,6 @@ namespace sclc
         indexFile.close();
         return 0;
     }
-
-    void logWarns(std::vector<FPResult>& warns);
-    void logErrors(std::vector<FPResult>& errors);
 
     bool diagDisabled(std::string& diag) {
         for (auto&& r : disabledDiagnostics) {
@@ -853,12 +547,6 @@ namespace sclc
 
         Main::options::includePaths.push_back(scaleFolder + DIR_SEP "Frameworks");
         Main::options::includePaths.push_back(".");
-
-        if (args[0] == "scaledoc") {
-            Main::options::docPrinterArgsStart = 0;
-            Main::options::printDocFor = "Scale";
-            return docHandler(args);
-        }
 
         if (args.size() < 2) {
             usage(args[0]);
@@ -1083,15 +771,6 @@ namespace sclc
                     std::cerr << "Error: -stack-size requires an argument" << std::endl;
                     return 1;
                 }
-            } else if (args[i] == "-doc-for") {
-                if (i + 1 < args.size()) {
-                    Main::options::printDocFor = args[i + 1];
-                    i++;
-                    Main::options::docPrinterArgsStart = i;
-                } else {
-                    std::cerr << "Error: -doc-for requires an argument" << std::endl;
-                    return 1;
-                }
             } else if (args[i] == "--") {
                 break;
             } else if (args[i] == "-I") {
@@ -1251,14 +930,6 @@ namespace sclc
             }
         }
 
-        if (Main::options::printDocs ||  Main::options::printDocFor.size() != 0) {
-            if (Main::options::printDocs || (Main::options::printDocFor.size() && contains(frameworks, Main::options::printDocFor))) {
-                return docHandler(args);
-            }
-            std::cerr << Color::RED << "Framework '" + Main::options::printDocFor + "' not found!" << Color::RESET << std::endl;
-            return 1;
-        }
-        
         std::vector<Token>  tokens;
 
         DBG("Adding include paths for all files");

@@ -140,6 +140,7 @@ namespace sclc {
         std::string filename;
         Tokenizer();
         ~Tokenizer();
+        FPResult tokenizeString(std::string s);
         FPResult tokenize(std::string source);
         std::vector<Token> getTokens();
         Token nextToken();
@@ -190,7 +191,6 @@ namespace sclc {
             static bool Werror;
             static bool dumpInfo;
             static bool embedded;
-            static bool printDocs;
             static bool printCflags;
             static bool noLinkScale;
             static size_t stackSize;
@@ -203,14 +203,10 @@ namespace sclc {
             static bool noScaleFramework;
             static std::string optimizer;
             static bool dontSpecifyOutFile;
-            static std::string printDocFor;
-            static size_t docPrinterArgsStart;
-            static std::string docsIncludeFolder;
             static std::vector<std::string> files;
             static std::vector<std::string> features;
             static std::vector<std::string> includePaths;
             static std::vector<std::string> filesFromCommandLine;
-            static std::unordered_map<std::string, std::string> mapFrameworkDocfiles;
             static std::unordered_map<std::string, std::string> mapFrameworkIncludeFolders;
             static std::unordered_map<std::string, std::string> mapIncludePathsToFrameworks;
             static std::unordered_map<std::string, DragonConfig::CompoundEntry*> indexDrgFiles;

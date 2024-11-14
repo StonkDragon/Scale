@@ -1,0 +1,79 @@
+
+## Float
+### final static struct float
+The static struct `float` provides utility functions for working with the `float` type.
+Static Fields:
+- `maxExponent: const int` - The maximum exponent of a float.
+- `minExponent: const int` - The minimum exponent of a float.
+
+### static function float::toString(x: float): str
+Returns a string representation of `x`.
+
+### static function float::toPrecisionString(x: float): str
+Returns a string representation of `x` with a precision of 17.
+
+### static function float::toHexString(x: float): str
+Returns a hexadecimal string representation of `x`.
+
+### static function float::parse(s: str): float
+Parses `s` as a float and returns the result.
+
+### static function float::bits(x: float): int
+Returns the bits of `x`.
+
+### static function float::isInfinite(x: float): bool
+Returns true if `x` is infinite.
+
+### static function float::isNaN(x: float): bool
+Returns true if `x` is NaN.
+
+### static function float::isFinite(x: float): bool
+Returns true if `x` is finite.
+
+### static function float::isNotNaN(x: float): bool
+Returns true if `x` is not NaN.
+
+### static function float::asReference(f: float): Box<float>
+Returns a new instance of `Box<float>` that represents the value `f`.
+
+### static function float::fromBits(bits: any): float
+Returns a float from the bits `bits`.
+
+### final static struct float32
+The static struct `float32` provides utility functions for working with the `float32` type.
+Static Fields:
+- `maxExponent: const int` - The maximum exponent of a float32.
+- `minExponent: const int` - The minimum exponent of a float32.
+
+### static function float32::toString(x: float32): str
+Returns a string representation of `x`.
+
+### static function float32::toPrecisionString(x: float32): str
+Returns a string representation of `x` with a precision of 17.
+
+### static function float32::toHexString(x: float32): str
+Returns a hexadecimal string representation of `x`.
+
+### static function float32::parse(s: str): float32
+Parses `s` as a float32 and returns the result.
+
+### static function float32::bits(x: float32): int
+Returns the bits of `x`.
+
+### static function float32::isInfinite(x: float32): bool
+Returns true if `x` is infinite.
+
+### static function float32::isNaN(x: float32): bool
+Returns true if `x` is NaN.
+
+### static function float32::isFinite(x: float32): bool
+Returns true if `x` is finite.
+
+### static function float32::isNotNaN(x: float32): bool
+Returns true if `x` is not NaN.
+
+### static function float32::asReference(f: float32): Box<float32>
+Returns a new instance of `Box<float32>` that represents the value `f`.
+
+### static function float32::fromBits(bits: any): float32
+Returns a float32 from the bits `bits`.

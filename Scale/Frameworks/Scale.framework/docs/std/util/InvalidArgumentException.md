@@ -1,0 +1,6 @@
+## Util: InvalidArgumentException
+### final struct InvalidArgumentException: Exception
+The struct `InvalidArgumentException` represents an exception that is thrown when an invalid argument is passed to a function.
+
+### static function InvalidArgumentException::new(s: str): InvalidArgumentException
+Returns a new instance of `InvalidArgumentException` with the message `s`.

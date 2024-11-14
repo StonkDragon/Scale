@@ -1,0 +1,88 @@
+import std.IO
+import std.runtime.Process
+
+cdecl "scale_throw"
+expect foreign function throw(ex: any): nothing
+
+cdecl "raise"
+private expect foreign unsafe function __c_raise(sigNum: int32): int32
+cdecl "get_errno"
+expect foreign function errno(): int
+cdecl "get_errno_as_str"
+expect foreign function strerror(): str
+cdecl "abort"
+expect foreign function abort(): nothing
+
+function crash(): nothing
+  abort
+end
+
+function raise(sigNum: int): nothing
+  unsafe
+    sigNum __c_raise => decl raised
+    if raised ! then
+      abort
+    fi
+  end
+  builtinUnreachable
+end
+
+cdecl "getchar"
+private expect foreign unsafe function __c_getchar(): int
+
+function breakPoint(): none
+  "Hit breakPoint. Press enter to continue." puts
+  unsafe
+    __c_getchar
+  end
+end
+
+struct Exception
+  decl msg: str
+  decl stackTrace: const [str]
+  
+  init()
+    Process::stackTrace => self.stackTrace
+    "" => self.msg
+  end
+
+  final function printStackTrace(): none
+    "Stacktrace of " typeof self + ": " + self.msg + eputs
+    for i in self.stackTrace:size to 0 step -- do
+      "    " self.stackTrace[i 1 -] + eputs
+    done
+  end
+end
+
+final struct InvalidSignalException: Exception
+  decl sig: readonly int
+
+  init(sig: int)
+    sig => self.sig
+  end
+end
+
+final struct NullPointerException: Exception end
+
+struct Error: Exception
+  init(msg: str)
+    msg => self.msg
+  end
+end
+
+final struct AssertError: Error end
+final struct CastError: Error end
+final struct UnreachableError: Error end
+final struct OutOfMemoryError: Error end
+final struct RuntimeError: Error end
+final struct SignalError: Error end
+
+function sysPrettyString(): str
+  new<int8>[40] => decl sPtr: [int8]
+  unsafe
+    c!
+      snprintf((*sPtr), 40, "%s %s", SCALE_OS_NAME, SCALE_SYSTEM);
+    end
+  end
+  sPtr str::new return
+end

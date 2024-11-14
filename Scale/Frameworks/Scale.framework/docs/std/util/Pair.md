@@ -1,0 +1,12 @@
+## Util: Pair
+### final struct Pair
+The struct `Pair` represents a pair of values.
+Declared Fields:
+- `a: any` - The first value.
+- `b: any` - The second value.
+
+### static function Pair::new(a: any, b: any): Pair
+Returns a new instance of `Pair` with the values `a` and `b`.
+
+### function Pair:toString(): str
+Returns a string representation of this `Pair` instance.

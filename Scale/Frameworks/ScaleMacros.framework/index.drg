@@ -5,8 +5,6 @@ framework: {
     implementers: [];
     implHeaderDir: "impl";
     implHeaders: [];
-    docfile: "Docs.scldoc";
-    docfile-format: "scldoc";
     build: {
         files: [
             "impl/macro_entry.scale";

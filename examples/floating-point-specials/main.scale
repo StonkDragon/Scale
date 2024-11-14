@@ -2,7 +2,7 @@
 # --------------------------
 # This example shows the usage of the MathConstants struct.
 
-import std.math
+import std.Math
 
 function main(): none
     MathConstants::nan              puts # prints "nan"

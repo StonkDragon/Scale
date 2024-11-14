@@ -1,4 +1,4 @@
-import std.io.fmt
+import std.Fmt
 
 function main(): none
     for i in 99 to 0 step -- do

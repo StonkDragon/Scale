@@ -1,0 +1,10 @@
+# Module `std.util`
+- [IndexOutOfBoundsException](IndexOutOfBoundsException.md)
+- [InvalidArgumentException](InvalidArgumentException.md)
+- [Iterable & Iterator](Iterable.md)
+- [Map](Map.md)
+- [Pair](Pair.md)
+- [Range](Range.md)
+- [ReadOnlyArray](ReadOnlyArray.md)
+- [Triple](Triple.md)
+- [TypedArray](TypedArray.md)

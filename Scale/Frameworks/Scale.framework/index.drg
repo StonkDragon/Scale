@@ -7,59 +7,18 @@ framework: {
     ];
     implHeaderDir: "impl";
     implHeaders: [];
-    docfile: "Docs.scldoc";
-    docfile-format: "scldoc";
     modules: {
         std: [ # This module is automatically imported by the compiler
-            "std/lang/Core.scale";
-            "std/lang/String.scale";
-            "std/lang/SclObject.scale";
-            "std/lang/Debug.scale";
-            "std/lang/Int.scale";
-            "std/lang/Any.scale";
-            "std/lang/Float.scale";
-            "std/lang/Union.scale";
-            "std/lang/List.scale";
-            "std/lang/StaticArray.scale";
-        ];
-        std.Union: [
-            "std/lang/Union.scale";
-        ];
-        std.Result: [
-            "std/lang/Result.scale";
-        ];
-        std.Option: [
-            "std/lang/Option.scale";
-        ];
-        std.Int: [
-            "std/lang/Int.scale";
-        ];
-        std.Any: [
-            "std/lang/Any.scale";
-        ];
-        std.Float: [
-            "std/lang/Float.scale";
-        ];
-        std.String: [
-            "std/lang/String.scale";
-        ];
-        std.SclObject: [
-            "std/lang/SclObject.scale";
-        ];
-        std.debug: [
-            "std/lang/Debug.scale";
-        ];
-        std.math: [
-            "std/lang/Math.scale";
-        ];
-        std.io: [
-            "std/lang/IO.scale";
-        ];
-        std.io.fmt: [
-            "std/lang/Fmt.scale";
-        ];
-        std.fs: [
-            "std/lang/File.scale";
+            "std/Core.scale";
+            "std/String.scale";
+            "std/SclObject.scale";
+            "std/Debug.scale";
+            "std/Int.scale";
+            "std/Any.scale";
+            "std/Float.scale";
+            "std/Union.scale";
+            "std/List.scale";
+            "std/StaticArray.scale";
         ];
     };
     build: {

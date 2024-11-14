@@ -75,7 +75,6 @@ namespace sclc
     long long Main::writeStructsTime = 0;
     long long Main::writeGlobalsTime = 0;
     size_t Main::options::errorLimit = 20;
-    bool Main::options::printDocs = false;
     long long Main::writeFunctionsTime = 0;
     long long Main::writeContainersTime = 0;
     bool Main::options::printCflags = false;
@@ -86,17 +85,13 @@ namespace sclc
     bool Main::options::transpileOnly = false;
     bool Main::options::preprocessOnly = false;
     std::string Main::options::optimizer = "O0";
-    std::string Main::options::printDocFor = "";
     long long Main::writeFunctionHeadersTime = 0;
     bool Main::options::noScaleFramework = false;
-    size_t Main::options::docPrinterArgsStart = 0;
     bool Main::options::dontSpecifyOutFile = false;
-    std::string Main::options::docsIncludeFolder = "";
     std::vector<std::string> Main::options::files = std::vector<std::string>();
     std::vector<std::string> Main::options::features = std::vector<std::string>();
     std::vector<std::string> Main::options::includePaths = std::vector<std::string>();
     std::vector<std::string> Main::options::filesFromCommandLine = std::vector<std::string>();
-    std::unordered_map<std::string, std::string> Main::options::mapFrameworkDocfiles = std::unordered_map<std::string, std::string>();
     std::unordered_map<std::string, std::string> Main::options::mapFrameworkIncludeFolders = std::unordered_map<std::string, std::string>();
     std::unordered_map<std::string, std::string> Main::options::mapIncludePathsToFrameworks = std::unordered_map<std::string, std::string>();
     std::unordered_map<std::string, DragonConfig::CompoundEntry*> Main::options::indexDrgFiles = std::unordered_map<std::string, DragonConfig::CompoundEntry*>();
