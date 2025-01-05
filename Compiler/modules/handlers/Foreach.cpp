@@ -137,7 +137,7 @@ namespace sclc {
             }
         }
         if (isIterable) {
-            Method* iterateMethod = getMethodByName(result, "iterate", typeStackTop);
+            Ptr<Method> iterateMethod = getMethodByName(result, "iterate", typeStackTop);
             if (iterateMethod == nullptr) {
                 transpilerError("Could not find method 'iterate' on type '" + typeStackTop + "'", i);
                 errors.push_back(err);
@@ -149,8 +149,8 @@ namespace sclc {
         type = typeStackTop;
         typePop;
         
-        Method* nextMethod = getMethodByName(result, "next", type);
-        Method* hasNextMethod = getMethodByName(result, "hasNext", type);
+        Ptr<Method> nextMethod = getMethodByName(result, "next", type);
+        Ptr<Method> hasNextMethod = getMethodByName(result, "hasNext", type);
         if (hasNextMethod == nullptr) {
             transpilerError("Could not find method 'hasNext' on type '" + type + "'", i);
             errors.push_back(err);

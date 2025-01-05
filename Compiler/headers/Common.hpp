@@ -12,6 +12,8 @@
 #include <stack>
 #include <chrono>
 #include <filesystem>
+#include <fstream>
+#include <memory>
 
 #ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN
@@ -66,6 +68,7 @@ namespace sclc {
     typedef std::unordered_map<std::string, std::string> Deprecation;
 }
 
+#include <Ptr.hpp>
 #include <Color.hpp>
 #include <Version.hpp>
 #include <TokenType.hpp>
@@ -108,7 +111,7 @@ namespace sclc {
     private:
         std::vector<Token> tokens;
     public:
-        SyntaxTree(std::vector<Token>& tokens);
+        SyntaxTree(const std::vector<Token>& tokens);
         ~SyntaxTree() {}
         void parse(TPResult& result);
     };
@@ -170,14 +173,11 @@ namespace sclc {
     };
 
     struct Main {
-        static Tokenizer* tokenizer;
-        static SyntaxTree* lexer;
-        static Parser* parser;
-        static DragonConfig::CompoundEntry* config;
+        static DragonConfig::CompoundEntry config;
         static std::vector<std::string> frameworkNativeHeaders;
         static std::vector<std::string> frameworks;
         static std::vector<std::string> frameworkPaths;
-        static Version* version;
+        static Version version;
         static long long tokenHandleTime;
         static long long writeHeaderTime;
         static long long writeContainersTime;
@@ -235,7 +235,7 @@ namespace sclc {
     int isOctDigit(char c);
     int isBinDigit(char c);
     int isOperator(char c);
-    void addIfAbsent(std::vector<Function*>& vec, Function* str);
+    void addIfAbsent(std::vector<Ptr<Function>>& vec, Ptr<Function> str);
     size_t findOrAdd(std::vector<std::string>& vec, const std::string& str);
     size_t add(std::vector<std::string>& vec, const std::string& str);
     std::string replaceAll(const std::string& src, const std::string& from, const std::string& to);
@@ -243,10 +243,10 @@ namespace sclc {
     int lastIndexOf(char* src, char c);
     bool hasVar(const std::string& name);
     Variable getVar(const std::string& name);
-    Function* getFunctionByName(TPResult& result, const std::string& name);
-    Interface* getInterfaceByName(TPResult& result, const std::string& name);
-    Method* getMethodByName(TPResult& result, const std::string& name, const std::string& type);
-    Method* getMethodByNameOnThisType(TPResult& result, const std::string& name, const std::string& type);
+    Ptr<Function> getFunctionByName(TPResult& result, const std::string& name);
+    Interface& getInterfaceByName(TPResult& result, const std::string& name);
+    Ptr<Method> getMethodByName(TPResult& result, const std::string& name, const std::string& type);
+    Ptr<Method> getMethodByNameOnThisType(TPResult& result, const std::string& name, const std::string& type);
     Struct& getStructByName(TPResult& result, const std::string& name);
     Layout& getLayout(TPResult& result, const std::string& name);
     bool hasLayout(TPResult& result, const std::string& name);
@@ -254,7 +254,7 @@ namespace sclc {
     bool hasFunction(TPResult& result, const std::string& name);
     bool hasEnum(TPResult& result, const std::string& name);
     Enum getEnumByName(TPResult& result, const std::string& name);
-    std::vector<Method*> methodsOnType(TPResult& res, std::string type);
+    std::vector<Ptr<Method>> methodsOnType(TPResult& res, std::string type);
     bool hasMethod(TPResult& result, const std::string& name, const std::string& type);
     bool hasGlobal(TPResult& result, std::string name);
     FPResult parseType(std::vector<Token>& tokens, size_t& i);
@@ -264,16 +264,16 @@ namespace sclc {
     bool isPrimitiveType(std::string s, bool rem = true);
     bool isNumericType(std::string s, bool rem = true);
     bool featureEnabled(std::string feat);
-    bool isInitFunction(Function* f);
-    bool isDestroyFunction(Function* f);
-    std::string sclFunctionNameToFriendlyString(Function* f);
+    bool isInitFunction(Ptr<Function> f);
+    bool isDestroyFunction(Ptr<Function> f);
+    std::string sclFunctionNameToFriendlyString(Ptr<Function> f);
     std::string sclFunctionNameToFriendlyString(std::string name);
     bool isPrimitiveIntegerType(std::string type, bool rem = true);
-    std::string argsToRTSignature(Function* f);
+    std::string argsToRTSignature(Ptr<Function> f);
     bool typeEquals(const std::string& a, const std::string& b);
-    std::vector<Method*> makeVTable(TPResult& res, std::string name);
-    std::string argsToRTSignatureIdent(Function* f);
-    void makePath(TPResult& result, Variable v, bool topLevelDeref, std::vector<Token>& body, size_t& i, std::vector<FPResult>& errors, bool doesWriteAfter, Function* function, std::vector<FPResult>& warns, std::ostream& fp, std::function<void(std::string, std::string)> onComplete);
+    std::vector<Ptr<Method>> makeVTable(TPResult& res, std::string name);
+    std::string argsToRTSignatureIdent(Ptr<Function> f);
+    void makePath(TPResult& result, Variable v, bool topLevelDeref, std::vector<Token>& body, size_t& i, std::vector<FPResult>& errors, bool doesWriteAfter, Ptr<Function> function, std::vector<FPResult>& warns, std::ostream& fp, std::function<void(std::string, std::string)> onComplete);
     std::pair<std::string, std::string> findNth(std::unordered_map<std::string, std::string> val, size_t n);
     std::vector<std::string> vecWithout(std::vector<std::string> vec, std::string elem);
     std::string unquote(const std::string& str);
@@ -283,12 +283,12 @@ namespace sclc {
     std::string scaleArgs(std::vector<Variable> args);
     bool structImplements(TPResult& result, Struct s, std::string interface);
     std::string replace(std::string s, std::string a, std::string b);
-    Method* attributeAccessor(TPResult& result, std::string struct_, std::string member);
-    Method* attributeMutator(TPResult& result, std::string struct_, std::string member);
+    Ptr<Method> attributeAccessor(TPResult& result, std::string struct_, std::string member);
+    Ptr<Method> attributeMutator(TPResult& result, std::string struct_, std::string member);
     std::string retemplate(std::string type);
     bool isAllowed1ByteChar(char c);
     bool checkUTF8(const std::string& str);
-    void checkShadow(std::string name, Token& body, Function* function, TPResult& result, std::vector<FPResult>& warns);
+    void checkShadow(std::string name, Token& body, Ptr<Function> function, TPResult& result, std::vector<FPResult>& warns);
 
     template<typename T>
     static inline bool contains(std::vector<T> v, T val) {
@@ -368,6 +368,7 @@ namespace sclc {
     private:
         int sig;
     };
+
 }
 
 void* operator new(size_t x);

@@ -108,7 +108,7 @@ namespace sclc {
                         return;
                     }
                 } else if (function->isMethod) {
-                    Method* m = ((Method*) function);
+                    Ptr<Method> m = ((Ptr<Method>) function);
                     Struct s = getStructByName(result, m->member_type);
                     if (s.hasMember(body[i].value)) {
                         v = s.getMember(body[i].value);
@@ -178,7 +178,7 @@ namespace sclc {
         else if (mode == "f") mode = "filter";
         else if (mode == "r") mode = "reduce";
 
-        Function* f = nullptr;
+        Ptr<Function> f = nullptr;
         if (arrayType.front() == '[' && arrayType.back() == ']') {
             f = getFunctionByName(result, "List$" + mode);
         } else {

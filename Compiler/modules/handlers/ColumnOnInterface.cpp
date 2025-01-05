@@ -8,11 +8,11 @@ namespace sclc {
     handler(ColumnOnInterface) {
         noUnused;
         std::string type = typeStackTop;
-        Interface* interface = getInterfaceByName(result, type);
+        Interface interface = getInterfaceByName(result, type);
         safeInc();
-        Method* m = getMethodByNameOnThisType(result, body[i].value, interface->name);
+        Ptr<Method> m = getMethodByNameOnThisType(result, body[i].value, interface.name);
         if (!m) {
-            transpilerError("Interface '" + interface->name + "' has no member named '" + body[i].value + "'", i);
+            transpilerError("Interface '" + interface.name + "' has no member named '" + body[i].value + "'", i);
             errors.push_back(err);
             return;
         }

@@ -22,8 +22,8 @@ namespace sclc {
             append("scale_top(scale_int) = scale_sizeof(scale_top(scale_any)) >= sizeof(struct Layout_%s);", type.c_str());
         } else {
             const Struct& s = getStructByName(result, type);
-            Interface* iface = getInterfaceByName(result, type);
-            if (s == Struct::Null && iface == nullptr) {
+            Interface iface = getInterfaceByName(result, type);
+            if (s == Struct::Null && iface.name.empty()) {
                 transpilerError("Usage of undeclared struct '" + body[i].value + "'", i);
                 errors.push_back(err);
                 return;
@@ -38,7 +38,7 @@ namespace sclc {
                 if (stackStruct == Struct::Null || stackStruct.isStatic()) {
                     append("scale_top(scale_int) = 0;\n");
                 } else {
-                    append("scale_top(scale_int) = scale_top(scale_any) && %d;\n", stackStruct.implements(iface->name));
+                    append("scale_top(scale_int) = scale_top(scale_any) && %d;\n", stackStruct.implements(iface.name));
                 }
             }
         }

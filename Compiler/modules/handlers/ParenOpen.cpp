@@ -53,7 +53,7 @@ namespace sclc {
                         errors.push_back(err);
                         return;
                     }
-                    Function* f = nullptr;
+                    Ptr<Function> f = nullptr;
                     if (body[i - 1].type == tok_to) {
                         f = getFunctionByName(result, "PartialRange$lowerBound");
                     } else {

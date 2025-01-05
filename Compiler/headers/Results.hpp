@@ -31,8 +31,8 @@ namespace sclc
 
     class TPResult {
     public:
-        std::vector<Function*> functions;
-        std::vector<Interface*> interfaces;
+        std::vector<Ptr<Function>> functions;
+        std::vector<Interface> interfaces;
         std::vector<Variable> globals;
         std::vector<FPResult> errors;
         std::vector<FPResult> warns;

@@ -133,7 +133,7 @@
 
 namespace sclc
 {
-    extern Function* currentFunction;
+    extern Ptr<Function> currentFunction;
     extern Struct currentStruct;
     extern std::unordered_map<std::string, std::vector<Method *>> vtables;
     extern StructTreeNode *structTree;

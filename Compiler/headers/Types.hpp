@@ -8,7 +8,7 @@ namespace sclc {
     bool structExtends(TPResult& result, Struct& s, std::string name);
     bool isPrimitiveIntegerType(std::string s, bool doRemoveMods);
     bool argsAreIdentical(std::vector<Variable>& methodArgs, std::vector<Variable>& functionArgs);
-    bool binaryCompatible(Function* a, Function* b);
+    bool binaryCompatible(Ptr<Function> a, Ptr<Function> b);
     std::string argVectorToString(std::vector<Variable>& args);
     std::string argVectorToString(std::vector<std::string>& args);
     bool canBeCastTo(TPResult& r, const Struct& one, const Struct& other);
@@ -33,9 +33,9 @@ namespace sclc {
     std::string sclIntTypeToConvert(std::string type);
     std::string rtTypeToSclType(std::string rtType);
     std::string typeToRTSig(std::string type);
-    std::string argsToRTSignature(Function* f);
+    std::string argsToRTSignature(Ptr<Function> f);
     std::string typeToRTSigIdent(std::string type);
-    std::string argsToRTSignatureIdent(Function* f);
+    std::string argsToRTSignatureIdent(Ptr<Function> f);
     bool argVecEquals(std::vector<Variable>& a, std::vector<Variable>& b);
     std::string selfTypeToRealType(std::string selfType, std::string realType);
 } // namespace sclc

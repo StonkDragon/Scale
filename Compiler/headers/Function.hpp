@@ -7,7 +7,7 @@
 #include <regex>
 #include <unordered_map>
 
-
+#include <Ptr.hpp>
 #include <Variable.hpp>
 #include <Token.hpp>
 
@@ -28,7 +28,7 @@ namespace sclc
         Token name_token;
         bool isMethod;
         Deprecation deprecated;
-        std::vector<Function*> overloads;
+        std::vector<Ptr<Function>> overloads;
 
         long has_expect;
         long has_private;
@@ -54,7 +54,7 @@ namespace sclc
         std::vector<Variable> ref_captures;
         std::vector<std::string> reified_parameters;
 
-        Function* container;
+        Ptr<Function> container;
 
         Function(std::string name, Token name_token);
         Function(std::string name, bool isMethod, Token name_token);
@@ -69,18 +69,18 @@ namespace sclc
         virtual void clearArgs();
         virtual bool isCVarArgs();
         virtual Variable& varArgsParam();
-        virtual Function* clone();
+        virtual Ptr<Function> clone();
         virtual std::string outputName();
 
         virtual bool operator==(const Function& other) const;
         virtual bool operator!=(const Function& other) const;
-        virtual bool operator==(const Function* other) const;
-        virtual bool operator!=(const Function* other) const;
+        virtual bool operator==(const Ptr<Function> other) const;
+        virtual bool operator!=(const Ptr<Function> other) const;
     };
     
     struct Method : public Function {
         bool force_add;
         Method(std::string member_type, std::string name, Token name_token);
-        Method* cloneAs(std::string memberType);
+        Ptr<Method> cloneAs(std::string memberType);
     };
 } // namespace sclc

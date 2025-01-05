@@ -81,7 +81,7 @@ namespace sclc {
             }
             std::string op = body[i].value;
 
-            Function* f = getFunctionByName(result, "List$" + op);
+            Ptr<Function> f = getFunctionByName(result, "List$" + op);
             if (f == nullptr) {
                 transpilerError("No Function definition for '" + tmp + "::" + op + "' found", i);
                 errors.push_back(err);
@@ -157,7 +157,7 @@ namespace sclc {
             const Enum& e = getEnumByName(result, type);
             if (l.name.size() || e.name.size()) {
                 safeInc();
-                Method* f;
+                Ptr<Method> f;
                 if (l.name.size()) {
                     f = getMethodByName(result, body[i].value, l.name);
                     if (f == nullptr) {
@@ -179,7 +179,7 @@ namespace sclc {
                 methodCall(f, fp, result, warns, errors, body, i, false, true, false);
                 return;
             }
-            if (getInterfaceByName(result, type) != nullptr) {
+            if (getInterfaceByName(result, type).name.size()) {
                 handle(ColumnOnInterface);
                 return;
             }
@@ -205,7 +205,7 @@ namespace sclc {
             errors.push_back(err);
             return;
         }
-        Method* objMethod = nullptr;
+        Ptr<Method> objMethod = nullptr;
         if (s.name == "any") {
             objMethod = !Main::options::noScaleFramework ? getMethodByName(result, body[i].value, "SclObject") : nullptr;
             if (objMethod) {
@@ -221,7 +221,7 @@ namespace sclc {
             }
         }
         if (s.isStatic()) {
-            Function* f = getFunctionByName(result, removeTypeModifiers(type) + "$" + body[i].value);
+            Ptr<Function> f = getFunctionByName(result, removeTypeModifiers(type) + "$" + body[i].value);
             if (!f) {
                 transpilerError("Unknown static function '" + body[i].value + "' on type '" + removeTypeModifiers(type) + "'", i);
                 errors.push_back(err);
@@ -245,7 +245,7 @@ namespace sclc {
                 errors.push_back(err);
                 return;
             }
-            Method* f = getMethodByName(result, body[i].value, s.name);
+            Ptr<Method> f = getMethodByName(result, body[i].value, s.name);
             if (f->has_private && function->member_type != f->member_type) {
                 transpilerError("'" + body[i].value + "' has private access in Struct '" + s.name + "'", i);
                 errors.push_back(err);

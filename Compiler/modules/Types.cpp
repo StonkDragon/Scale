@@ -80,7 +80,7 @@ namespace sclc {
         return true;
     }
 
-    bool binaryCompatible(Function* a, Function* b) {
+    bool binaryCompatible(Ptr<Function> a, Ptr<Function> b) {
         if (!typeEquals(a->return_type, b->return_type)) return false;
         if (a->args.size() != b->args.size()) return false;
         for (size_t i = 0; i < a->args.size(); i++) {
@@ -316,14 +316,14 @@ namespace sclc {
             return true;
         }
 
-        Interface* interface = getInterfaceByName(result, arg);
+        Interface interface = getInterfaceByName(result, arg);
         if (stackTypeIsNilable && !argIsNilable) {
             return false;
-        } else if (interface) {
+        } else if (interface.name.size()) {
             const Struct& givenType = getStructByName(result, stack);
             if (givenType == Struct::Null) {
                 return false;
-            } else if (!givenType.implements(interface->name)) {
+            } else if (!givenType.implements(interface.name)) {
                 return false;
             }
         } else if (!typeEquals(stack, arg)) {
@@ -490,7 +490,7 @@ namespace sclc {
             } else {
                 cache[key] = ("scale_" + t);
             }
-        } else if (getInterfaceByName(result, t)) {
+        } else if (getInterfaceByName(result, t).name.size()) {
             if (Main::options::noScaleFramework) {
                 cache[key] = ("scale_any");
             } else if (valueType) {
@@ -647,8 +647,8 @@ namespace sclc {
         return cache[type];
     }
 
-    std::string argsToRTSignature(Function* f) {
-        static std::unordered_map<Function*, std::string> cache;
+    std::string argsToRTSignature(Ptr<Function> f) {
+        static std::unordered_map<Ptr<Function>, std::string> cache;
 
         auto it = cache.find(f);
         if (it != cache.end()) return it->second;
@@ -699,8 +699,8 @@ namespace sclc {
         return "L" + type + "$";
     }
 
-    std::string argsToRTSignatureIdent(Function* f) {
-        static std::unordered_map<Function*, std::string> cache;
+    std::string argsToRTSignatureIdent(Ptr<Function> f) {
+        static std::unordered_map<Ptr<Function>, std::string> cache;
         auto it = cache.find(f);
         if (it != cache.end()) return it->second;
 

@@ -90,15 +90,15 @@ bool Function::operator==(const Function& other) const {
     if (name != other.name) return false;
     return member_type == other.member_type;
 }
-bool Function::operator!=(const Function* other) const {
+bool Function::operator!=(const Ptr<Function> other) const {
     return !this->operator==(*other);
 }
-bool Function::operator==(const Function* other) const {
+bool Function::operator==(const Ptr<Function> other) const {
     if (this == other) return true;
     return this->operator==(*other);
 }
 bool Function::belongsToType(std::string typeName) {
-    return (!this->isMethod && !strstarts(this->name, typeName + "$")) || (this->isMethod && static_cast<Method*>(this)->member_type != typeName);
+    return (!this->isMethod && !strstarts(this->name, typeName + "$")) || (this->isMethod && static_cast<Ptr<Method>>(this)->member_type != typeName);
 }
 void Function::clearArgs() {
     this->args.clear();
@@ -127,8 +127,8 @@ const std::string& Function::getModifier(size_t index) {
     }
     return this->modifiers.at(index - 1);
 }
-Function* Function::clone() {
-    Function* f = new Function(this->name, this->isMethod, this->name_token);
+Ptr<Function> Function::clone() {
+    Ptr<Function> f = new Function(this->name, this->isMethod, this->name_token);
     f->isMethod = isMethod;
     f->return_type = return_type;
     f->member_type = member_type;
@@ -151,7 +151,7 @@ std::string Function::outputName() {
     if (has_cdecl) {
         return "C_" + this->modifiers[has_cdecl];
     }
-    std::string generateSymbolForFunction(Function* f);
+    std::string generateSymbolForFunction(Ptr<Function> f);
     std::string sym = generateSymbolForFunction(this);
     return sym.substr(1, sym.size() - 2);
 }
@@ -161,8 +161,8 @@ Method::Method(std::string member_type, std::string name, Token name_token) : Fu
     this->isMethod = true;
     this->force_add = false;
 }
-Method* Method::cloneAs(std::string memberType) {
-    Method* m = new Method(memberType, name, name_token);
+Ptr<Method> Method::cloneAs(std::string memberType) {
+    Ptr<Method> m = new Method(memberType, name, name_token);
     m->isMethod = isMethod;
     m->force_add = force_add;
     m->return_type = return_type;

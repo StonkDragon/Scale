@@ -16,7 +16,7 @@ namespace sclc {
         }
 
         if (body[i].type == tok_paren_open) {
-            Method* m = nullptr;
+            Ptr<Method> m = nullptr;
             std::string type = typeStackTop;
             if (type.size() < 2 || type.front() != '[') {
                 m = getMethodByName(result, "[]", typeStackTop);
@@ -34,7 +34,7 @@ namespace sclc {
                         errors.push_back(err);
                         return;
                     }
-                    m = (Method*) *(overloads++);
+                    m = (Ptr<Method>) *(overloads++);
                     goto nextCheck;
                 }
             }
@@ -127,14 +127,14 @@ namespace sclc {
             Variable v(name, type);
             vars.push_back(v);
             
-            std::vector<Function*> funcs;
+            std::vector<Ptr<Function>> funcs;
             for (auto&& f : result.functions) {
                 if (f->name_without_overload == v.type + "$operator$store" || f->name_without_overload == v.type + "$=>") {
                     funcs.push_back(f);
                 }
             }
 
-            for (Function* f : funcs) {
+            for (Ptr<Function> f : funcs) {
                 if (
                     f->isMethod ||
                     f->args.size() != 1 ||
@@ -252,7 +252,7 @@ namespace sclc {
                     return;
                 }
             } else if (function->isMethod) {
-                Method* m = ((Method*) function);
+                Ptr<Method> m = ((Ptr<Method>) function);
                 const Struct& s = getStructByName(result, m->member_type);
                 if (s == Struct::Null) {
                     const Layout& l = getLayout(result, m->member_type);

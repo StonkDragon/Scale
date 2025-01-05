@@ -13,7 +13,7 @@ namespace sclc {
         this->name = name;
     }
     bool Interface::hasToImplement(std::string func) {
-        for (Function* f : toImplement) {
+        for (Ptr<Function> f : toImplement) {
             if (f->name == func) {
                 return true;
             }
@@ -21,33 +21,33 @@ namespace sclc {
         return false;
     }
     bool Interface::hasDefaultImplementation(std::string func) {
-        for (Method* f : defaultImplementations) {
+        for (Ptr<Method> f : defaultImplementations) {
             if (f->name == func) {
                 return true;
             }
         }
         return false;
     }
-    Function* Interface::getToImplement(std::string func) {
-        for (Function* f : toImplement) {
+    Ptr<Function> Interface::getToImplement(std::string func) {
+        for (Ptr<Function> f : toImplement) {
             if (f->name == func) {
                 return f;
             }
         }
         return nullptr;
     }
-    Method* Interface::getDefaultImplementation(std::string func) {
-        for (Method* f : defaultImplementations) {
+    Ptr<Method> Interface::getDefaultImplementation(std::string func) {
+        for (Ptr<Method> f : defaultImplementations) {
             if (f->name == func) {
                 return f;
             }
         }
         return nullptr;
     }
-    void Interface::addToImplement(Function* func) {
+    void Interface::addToImplement(Ptr<Function> func) {
         toImplement.push_back(func);
     }
-    void Interface::addDefaultImplementation(Method* func) {
+    void Interface::addDefaultImplementation(Ptr<Method> func) {
         defaultImplementations.push_back(func);
     }
 

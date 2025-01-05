@@ -59,7 +59,7 @@ namespace sclc {
             scopeDepth--;
             append("}\n");
         } else if (hasMethod(result, "[]", typeStackTop)) {
-            Method* m = getMethodByName(result, "[]", typeStackTop);
+            Ptr<Method> m = getMethodByName(result, "[]", typeStackTop);
             std::string type = typeStackTop;
             if (m->args.size() != 2) {
                 transpilerError("Method '[]' of type '" + type + "' must have exactly 1 argument! Signature should be: '[](index: " + m->args[0].type + ")'", i);

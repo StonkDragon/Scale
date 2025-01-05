@@ -27,7 +27,7 @@ namespace sclc {
     TPResult::~TPResult() {
         for (auto&& x : functions) {
             if (x->isMethod) {
-                delete (Method*) x;
+                delete (Ptr<Method>) x;
             } else {
                 delete x;
             }

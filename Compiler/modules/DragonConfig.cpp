@@ -12,7 +12,7 @@ using namespace DragonConfig;
 #define DRAGON_LOG std::cout << "[Dragon] "
 #define DRAGON_ERR std::cerr << "[Dragon] "
 
-static CompoundEntry* currentParsingRoot = nullptr;
+static Ptr<CompoundEntry> currentParsingRoot = nullptr;
 
 static std::string replaceAll(std::string src, std::string from, std::string to) {
     try {
@@ -42,7 +42,7 @@ void StringEntry::setValue(std::string value) {
         size_t endIndex = tmp.find(")");
         auto s = tmp.substr(index + 2, endIndex - index - 2);
         tmp = tmp.substr(endIndex + 1);
-        StringEntry* key = currentParsingRoot->getStringByPath(s);
+        Ptr<StringEntry> key = currentParsingRoot->getStringByPath(s);
         if (key == nullptr) {
             DRAGON_ERR << "Could not resolve path '" << s << "' for macro. Maybe that key doesn't exist yet?";
             return;
@@ -70,43 +70,43 @@ void StringEntry::print(std::ostream& stream, int indent) {
 
 ListEntry::ListEntry() {
     this->setType(EntryType::List);
-    this->value = std::vector<ConfigEntry*>();
+    this->value = std::vector<Ptr<ConfigEntry>>();
 }
-ConfigEntry* ListEntry::get(unsigned long index) {
+Ptr<ConfigEntry> ListEntry::get(unsigned long index) {
     if (index >= this->value.size()) {
         std::cerr << "Index out of bounds" << std::endl;
         return nullptr;
     }
     return this->value[index];
 }
-StringEntry* ListEntry::getString(unsigned long index) {
+Ptr<StringEntry> ListEntry::getString(unsigned long index) {
     if (index >= this->value.size()) {
         std::cerr << "Index out of bounds" << std::endl;
         return nullptr;
     }
-    return (this->value[index]->getType() == EntryType::String ? reinterpret_cast<StringEntry*>(this->value[index]) : nullptr);
+    return (this->value[index]->getType() == EntryType::String ? reinterpret_cast<Ptr<StringEntry>>(this->value[index]) : nullptr);
 }
-CompoundEntry* ListEntry::getCompound(unsigned long index) {
+Ptr<CompoundEntry> ListEntry::getCompound(unsigned long index) {
     if (index >= this->value.size()) {
         std::cerr << "Index out of bounds" << std::endl;
         return nullptr;
     }
-    return (this->value[index]->getType() == EntryType::Compound ? reinterpret_cast<CompoundEntry*>(this->value[index]) : nullptr);
+    return (this->value[index]->getType() == EntryType::Compound ? reinterpret_cast<Ptr<CompoundEntry>>(this->value[index]) : nullptr);
 }
-ListEntry* ListEntry::getList(unsigned long index) {
+Ptr<ListEntry> ListEntry::getList(unsigned long index) {
     if (index >= this->value.size()) {
         std::cerr << "Index out of bounds" << std::endl;
         return nullptr;
     }
-    return (this->value[index]->getType() == EntryType::List ? reinterpret_cast<ListEntry*>(this->value[index]) : nullptr);
+    return (this->value[index]->getType() == EntryType::List ? reinterpret_cast<Ptr<ListEntry>>(this->value[index]) : nullptr);
 }
 unsigned long ListEntry::size() {
     return this->value.size();
 }
-void ListEntry::add(ConfigEntry* value) {
+void ListEntry::add(Ptr<ConfigEntry> value) {
     this->value.push_back(value);
 }
-void ListEntry::addAll(std::vector<ConfigEntry*> values) {
+void ListEntry::addAll(std::vector<Ptr<ConfigEntry>> values) {
     this->value.insert(this->value.end(), values.begin(), values.end());
 }
 void ListEntry::remove(unsigned long index) {
@@ -158,69 +158,69 @@ bool CompoundEntry::hasMember(const std::string& key) {
     }
     return false;
 }
-StringEntry* CompoundEntry::getString(const std::string& key) {
+Ptr<StringEntry> CompoundEntry::getString(const std::string& key) {
     for (auto& entry : this->entries) {
         if (entry->getType() == EntryType::String && entry->getKey() == key) {
-            return reinterpret_cast<StringEntry*>(entry);
+            return reinterpret_cast<Ptr<StringEntry>>(entry);
         }
     }
     return nullptr;
 }
-StringEntry* CompoundEntry::getStringOrDefault(const std::string& key, const std::string& defaultValue) {
+Ptr<StringEntry> CompoundEntry::getStringOrDefault(const std::string& key, const std::string& defaultValue) {
     for (auto entry : this->entries) {
         if (entry->getType() == EntryType::String && entry->getKey() == key) {
-            return reinterpret_cast<StringEntry*>(entry);
+            return reinterpret_cast<Ptr<StringEntry>>(entry);
         }
     }
-    StringEntry* entry = new StringEntry();
+    Ptr<StringEntry> entry = new StringEntry();
     entry->setValue(defaultValue);
     return entry;
 }
-ListEntry* CompoundEntry::getList(const std::string& key) {
+Ptr<ListEntry> CompoundEntry::getList(const std::string& key) {
     for (auto entry : this->entries) {
         if (entry->getType() == EntryType::List && entry->getKey() == key) {
-            return reinterpret_cast<ListEntry*>(entry);
+            return reinterpret_cast<Ptr<ListEntry>>(entry);
         }
     }
     return nullptr;
 }
-CompoundEntry* CompoundEntry::getCompound(const std::string& key) {
+Ptr<CompoundEntry> CompoundEntry::getCompound(const std::string& key) {
     for (auto entry : this->entries) {
         if (entry->getType() == EntryType::Compound && entry->getKey() == key) {
-            return reinterpret_cast<CompoundEntry*>(entry);
+            return reinterpret_cast<Ptr<CompoundEntry>>(entry);
         }
     }
     return nullptr;
 }
-StringEntry* CompoundEntry::getStringByPath(const std::string& path) {
-    ConfigEntry* entry = this->resolvePath(path);
+Ptr<StringEntry> CompoundEntry::getStringByPath(const std::string& path) {
+    Ptr<ConfigEntry> entry = this->resolvePath(path);
     if (!entry || entry->getType() != EntryType::String) {
         return nullptr;
     }
-    return reinterpret_cast<StringEntry*>(entry);
+    return reinterpret_cast<Ptr<StringEntry>>(entry);
 }
-StringEntry* CompoundEntry::getStringOrDefaultByPath(const std::string& path, const std::string& defaultValue) {
-    ConfigEntry* entry = this->resolvePath(path);
+Ptr<StringEntry> CompoundEntry::getStringOrDefaultByPath(const std::string& path, const std::string& defaultValue) {
+    Ptr<ConfigEntry> entry = this->resolvePath(path);
     if (!entry || entry->getType() != EntryType::String) {
-        StringEntry* entry = new StringEntry();
+        Ptr<StringEntry> entry = new StringEntry();
         entry->setValue(defaultValue);
         return entry;
     }
-    return reinterpret_cast<StringEntry*>(entry);
+    return reinterpret_cast<Ptr<StringEntry>>(entry);
 }
-ListEntry* CompoundEntry::getListByPath(const std::string& path) {
-    ConfigEntry* entry = this->resolvePath(path);
+Ptr<ListEntry> CompoundEntry::getListByPath(const std::string& path) {
+    Ptr<ConfigEntry> entry = this->resolvePath(path);
     if (!entry || entry->getType() != EntryType::List) {
         return nullptr;
     }
-    return reinterpret_cast<ListEntry*>(entry);
+    return reinterpret_cast<Ptr<ListEntry>>(entry);
 }
-CompoundEntry* CompoundEntry::getCompoundByPath(const std::string& path) {
-    ConfigEntry* entry = this->resolvePath(path);
+Ptr<CompoundEntry> CompoundEntry::getCompoundByPath(const std::string& path) {
+    Ptr<ConfigEntry> entry = this->resolvePath(path);
     if (!entry || entry->getType() != EntryType::Compound) {
         return nullptr;
     }
-    return reinterpret_cast<CompoundEntry*>(entry);
+    return reinterpret_cast<Ptr<CompoundEntry>>(entry);
 }
 
 static std::vector<std::string> split(const std::string& str, const std::string& delimiter) {
@@ -236,7 +236,7 @@ static std::vector<std::string> split(const std::string& str, const std::string&
     return body;
 }
 
-ConfigEntry* CompoundEntry::get(const std::string& key) {
+Ptr<ConfigEntry> CompoundEntry::get(const std::string& key) {
     for (auto entry : this->entries) {
         if (entry->getKey() == key) {
             return entry;
@@ -245,10 +245,10 @@ ConfigEntry* CompoundEntry::get(const std::string& key) {
     return nullptr;
 }
 
-ConfigEntry* CompoundEntry::resolvePath(const std::string& path) {
+Ptr<ConfigEntry> CompoundEntry::resolvePath(const std::string& path) {
     std::string internalCopy = path;
     auto pathAsVec = split(internalCopy, ".");
-    CompoundEntry* current = this;
+    Ptr<CompoundEntry> current = this;
     size_t i;
     for (i = 0; i < pathAsVec.size() - 1; i++) {
         current = current->getCompound(pathAsVec[i]);
@@ -258,11 +258,11 @@ ConfigEntry* CompoundEntry::resolvePath(const std::string& path) {
 void CompoundEntry::setString(const std::string& key, const std::string& value) {
     for (auto& entry : this->entries) {
         if (entry->getType() ==  EntryType::String && entry->getKey() == key) {
-            reinterpret_cast<StringEntry*>(entry)->getValue() = value;
+            reinterpret_cast<Ptr<StringEntry>>(entry)->getValue() = value;
             return;
         }
     }
-    StringEntry* newEntry = new StringEntry();
+    Ptr<StringEntry> newEntry = new StringEntry();
     newEntry->setKey(key);
     newEntry->setValue(value);
     this->entries.push_back(newEntry);
@@ -272,44 +272,44 @@ void CompoundEntry::addString(const std::string& key, const std::string& value) 
         std::cerr << "String with key '" << key << "' already exists" << std::endl;
         return;
     }
-    StringEntry* newEntry = new StringEntry();
+    Ptr<StringEntry> newEntry = new StringEntry();
     newEntry->setKey(key);
     newEntry->setValue(value);
     this->entries.push_back(newEntry);
 }
-void CompoundEntry::addList(const std::string& key, const std::vector<ConfigEntry*>& value) {
+void CompoundEntry::addList(const std::string& key, const std::vector<Ptr<ConfigEntry>>& value) {
     if (this->hasMember(key)) {
         std::cerr << "List with key '" << key << "' already exists!" << std::endl;
         return;
     }
-    ListEntry* newEntry = new ListEntry();
+    Ptr<ListEntry> newEntry = new ListEntry();
     newEntry->setKey(key);
     newEntry->addAll(value);
     this->entries.push_back(newEntry);
 }
-void CompoundEntry::addList(const std::string& key, ConfigEntry* value) {
+void CompoundEntry::addList(const std::string& key, Ptr<ConfigEntry> value) {
     if (this->hasMember(key)) {
         std::cerr << "List with key '" << key << "' already exists!" << std::endl;
         return;
     }
-    ListEntry* newEntry = new ListEntry();
+    Ptr<ListEntry> newEntry = new ListEntry();
     newEntry->setKey(key);
     newEntry->add(value);
     this->entries.push_back(newEntry);
 }
-void CompoundEntry::addList(ListEntry* value) {
+void CompoundEntry::addList(Ptr<ListEntry> value) {
     if (this->hasMember(value->getKey())) {
         std::cerr << "List with key '" << value->getKey() << "' already exists!" << std::endl;
         return;
     }
-    this->entries.push_back(reinterpret_cast<ConfigEntry*>(value));
+    this->entries.push_back(reinterpret_cast<Ptr<ConfigEntry>>(value));
 }
-void CompoundEntry::addCompound(CompoundEntry* value) {
+void CompoundEntry::addCompound(Ptr<CompoundEntry> value) {
     if (this->hasMember(value->getKey())) {
         std::cerr << "Compound with key '" << value->getKey() << "' already exists!" << std::endl;
         return;
     }
-    this->entries.push_back(reinterpret_cast<ConfigEntry*>(value));
+    this->entries.push_back(reinterpret_cast<Ptr<ConfigEntry>>(value));
 }
 void CompoundEntry::remove(const std::string& key) {
     for (size_t i = 0; i < this->entries.size(); i++) {
@@ -344,7 +344,7 @@ void CompoundEntry::print(std::ostream& stream, int indent) {
         stream << std::string(indent, ' ') << "};" << std::endl;
     }
 }
-CompoundEntry* ConfigParser::parse(const std::string& configFile) {
+Ptr<CompoundEntry> ConfigParser::parse(const std::string& configFile) {
     FILE* fp = fopen(configFile.c_str(), "r");
     if (!fp) {
         std::cerr << "Error opening config file " << configFile << ": " << strerror(errno   ) << std::endl;
@@ -393,7 +393,7 @@ CompoundEntry* ConfigParser::parse(const std::string& configFile) {
     data = ".root:{" + data + "};";
     std::string key = ".root";
     int i = 6;
-    CompoundEntry* rootEntry = parseCompound(data, &i);
+    Ptr<CompoundEntry> rootEntry = parseCompound(data, &i);
     rootEntry->setKey(".root");
     return rootEntry;
 }
@@ -402,8 +402,8 @@ bool ConfigParser::isValidIdentifier(char c) {
     return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '_' || c == '-' || c == '.';
 }
 
-ListEntry* ConfigParser::parseList(std::string& data, int* i) {
-    ListEntry* list = new ListEntry();
+Ptr<ListEntry> ConfigParser::parseList(std::string& data, int* i) {
+    Ptr<ListEntry> list = new ListEntry();
     char c = data[++(*i)];
     while (c != ']') {
         c = data[(*i)];
@@ -424,7 +424,7 @@ ListEntry* ConfigParser::parseList(std::string& data, int* i) {
     return list;
 }
 
-StringEntry* ConfigParser::parseString(std::string& data, int* i) {
+Ptr<StringEntry> ConfigParser::parseString(std::string& data, int* i) {
     std::string value = "";
     char c = data[++(*i)];
     bool escaped = false;
@@ -443,13 +443,13 @@ StringEntry* ConfigParser::parseString(std::string& data, int* i) {
         DRAGON_ERR << "Invalid value: '" << value << "'" << std::endl;
         return nullptr;
     }
-    StringEntry* entry = new StringEntry();
+    Ptr<StringEntry> entry = new StringEntry();
     entry->setValue(value);
     return entry;
 }
 
-CompoundEntry* ConfigParser::parseCompound(std::string& data, int* i) {
-    CompoundEntry* compound = new CompoundEntry();
+Ptr<CompoundEntry> ConfigParser::parseCompound(std::string& data, int* i) {
+    Ptr<CompoundEntry> compound = new CompoundEntry();
     bool resetCurrentAfter = false;
     if (currentParsingRoot == nullptr) {
         currentParsingRoot = compound;
@@ -463,7 +463,7 @@ CompoundEntry* ConfigParser::parseCompound(std::string& data, int* i) {
         }
         c = data[++(*i)];
         if (c == '[') {
-            ListEntry* entry = this->parseList(data, i);
+            Ptr<ListEntry> entry = this->parseList(data, i);
             if (!entry) {
                 if (resetCurrentAfter)
                     currentParsingRoot = nullptr;
@@ -472,7 +472,7 @@ CompoundEntry* ConfigParser::parseCompound(std::string& data, int* i) {
             entry->setKey(key);
             compound->entries.push_back(entry);
         } else if (c == '{') {
-            CompoundEntry* entry = parseCompound(data, i);
+            Ptr<CompoundEntry> entry = parseCompound(data, i);
             if (!entry) {
                 if (resetCurrentAfter)
                     currentParsingRoot = nullptr;
@@ -481,7 +481,7 @@ CompoundEntry* ConfigParser::parseCompound(std::string& data, int* i) {
             entry->setKey(key);
             compound->entries.push_back(entry);
         } else {
-            StringEntry* entry = this->parseString(data, i);
+            Ptr<StringEntry> entry = this->parseString(data, i);
             if (!entry) {
                 if (resetCurrentAfter)
                     currentParsingRoot = nullptr;

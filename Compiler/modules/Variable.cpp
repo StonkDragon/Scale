@@ -25,21 +25,21 @@ namespace sclc {
     }
     Variable::~Variable() {}
 
-    bool memberOfStruct(const Variable* self, Function* f);
+    bool memberOfStruct(const Variable& self, Ptr<Function> f);
 
-    bool Variable::isAccessible(Function* f) const {
+    bool Variable::isAccessible(Ptr<Function> f) const {
         if (this->isPrivate) {
-            return memberOfStruct(this, f);
+            return memberOfStruct(*this, f);
         }
         return true;
     }
 
-    bool Variable::isWritableFrom(Function* f) const {
+    bool Variable::isWritableFrom(Ptr<Function> f) const {
         if (this->isReadonly || this->isPrivate) {
             if (this->isReadonly && strstarts(this->name, f->member_type + "$")) {
                 return true;
             }
-            return memberOfStruct(this, f);
+            return memberOfStruct(*this, f);
         }
         if (isConst) {
             return isInitFunction(f);

@@ -5,6 +5,8 @@
 #include <vector>
 #include <map>
 
+#include <Ptr.hpp>
+
 #ifdef _WIN32
 typedef unsigned long u_long;
 #endif
@@ -47,17 +49,17 @@ namespace DragonConfig {
 
     struct ListEntry : public ConfigEntry {
     private:
-        std::vector<ConfigEntry*> value;
+        std::vector<Ptr<ConfigEntry>> value;
 
     public:
         ListEntry();
-        ConfigEntry* get(unsigned long index);
-        StringEntry* getString(unsigned long index);
-        ListEntry* getList(unsigned long index);
-        CompoundEntry* getCompound(unsigned long index);
+        Ptr<ConfigEntry> get(unsigned long index);
+        Ptr<StringEntry> getString(unsigned long index);
+        Ptr<ListEntry> getList(unsigned long index);
+        Ptr<CompoundEntry> getCompound(unsigned long index);
         unsigned long size();
-        void add(ConfigEntry* value);
-        void addAll(std::vector<ConfigEntry*> values);
+        void add(Ptr<ConfigEntry> value);
+        void addAll(std::vector<Ptr<ConfigEntry>> values);
         void remove(unsigned long index);
         void removeAll(std::vector<unsigned long> indices);
         void clear();
@@ -68,26 +70,26 @@ namespace DragonConfig {
     };
 
     struct CompoundEntry : public ConfigEntry {
-        std::vector<ConfigEntry*> entries;
+        std::vector<Ptr<ConfigEntry>> entries;
 
         CompoundEntry();
         bool hasMember(const std::string& key);
-        ConfigEntry* get(const std::string& key);
-        ConfigEntry* resolvePath(const std::string& path);
-        StringEntry* getString(const std::string& key);
-        StringEntry* getStringByPath(const std::string& path);
-        StringEntry* getStringOrDefault(const std::string& key, const std::string& defaultValue);
-        StringEntry* getStringOrDefaultByPath(const std::string& path, const std::string& defaultValue);
-        ListEntry* getList(const std::string& key);
-        ListEntry* getListByPath(const std::string& path);
-        CompoundEntry* getCompound(const std::string& key);
-        CompoundEntry* getCompoundByPath(const std::string& path);
+        Ptr<ConfigEntry> get(const std::string& key);
+        Ptr<ConfigEntry> resolvePath(const std::string& path);
+        Ptr<StringEntry> getString(const std::string& key);
+        Ptr<StringEntry> getStringByPath(const std::string& path);
+        Ptr<StringEntry> getStringOrDefault(const std::string& key, const std::string& defaultValue);
+        Ptr<StringEntry> getStringOrDefaultByPath(const std::string& path, const std::string& defaultValue);
+        Ptr<ListEntry> getList(const std::string& key);
+        Ptr<ListEntry> getListByPath(const std::string& path);
+        Ptr<CompoundEntry> getCompound(const std::string& key);
+        Ptr<CompoundEntry> getCompoundByPath(const std::string& path);
         void setString(const std::string& key, const std::string& value);
         void addString(const std::string& key, const std::string& value);
-        void addList(const std::string& key, const std::vector<ConfigEntry*>& value);
-        void addList(const std::string& key, ConfigEntry* value);
-        void addList(ListEntry* value);
-        void addCompound(CompoundEntry* value);
+        void addList(const std::string& key, const std::vector<Ptr<ConfigEntry>>& value);
+        void addList(const std::string& key, Ptr<ConfigEntry> value);
+        void addList(Ptr<ListEntry> value);
+        void addCompound(Ptr<CompoundEntry> value);
         void remove(const std::string& key);
         void removeAll();
         bool isEmpty();
@@ -95,13 +97,13 @@ namespace DragonConfig {
     };
 
     struct ConfigParser {
-        CompoundEntry* parse(const std::string& configFile);
+        Ptr<CompoundEntry> parse(const std::string& configFile);
         
     private:
         bool isValidIdentifier(char c);
 
-        CompoundEntry* parseCompound(std::string& data, int* i);
-        ListEntry* parseList(std::string& data, int* i);
-        StringEntry* parseString(std::string& data, int* i);
+        Ptr<CompoundEntry> parseCompound(std::string& data, int* i);
+        Ptr<ListEntry> parseList(std::string& data, int* i);
+        Ptr<StringEntry> parseString(std::string& data, int* i);
     };
 }

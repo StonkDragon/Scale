@@ -20,7 +20,7 @@ namespace sclc
 {
     extern Struct currentStruct;
     extern int scopeDepth;
-    extern std::unordered_map<std::string, std::vector<Method*>> vtables;
+    extern std::unordered_map<std::string, std::vector<Ptr<Method>>> vtables;
     extern std::vector<std::string> typeStack;
     extern StructTreeNode* structTree;
     extern std::vector<std::string> strings;
@@ -32,11 +32,11 @@ namespace sclc
         return result;
     }
 
-    std::string generateSymbolForFunction(Function* f);
+    std::string generateSymbolForFunction(Ptr<Function> f);
     std::string sclTypeToCType(TPResult& result, std::string t);
-    std::string sclFunctionNameToFriendlyString(Function* f);
+    std::string sclFunctionNameToFriendlyString(Ptr<Function> f);
     std::string sclFunctionNameToFriendlyString(std::string name);
-    std::string argsToRTSignature(Function* f);
+    std::string argsToRTSignature(Ptr<Function> f);
 
     std::vector<std::string> uconsts;
     std::vector<std::string> uconst_ctypes;
@@ -48,7 +48,7 @@ namespace sclc
 
         std::ostringstream fp;
 
-        Function* mainFunction = nullptr;
+        Ptr<Function> mainFunction = nullptr;
         if (!Main::options::noMain) {
             mainFunction = getFunctionByName(result, "main");
             if (mainFunction == nullptr) {
@@ -121,10 +121,10 @@ namespace sclc
             }
         }
 
-        std::vector<Function*> initFuncs;
-        std::vector<Function*> destroyFuncs;
+        std::vector<Ptr<Function>> initFuncs;
+        std::vector<Ptr<Function>> destroyFuncs;
         
-        for (Function* f : result.functions) {
+        for (Ptr<Function> f : result.functions) {
             bool isInit = isInitFunction(f);
             if (!f->isMethod && (isInit || isDestroyFunction(f))) {
                 if (f->args.size()) {
@@ -184,7 +184,7 @@ namespace sclc
                 continue;
             }
             if (!v.isExtern) {
-                Method* m = nullptr;
+                Ptr<Method> m = nullptr;
                 const Struct& s = getStructByName(result, v.type);
                 std::string type = v.type;
                 if (!v.canBeNil && !v.hasInitializer) {
@@ -194,8 +194,8 @@ namespace sclc
                         if (m->args.size() == 1) {
                             hasDefaultConstructor = true;
                         } else {
-                            for (Function* over_ : m->overloads) {
-                            Method* overload = (Method*) over_;
+                            for (Ptr<Function> over_ : m->overloads) {
+                            Ptr<Method> overload = (Ptr<Method>) over_;
                                 if (overload->args.size() == 1) {
                                     hasDefaultConstructor = true;
                                     m = overload;
@@ -221,7 +221,7 @@ namespace sclc
                         append("%s Var_%s", type.c_str(), v.name.c_str());
                         append2(" SYMBOL(\"%s\") = {0};\n", v.name.c_str());
                         if (m != nullptr) {
-                            Function* f = new Function("static_init$" + v.name, v.name_token);
+                            Ptr<Function> f = new Function("static_init$" + v.name, v.name_token);
                             f->return_type = "none";
                             initFuncs.push_back(f);
                             append("void %s() {\n", f->outputName().c_str());
@@ -461,7 +461,7 @@ namespace sclc
         outputFile << "// End runtime\n";
         outputFile.close();
 
-        std::unordered_map<std::string, Function*> funcs;
+        std::unordered_map<std::string, Ptr<Function>> funcs;
         for (auto&& f : result.functions) {
             std::string name = f->outputName();
             if (funcs.find(name) != funcs.end() && !binaryCompatible(f, funcs[name])) {

@@ -27,12 +27,12 @@
 namespace sclc {
     extern int scopeDepth;
     extern std::vector<std::string> typeStack;
-    extern Function* currentFunction;
+    extern Ptr<Function> currentFunction;
     extern Struct currentStruct;
-    extern std::unordered_map<std::string, std::vector<Method*>> vtables;
+    extern std::unordered_map<std::string, std::vector<Ptr<Method>>> vtables;
     extern int isInUnsafe;
 
-    std::unordered_map<Function*, std::string> functionPtrs;
+    std::unordered_map<Ptr<Function>, std::string> functionPtrs;
     std::vector<bool> bools{false, true};
 
     std::string retemplate(std::string type);
@@ -79,7 +79,7 @@ namespace sclc {
         return args;
     }
 
-    std::string functionArgsToStructBody(Function* f, TPResult& result) {
+    std::string functionArgsToStructBody(Ptr<Function> f, TPResult& result) {
         std::string s = "{ ";
         for (auto&& arg : f->args) {
             s += sclTypeToCType(result, arg.type) + " Var_" + arg.name + "; ";
@@ -87,7 +87,7 @@ namespace sclc {
         return s + "}";
     }
 
-    void createVariadicCall(Function* f, std::ostream& fp, TPResult& result, std::vector<FPResult>& errors, std::vector<Token>& body, size_t& i) {
+    void createVariadicCall(Ptr<Function> f, std::ostream& fp, TPResult& result, std::vector<FPResult>& errors, std::vector<Token>& body, size_t& i) {
         bool parseCount = (i + 1) < body.size() && body[i + 1].value == "!";
         size_t amountOfVarargs = 0;
 
@@ -231,7 +231,7 @@ namespace sclc {
         std::pair("operator$min", "mn"),
     };
 
-    std::string generateInternal(Function* f) {
+    std::string generateInternal(Ptr<Function> f) {
         std::string symbol;
         std::string typeToSymbol(std::string type);
 
@@ -267,7 +267,7 @@ namespace sclc {
         return symbol;
     }
 
-    std::string generateSymbolForFunction(Function* f) {
+    std::string generateSymbolForFunction(Ptr<Function> f) {
         if (f->has_cdecl) {
             return format("\"%s\"", f->getModifier(f->has_cdecl + 1).c_str());
         }
@@ -296,10 +296,10 @@ namespace sclc {
         return format("\"%s\"", symbol.c_str());
     }
     
-    Method* findMethodLocally(Method* self, TPResult& result) {
-        for (Function* f : result.functions) {
+    Ptr<Method> findMethodLocally(Ptr<Method> self, TPResult& result) {
+        for (Ptr<Function> f : result.functions) {
             if (!f->isMethod) continue;
-            Method* m = (Method*) f;
+            Ptr<Method> m = (Ptr<Method>) f;
             std::string name = m->name;
             if ((name == self->name) && m->member_type == self->member_type) {
                 if (currentFunction) {
@@ -313,8 +313,8 @@ namespace sclc {
         return nullptr;
     }
 
-    Function* findFunctionLocally(Function* self, TPResult& result) {
-        for (Function* f : result.functions) {
+    Ptr<Function> findFunctionLocally(Ptr<Function> self, TPResult& result) {
+        for (Ptr<Function> f : result.functions) {
             if (f->isMethod) continue;
             if (f->name_without_overload == self->name) {
                 if (currentFunction) {
@@ -339,7 +339,7 @@ namespace sclc {
         return false;
     }
 
-    std::string getFunctionType(TPResult& result, Function* self) {
+    std::string getFunctionType(TPResult& result, Ptr<Function> self) {
         std::string functionPtrCast = functionPtrs[self];
         if (functionPtrCast.size()) {
             return functionPtrCast;
@@ -371,7 +371,7 @@ namespace sclc {
         return functionPtrCast;
     }
 
-    bool shouldCall(Function* self, std::vector<FPResult>& warns, std::vector<FPResult>& errors, std::vector<Token>& body, size_t i) {
+    bool shouldCall(Ptr<Function> self, std::vector<FPResult>& warns, std::vector<FPResult>& errors, std::vector<Token>& body, size_t i) {
         if (self->deprecated.size()) {
             Deprecation& depr = self->deprecated;
             std::string since = depr["since"];
@@ -416,7 +416,7 @@ namespace sclc {
 
     void createReifiedCall(Function *self, std::ostream &fp, TPResult &result, std::vector<FPResult> &warns, std::vector<FPResult> &errors, std::vector<Token> &body, size_t &i);
 
-    void methodCall(Method* self, std::ostream& fp, TPResult& result, std::vector<FPResult>& warns, std::vector<FPResult>& errors, std::vector<Token>& body, size_t& i, bool ignoreArgs, bool doActualPop, bool withIntPromotion, bool onSuperType, bool checkOverloads) {
+    void methodCall(Ptr<Method> self, std::ostream& fp, TPResult& result, std::vector<FPResult>& warns, std::vector<FPResult>& errors, std::vector<Token>& body, size_t& i, bool ignoreArgs, bool doActualPop, bool withIntPromotion, bool onSuperType, bool checkOverloads) {
         if (!shouldCall(self, warns, errors, body, i)) {
             return;
         }
@@ -429,7 +429,7 @@ namespace sclc {
                 Token selfNameToken = self->name_token;
                 Token fromNameToken = currentFunction->name_token;
                 if (selfNameToken.location.file != fromNameToken.location.file) {
-                    Method* method = findMethodLocally(self, result);
+                    Ptr<Method> method = findMethodLocally(self, result);
                     if (!method) {
                         transpilerError("Calling private method from another file is not allowed", i);
                         errors.push_back(err);
@@ -443,7 +443,7 @@ namespace sclc {
             }
         }
 
-        Method* tmp = checkOverloads ? findMethodLocally(self, result) : nullptr;
+        Ptr<Method> tmp = checkOverloads ? findMethodLocally(self, result) : nullptr;
         if (tmp) {
             self = tmp;
         }
@@ -504,7 +504,7 @@ namespace sclc {
             bool found = false;
             for (auto&& overload : self->overloads) {
                 if (argsEqual(overload->args) && overload->isMethod == self->isMethod) {
-                    self = (Method*) overload;
+                    self = (Ptr<Method>) overload;
                     found = true;
                     break;
                 }
@@ -519,16 +519,16 @@ namespace sclc {
         }
         
         {
-            std::vector<Function*>& overloads = self->overloads;
+            std::vector<Ptr<Function>>& overloads = self->overloads;
             bool argsEqual = ignoreArgs || checkStackType(result, self->args, withIntPromotion);
             if (checkOverloads && overloads.size() && !argsEqual && !ignoreArgs) {
-                for (Function* overload : self->overloads) {
+                for (Ptr<Function> overload : self->overloads) {
                     for (bool b : bools) {
                         if (!overload->isMethod) continue;
                         
                         bool argsEqual = checkStackType(result, overload->args, b);
                         if (argsEqual || overload->has_reified) {
-                            methodCall((Method*) overload, fp, result, warns, errors, body, i, ignoreArgs, doActualPop, b);
+                            methodCall((Ptr<Method>) overload, fp, result, warns, errors, body, i, ignoreArgs, doActualPop, b);
                             return;
                         }
                     }
@@ -539,7 +539,7 @@ namespace sclc {
 
             if (!argsEqual && !ignoreArgs) {
                 if (opFunc(self->name)) {
-                    Function* f = getFunctionByName(result, self->name);
+                    Ptr<Function> f = getFunctionByName(result, self->name);
                     if (f) {
                         functionCall(f, fp, result, warns, errors, body, i, false, true);
                         return;
@@ -606,7 +606,7 @@ namespace sclc {
                 append2("%s(%s)", self->outputName().c_str(), args.c_str());
             }
             found = true;
-        } else if (getInterfaceByName(result, self->member_type) == nullptr) {
+        } else if (getInterfaceByName(result, self->member_type).name.empty()) {
             auto vtable = vtables[self->member_type];
             size_t index = 0;
             for (auto&& method : vtable) {
@@ -688,8 +688,8 @@ namespace sclc {
         }
     }
 
-    bool hasImplementation(TPResult& result, Function* func) {
-        for (Function* f : result.functions) {
+    bool hasImplementation(TPResult& result, Ptr<Function> func) {
+        for (Ptr<Function> f : result.functions) {
             if (f->operator==(func)) {
                 return true;
             }
@@ -771,7 +771,7 @@ namespace sclc {
         return _reparseArgType(type, templateArgs, target);
     }
 
-    std::string argsToRTSignatureIdent(Function* f);
+    std::string argsToRTSignatureIdent(Ptr<Function> f);
 
     std::string declassifyReify(const std::string& what) {
         if (what.front() == '@') {
@@ -809,7 +809,7 @@ namespace sclc {
         return stack;
     }
 
-    Function* generateReifiedFunction(Function* self, TPResult& result, std::vector<FPResult>& errors, std::vector<Token>& body, size_t& i, std::vector<std::string>& types) {
+    Ptr<Function> generateReifiedFunction(Ptr<Function> self, TPResult& result, std::vector<FPResult>& errors, std::vector<Token>& body, size_t& i, std::vector<std::string>& types) {
         if (!self->has_reified) {
             transpilerError("Non-reified function passed to generateReifiedFunction()", i);
             errors.push_back(err);
@@ -859,9 +859,9 @@ namespace sclc {
             }
             reified_mappings["Numeric"] = biggestType;
         }
-        Function* f = self->clone();
+        Ptr<Function> f = self->clone();
         if (f->isMethod) {
-            ((Method*) f)->force_add = true;
+            ((Ptr<Method>) f)->force_add = true;
             if (!f->has_nonvirtual) {
                 f->addModifier(std::string("nonvirtual"));
             }
@@ -876,7 +876,7 @@ namespace sclc {
         std::string sigident = argsToRTSignatureIdent(f);
         f->name = f->name_without_overload + sigident;
         bool contains = false;
-        for (Function* f2 : result.functions) {
+        for (Ptr<Function> f2 : result.functions) {
             if (f2->isMethod != f->isMethod) continue;
             if (f2->name_without_overload != f->name_without_overload) continue;
             if (f2->has_reified) continue;
@@ -932,7 +932,7 @@ namespace sclc {
         return f;
     }
 
-    Function* reifiedPreamble(Function* self, TPResult& result, std::vector<FPResult>& errors, std::vector<Token>& body, size_t& i) {
+    Ptr<Function> reifiedPreamble(Ptr<Function> self, TPResult& result, std::vector<FPResult>& errors, std::vector<Token>& body, size_t& i) {
         std::vector<std::string> types;
         if (i + 2 < body.size() && body[i + 1].type == tok_double_column) {
             safeInc(nullptr);
@@ -978,7 +978,7 @@ namespace sclc {
                 types.push_back(typeStack[i]);
             }
         }
-        Function* f = generateReifiedFunction(self, result, errors, body, i, types);
+        Ptr<Function> f = generateReifiedFunction(self, result, errors, body, i, types);
         if (f == nullptr) return nullptr;
         if (f->has_reified) {
             transpilerError("Generated function has 'reified' modifier!", i);
@@ -988,21 +988,21 @@ namespace sclc {
         return f;
     }
 
-    void createReifiedCall(Function* self, std::ostream& fp, TPResult& result, std::vector<FPResult>& warns, std::vector<FPResult>& errors, std::vector<Token>& body, size_t& i) {
-        Function* f = reifiedPreamble(self, result, errors, body, i);
+    void createReifiedCall(Ptr<Function> self, std::ostream& fp, TPResult& result, std::vector<FPResult>& warns, std::vector<FPResult>& errors, std::vector<Token>& body, size_t& i) {
+        Ptr<Function> f = reifiedPreamble(self, result, errors, body, i);
         if (f == nullptr) {
             return;
         }
         if (f->isMethod) {
-            methodCall((Method*) f, fp, result, warns, errors, body, i, false, true, false, false, false);
+            methodCall((Ptr<Method>) f, fp, result, warns, errors, body, i, false, true, false, false, false);
         } else {
             functionCall(f, fp, result, warns, errors, body, i, false, false, false);
         }
     }
 
-    void emitFunction(Function* function, std::ostream& fp, TPResult& result, bool isMainFunction, std::vector<FPResult>& errors, std::vector<FPResult>& warns);
+    void emitFunction(Ptr<Function> function, std::ostream& fp, TPResult& result, bool isMainFunction, std::vector<FPResult>& errors, std::vector<FPResult>& warns);
 
-    void functionCall(Function* self, std::ostream& fp, TPResult& result, std::vector<FPResult>& warns, std::vector<FPResult>& errors, std::vector<Token>& body, size_t& i, bool withIntPromotion, bool hasToCallStatic, bool checkOverloads) {
+    void functionCall(Ptr<Function> self, std::ostream& fp, TPResult& result, std::vector<FPResult>& warns, std::vector<FPResult>& errors, std::vector<Token>& body, size_t& i, bool withIntPromotion, bool hasToCallStatic, bool checkOverloads) {
         if (!shouldCall(self, warns, errors, body, i)) {
             return;
         }
@@ -1017,7 +1017,7 @@ namespace sclc {
         if (currentFunction) {
             if (self->has_private) {
                 if (self->name_token.location.file != currentFunction->name_token.location.file) {
-                    Function* function = findFunctionLocally(self, result);
+                    Ptr<Function> function = findFunctionLocally(self, result);
                     if (!function) {
                         transpilerError("Calling private function from another file is not allowed", i);
                         errors.push_back(err);
@@ -1029,12 +1029,12 @@ namespace sclc {
             }
         }
 
-        Function* function = checkOverloads ? findFunctionLocally(self, result) : nullptr;
+        Ptr<Function> function = checkOverloads ? findFunctionLocally(self, result) : nullptr;
         if (function) {
             self = function;
         }
         bool argsEqual = checkStackType(result, self->args, withIntPromotion);
-        std::vector<Function*>& overloads = self->overloads;
+        std::vector<Ptr<Function>>& overloads = self->overloads;
 
         if (i + 1 < body.size() && body[i + 1].type == tok_double_column) {
             size_t begin = i;
@@ -1088,7 +1088,7 @@ namespace sclc {
             };
 
             bool found = false;
-            Function* have_reified = nullptr;
+            Ptr<Function> have_reified = nullptr;
             for (auto&& overload : self->overloads) {
                 if (overload->has_reified && !have_reified) {
                     have_reified = overload;
@@ -1117,7 +1117,7 @@ namespace sclc {
         }
 
         if (!argsEqual && checkOverloads && overloads.size()) {
-            for (Function* overload : overloads) {
+            for (Ptr<Function> overload : overloads) {
                 for (bool b : bools) {
                     if (overload->isMethod) continue;
 
@@ -1131,14 +1131,14 @@ namespace sclc {
         }
 
         if (self->has_operator) {
-            Method* overloaded = getMethodByName(result, self->name, typeStackTop);
+            Ptr<Method> overloaded = getMethodByName(result, self->name, typeStackTop);
             if (!hasToCallStatic && overloaded) {
                 methodCall(overloaded, fp, result, warns, errors, body, i);
                 return;
             }
 
             if (self->has_reified) {
-                for (Function* overload : overloads) {
+                for (Ptr<Function> overload : overloads) {
                     if (overload->isMethod) continue;
 
                     bool argsEqual = checkStackType(result, overload->args, false);
@@ -1204,7 +1204,7 @@ namespace sclc {
 
         if (!hasToCallStatic && opFunc(self->name) && hasMethod(result, self->name, typeStackTop)) {
         makeMethodCallInstead:
-            Method* method = getMethodByName(result, self->name, typeStackTop);
+            Ptr<Method> method = getMethodByName(result, self->name, typeStackTop);
             methodCall(method, fp, result, warns, errors, body, i);
             return;
         }
@@ -1344,7 +1344,7 @@ namespace sclc {
         return cache[type] = ret;
     }
 
-    std::string sclFunctionNameToFriendlyString(Function* f) {
+    std::string sclFunctionNameToFriendlyString(Ptr<Function> f) {
         std::string name = f->name_without_overload;
         name = sclFunctionNameToFriendlyString(name);
         if (f->isMethod) {
@@ -1368,7 +1368,7 @@ namespace sclc {
         return name;
     }
 
-    std::string sclGenCastForMethod(TPResult& result, Method* m) {
+    std::string sclGenCastForMethod(TPResult& result, Ptr<Method> m) {
         std::string return_type = sclTypeToCType(result, m->return_type);
         std::string arguments = "";
         if (m->args.size() > 0) {
@@ -1383,11 +1383,11 @@ namespace sclc {
         return return_type + "(*)(" + arguments + ")";
     }
 
-    std::vector<Method*> makeVTable(TPResult& res, std::string name) {
+    std::vector<Ptr<Method>> makeVTable(TPResult& res, std::string name) {
         if (vtables.find(name) != vtables.end()) {
             return vtables[name];
         }
-        std::vector<Method*> vtable;
+        std::vector<Ptr<Method>> vtable;
         const Struct& s = getStructByName(res, name);
         if (s.super.size()) {
             auto parent = getStructByName(res, s.super);
@@ -1395,7 +1395,7 @@ namespace sclc {
                 std::cerr << "Error: Struct '" << s.name << "' extends '" << s.super << "', but '" << s.super << "' does not exist." << std::endl;
                 exit(1);
             }
-            const std::vector<Method*>& parentVTable = makeVTable(res, parent.name);
+            const std::vector<Ptr<Method>>& parentVTable = makeVTable(res, parent.name);
             for (auto&& m : parentVTable) {
                 vtable.push_back(m);
             }

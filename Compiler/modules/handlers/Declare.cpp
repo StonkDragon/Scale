@@ -35,7 +35,7 @@ namespace sclc {
         vars.push_back(v);
         const Struct& s = getStructByName(result, type);
         const Layout& l = getLayout(result, type);
-        Method* m = nullptr;
+        Ptr<Method> m = nullptr;
         if (!v.canBeNil) {
             if (s != Struct::Null || !l.name.empty()) {
                 m = getMethodByName(result, "init", type);
@@ -43,8 +43,8 @@ namespace sclc {
                 if (m->args.size() == 1) {
                     hasDefaultConstructor = true;
                 } else {
-                    for (Function* over_ : m->overloads) {
-                        Method* overload = (Method*) over_;
+                    for (Ptr<Function> over_ : m->overloads) {
+                        Ptr<Method> overload = (Ptr<Method>) over_;
                         if (overload->args.size() == 1) {
                             hasDefaultConstructor = true;
                             m = overload;

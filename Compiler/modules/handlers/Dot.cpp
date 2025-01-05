@@ -39,7 +39,7 @@ namespace sclc {
         safeIncN(deref + 1);
         if (!s.hasMember(body[i].value)) {
             if (s.name == "Map" || s.super == "Map") {
-                Method* f = getMethodByName(result, "get", s.name);
+                Ptr<Method> f = getMethodByName(result, "get", s.name);
                 if (!f) {
                     transpilerError("Could not find method 'get' on struct '" + s.name + "'", i - 1);
                     errors.push_back(err);
@@ -60,7 +60,7 @@ namespace sclc {
                 return;
             }
             std::string help = "";
-            Method* m;
+            Ptr<Method> m;
             if ((m = getMethodByName(result, body[i].value, s.name)) != nullptr) {
                 std::string lambdaType = "lambda(";
                 for (size_t i = 0; i < m->args.size(); i++) {
@@ -95,7 +95,7 @@ namespace sclc {
             return;
         }
 
-        Method* m = attributeAccessor(result, s.name, mem.name);
+        Ptr<Method> m = attributeAccessor(result, s.name, mem.name);
         if (m) {
             if (dot.value == "?.") {
                 if (deref) {

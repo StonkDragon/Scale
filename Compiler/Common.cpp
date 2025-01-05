@@ -57,14 +57,11 @@ namespace sclc
     COLOR(ITALIC, "\033[3m");
     COLOR(STRIKETHROUGH, "\033[9m");
 
-    Tokenizer* Main::tokenizer = nullptr;
-    SyntaxTree* Main::lexer = nullptr;
-    Parser* Main::parser = nullptr;
-    DragonConfig::CompoundEntry* Main::config = nullptr;
+    DragonConfig::CompoundEntry Main::config;
     std::vector<std::string> Main::frameworkNativeHeaders = std::vector<std::string>();
     std::vector<std::string> Main::frameworks = std::vector<std::string>();
     std::vector<std::string> Main::frameworkPaths = std::vector<std::string>();
-    Version* Main::version = new Version(0, 0, 0);
+    Version Main::version = Version(0, 0, 0);
     bool Main::options::noMain = false;
     bool Main::options::Werror = false;
     size_t Main::options::stackSize = 0;
@@ -318,7 +315,7 @@ namespace sclc
             c == '!';
     }
 
-    void addIfAbsent(std::vector<Function*>& vec, Function* str) {
+    void addIfAbsent(std::vector<Ptr<Function>>& vec, Ptr<Function> str) {
         for (size_t i = 0; i < vec.size(); i++) {
             if (str->isMethod && vec[i]->isMethod) {
                 if (vec[i]->name == str->name && vec[i]->member_type == str->member_type) {
@@ -602,13 +599,13 @@ namespace sclc
         std::pair("<.", "operator$min"),
     };
 
-    Function* getFunctionByName0(TPResult& result, const std::string& name) {
-        static std::unordered_map<std::string, Function*> cache;
+    Ptr<Function> getFunctionByName0(TPResult& result, const std::string& name) {
+        static std::unordered_map<std::string, Ptr<Function>> cache;
         
         auto it = cache.find(name);
         if (it != cache.end()) return it->second;
 
-        for (Function* func : result.functions) {
+        for (Ptr<Function> func : result.functions) {
             if (func->isMethod) continue;
             if ((func->name_without_overload == name || func->name == name)) {
                 return cache[name] = func;
@@ -616,7 +613,7 @@ namespace sclc
         }
         return cache[name] = nullptr;
     }
-    Function* getFunctionByName(TPResult& result, const std::string& name2) {
+    Ptr<Function> getFunctionByName(TPResult& result, const std::string& name2) {
         try {
             const std::string& name = funcNameIdents.at(name2);
             return getFunctionByName0(result, name);
@@ -649,33 +646,34 @@ namespace sclc
         return Enum("");
     }
     
-    Interface* getInterfaceByName(TPResult& result, const std::string& name) {
-        for (Interface* i : result.interfaces) {
-            if (i->name == name) {
+    Interface& getInterfaceByName(TPResult& result, const std::string& name) {
+        for (auto&& i : result.interfaces) {
+            if (i.name == name) {
                 return i;
             }
         }
-        return nullptr;
+        static Interface empty = Interface("");
+        return empty;
     }
 
-    Method* getMethodByName0(TPResult& result, const std::string& name, const std::string& type) {
+    Ptr<Method> getMethodByName0(TPResult& result, const std::string& name, const std::string& type) {
         if (type == "") {
             return nullptr;
         }
 
-        for (Function* func : result.functions) {
+        for (Ptr<Function> func : result.functions) {
             if (!func->isMethod) continue;
             if ((func->name_without_overload == name || func->name == name) && func->member_type == type) {
-                return (Method*) func;
+                return (Ptr<Method>) func;
             }
         }
-        if (getInterfaceByName(result, type)) {
+        if (getInterfaceByName(result, type).name.size()) {
             return nullptr;
         }
         return getMethodByName0(result, name, getStructByName(result, type).super);
     }
 
-    Method* getMethodByName(TPResult& result, const std::string& name2, const std::string& type) {
+    Ptr<Method> getMethodByName(TPResult& result, const std::string& name2, const std::string& type) {
         try {
             const std::string& name = funcNameIdents.at(name2);
             return getMethodByName0(result, name, removeTypeModifiers(type));
@@ -683,20 +681,20 @@ namespace sclc
             return getMethodByName0(result, name2, removeTypeModifiers(type));
         }
     }
-    Method* getMethodByNameOnThisType0(TPResult& result, const std::string& name, const std::string& type) {
+    Ptr<Method> getMethodByNameOnThisType0(TPResult& result, const std::string& name, const std::string& type) {
         if (type == "") {
             return nullptr;
         }
 
-        for (Function* func : result.functions) {
+        for (Ptr<Function> func : result.functions) {
             if (!func->isMethod) continue;
             if ((func->name_without_overload == name || func->name == name) && func->member_type == type) {
-                return (Method*) func;
+                return (Ptr<Method>) func;
             }
         }
         return nullptr;
     }
-    Method* getMethodByNameOnThisType(TPResult& result, const std::string& name2, const std::string& type) {
+    Ptr<Method> getMethodByNameOnThisType(TPResult& result, const std::string& name2, const std::string& type) {
         try {
             const std::string& name = funcNameIdents.at(name2);
             return getMethodByNameOnThisType0(result, name, removeTypeModifiers(type));
@@ -705,16 +703,16 @@ namespace sclc
         }
     }
 
-    std::vector<Method*> methodsOnType(TPResult& res, std::string type) {
+    std::vector<Ptr<Method>> methodsOnType(TPResult& res, std::string type) {
         type = removeTypeModifiers(type);
 
-        std::vector<Method*> methods;
+        std::vector<Ptr<Method>> methods;
         methods.reserve(res.functions.size());
 
-        for (Function* func : res.functions) {
+        for (Ptr<Function> func : res.functions) {
             if (!func->isMethod) continue;
-            if (((Method*) func)->member_type == type) {
-                methods.push_back((Method*) func);
+            if (((Ptr<Method>) func)->member_type == type) {
+                methods.push_back((Ptr<Method>) func);
             }
         }
         return methods;
@@ -781,21 +779,21 @@ namespace sclc
         return false;
     }
 
-    bool isInitFunction(Function* f) {
+    bool isInitFunction(Ptr<Function> f) {
         if (f->isMethod) {
-            Method* m = static_cast<Method*>(f);
+            Ptr<Method> m = static_cast<Ptr<Method>>(f);
             return m->has_constructor || strstarts(m->name, "init");
         } else {
             return f->has_construct;
         }
     }
 
-    bool isDestroyFunction(Function* f) {
+    bool isDestroyFunction(Ptr<Function> f) {
         return f->has_destructor;
     }
 
-    bool memberOfStruct(const Variable* self, Function* f) {
-        return f->member_type == self->internalMutableFrom || strstarts(self->name, f->member_type + "$");
+    bool memberOfStruct(const Variable& self, Ptr<Function> f) {
+        return f->member_type == self.internalMutableFrom || strstarts(self.name, f->member_type + "$");
     }
 
     bool typeCanBeNil(std::string s, bool rem) {
@@ -851,14 +849,14 @@ namespace sclc
         return toRepeat;
     }
 
-    extern Function* currentFunction;
+    extern Ptr<Function> currentFunction;
     extern Struct currentStruct;
     extern std::vector<std::string> typeStack;
     extern int scopeDepth;
 
     handler(Token);
 
-    std::string makeIndex(TPResult& result, std::vector<Token>& body, size_t& i, std::vector<FPResult>& errors, std::vector<FPResult>& warns, Function* function) {
+    std::string makeIndex(TPResult& result, std::vector<Token>& body, size_t& i, std::vector<FPResult>& errors, std::vector<FPResult>& warns, Ptr<Function> function) {
         std::ostringstream fp;
         append2("({\n");
         scopeDepth++;
@@ -873,7 +871,7 @@ namespace sclc
         return fp.str();
     }
 
-    void makePath(TPResult& result, Variable v, bool topLevelDeref, std::vector<Token>& body, size_t& i, std::vector<FPResult>& errors, bool doesWriteAfter, Function* function, std::vector<FPResult>& warns, std::ostream& fp, std::function<void(std::string, std::string)> onComplete) {
+    void makePath(TPResult& result, Variable v, bool topLevelDeref, std::vector<Token>& body, size_t& i, std::vector<FPResult>& errors, bool doesWriteAfter, Ptr<Function> function, std::vector<FPResult>& warns, std::ostream& fp, std::function<void(std::string, std::string)> onComplete) {
         (void) fp;
         std::string path = "Var_" + v.name;
         std::string currentType;
@@ -946,7 +944,7 @@ namespace sclc
                     errors.push_back(err);
                 }
 
-                Method* f = nullptr;
+                Ptr<Method> f = nullptr;
                 bool mutate = false;
                 if (!doesWriteAfter || (i + 1 < body.size() && (body[i + 1].type == tok_dot || body[i + 1].type == tok_bracket_open))) {
                     f = attributeAccessor(result, containingType, v.name);
@@ -962,7 +960,7 @@ namespace sclc
                     }
                     if (mutate) {
                         path = f->outputName() + "(" + path + ", ";
-                        std::vector<Function*> funcs;
+                        std::vector<Ptr<Function>> funcs;
                         for (auto&& f : result.functions) {
                             if (f->name_without_overload == v.type + "$operator$store" || f->name_without_overload == v.type + "$=>") {
                                 funcs.push_back(f);
@@ -970,7 +968,7 @@ namespace sclc
                         }
 
                         bool funcFound = false;
-                        for (Function* f : funcs) {
+                        for (Ptr<Function> f : funcs) {
                             if (
                                 f->isMethod ||
                                 f->args.size() != 1 ||
@@ -1036,7 +1034,7 @@ namespace sclc
                 std::string nonRemovedArray = currentType;
                 std::string indexingType = "";
 
-                Method* m = nullptr;
+                Ptr<Method> m = nullptr;
                 if (arrayType.size() > 2 && arrayType.front() == '[' && arrayType.back() == ']') {
                     indexingType = "int";
                     primitive = true;
@@ -1077,7 +1075,7 @@ namespace sclc
                         path = "scale_checked_index(" + path + ", " + index + ")";
                     } else {
                         path = "scale_checked_write(" + path + ", " + index + ", ";
-                        std::vector<Function*> funcs;
+                        std::vector<Ptr<Function>> funcs;
                         for (auto&& f : result.functions) {
                             if (f->name_without_overload == v.type + "$operator$store" || f->name_without_overload == v.type + "$=>") {
                                 funcs.push_back(f);
@@ -1085,7 +1083,7 @@ namespace sclc
                         }
 
                         bool funcFound = false;
-                        for (Function* f : funcs) {
+                        for (Ptr<Function> f : funcs) {
                             if (
                                 f->isMethod ||
                                 f->args.size() != 1 ||
@@ -1126,7 +1124,7 @@ namespace sclc
                         currentType = m->return_type;
                     } else {
                         path = m->outputName() + "(" + path + ", " + index + ", ";
-                        std::vector<Function*> funcs;
+                        std::vector<Ptr<Function>> funcs;
                         for (auto&& f : result.functions) {
                             if (f->name_without_overload == v.type + "$operator$store" || f->name_without_overload == v.type + "$=>") {
                                 funcs.push_back(f);
@@ -1135,7 +1133,7 @@ namespace sclc
                         currentType = m->args[1].type;
 
                         bool funcFound = false;
-                        for (Function* f : funcs) {
+                        for (Ptr<Function> f : funcs) {
                             if (
                                 f->isMethod ||
                                 f->args.size() != 1 ||
@@ -1170,7 +1168,7 @@ namespace sclc
         }
 
         if (doesWriteAfter) {
-            std::vector<Function*> funcs;
+            std::vector<Ptr<Function>> funcs;
             for (auto&& f : result.functions) {
                 if (f->name_without_overload == v.type + "$operator$store" || f->name_without_overload == v.type + "$=>") {
                     funcs.push_back(f);
@@ -1178,7 +1176,7 @@ namespace sclc
             }
 
             bool funcFound = false;
-            for (Function* f : funcs) {
+            for (Ptr<Function> f : funcs) {
                 if (
                     f->isMethod ||
                     f->args.size() != 1 ||
@@ -1359,13 +1357,13 @@ namespace sclc
         return s;
     }
 
-    Method* attributeAccessor(TPResult& result, std::string struct_, std::string member) {
-        Method* f = getMethodByName(result, "get" + capitalize(member), struct_);
+    Ptr<Method> attributeAccessor(TPResult& result, std::string struct_, std::string member) {
+        Ptr<Method> f = getMethodByName(result, "get" + capitalize(member), struct_);
         return f && f->has_getter ? f : nullptr;
     }
 
-    Method* attributeMutator(TPResult& result, std::string struct_, std::string member) {
-        Method* f = getMethodByName(result, "set" + capitalize(member), struct_);
+    Ptr<Method> attributeMutator(TPResult& result, std::string struct_, std::string member) {
+        Ptr<Method> f = getMethodByName(result, "set" + capitalize(member), struct_);
         return f && f->has_setter ? f : nullptr;
     }
 
@@ -1419,7 +1417,7 @@ namespace sclc
         return true;
     }
 
-    void checkShadow(std::string name, Token& tok, Function* function, TPResult& result, std::vector<FPResult>& warns) {
+    void checkShadow(std::string name, Token& tok, Ptr<Function> function, TPResult& result, std::vector<FPResult>& warns) {
         if (hasFunction(result, name)) {
             transpilerErrorTok("Variable '" + name + "' shadowed by function '" + name + "'", tok);
             warns.push_back(err);

@@ -44,7 +44,7 @@ namespace sclc {
                 append("scale_push(scale_str, scale_create_string(scale_typename_or_else(*(scale_any*) &Var_%s, \"%s\")));\n", var.name.c_str(), retemplate(type).c_str());
             }
         } else if (hasFunction(result, body[i].value)) {
-            Function* f = getFunctionByName(result, body[i].value);
+            Ptr<Function> f = getFunctionByName(result, body[i].value);
             std::string lambdaType = "lambda(";
             for (size_t i = 0; i < f->args.size(); i++) {
                 if (i) lambdaType += ",";
@@ -112,7 +112,7 @@ namespace sclc {
                 append("scale_push(scale_uint, scale_typeid_or_else(*(scale_any*) &Var_%s, 0x%016llxULL));\n", var.name.c_str(), id(retemplate(type).c_str()));
             }
         } else if (hasFunction(result, body[i].value)) {
-            Function* f = getFunctionByName(result, body[i].value);
+            Ptr<Function> f = getFunctionByName(result, body[i].value);
             std::string lambdaType = "lambda(";
             for (size_t i = 0; i < f->args.size(); i++) {
                 if (i) lambdaType += ",";
@@ -282,7 +282,7 @@ namespace sclc {
                 LOAD_PATH(path, lastType);
             });
         } else if (hasFunction(result, body[i].value)) {
-            Function* f = getFunctionByName(result, body[i].value);
+            Ptr<Function> f = getFunctionByName(result, body[i].value);
             if (f->isMethod) {
                 transpilerError("'" + f->name + "' is a method, not a function.", i);
                 errors.push_back(err);
@@ -290,7 +290,7 @@ namespace sclc {
             }
             functionCall(f, fp, result, warns, errors, body, i);
         } else if (hasFunction(result, function->member_type + "$" + body[i].value)) {
-            Function* f = getFunctionByName(result, function->member_type + "$" + body[i].value);
+            Ptr<Function> f = getFunctionByName(result, function->member_type + "$" + body[i].value);
             if (f->isMethod) {
                 transpilerError("'" + f->name + "' is a method, not a function.", i);
                 errors.push_back(err);
@@ -308,7 +308,7 @@ namespace sclc {
                     goto nestedStruct;
                 }
 
-                Method* initMethod = getMethodByName(result, "init", s.name);
+                Ptr<Method> initMethod = getMethodByName(result, "init", s.name);
                 bool hasInitMethod = initMethod != nullptr;
                 if (body[i].value == "new" || body[i].value == "default") {
                     if (hasInitMethod && initMethod->has_private) {
@@ -352,7 +352,7 @@ namespace sclc {
                     typeStack.push_back(s.name);
                 } else {
                     if (hasFunction(result, s.name + "$" + body[i].value)) {
-                        Function* f = getFunctionByName(result, s.name + "$" + body[i].value);
+                        Ptr<Function> f = getFunctionByName(result, s.name + "$" + body[i].value);
                         if (f->isMethod) {
                             transpilerError("'" + f->name + "' is not static", i);
                             errors.push_back(err);
@@ -432,7 +432,7 @@ namespace sclc {
                         return;
                     }
 
-                    Method* mutator = attributeMutator(result, s.name, body[i].value);
+                    Ptr<Method> mutator = attributeMutator(result, s.name, body[i].value);
                     
                     if (mutator) {
                         append("%s(tmp, (%s) scale_pop(%s));\n", mutator->outputName().c_str(), sclTypeToCType(result, v.type).c_str(), sclTypeToCType(result, lastType).c_str());
@@ -471,7 +471,7 @@ namespace sclc {
             safeInc();
             if (body[i].type == tok_double_column) {
                 safeInc();
-                Method* initMethod = getMethodByName(result, "init", l.name);
+                Ptr<Method> initMethod = getMethodByName(result, "init", l.name);
                 bool hasInitMethod = initMethod != nullptr;
                 std::string ctype = sclTypeToCType(result, l.name);
                 if (body[i].value == "new") {
@@ -505,7 +505,7 @@ namespace sclc {
                     scopeDepth--;
                     append("}));\n");
                 } else if (hasFunction(result, l.name + "$" + body[i].value)) {
-                    Function* f = getFunctionByName(result, l.name + "$" + body[i].value);
+                    Ptr<Function> f = getFunctionByName(result, l.name + "$" + body[i].value);
                     if (f->isMethod) {
                         transpilerError("'" + f->name + "' is not static", i);
                         errors.push_back(err);
@@ -642,8 +642,8 @@ namespace sclc {
             Struct s = getStructByName(result, function->member_type);
             if (s == Struct::Null && hasLayout(result, function->member_type)) {
                 const Layout& l = getLayout(result, function->member_type);
-                Method* method = getMethodByName(result, body[i].value, l.name);
-                Function* f;
+                Ptr<Method> method = getMethodByName(result, body[i].value, l.name);
+                Ptr<Function> f;
                 if (method != nullptr) {
                     append("scale_push(typeof(Var_self), Var_self);\n");
                     typeStack.push_back(method->member_type);
@@ -664,8 +664,8 @@ namespace sclc {
                     goto unknownIdent;
                 }
             } else {
-                Method* method = getMethodByName(result, body[i].value, s.name);
-                Function* f;
+                Ptr<Method> method = getMethodByName(result, body[i].value, s.name);
+                Ptr<Function> f;
                 if (method != nullptr) {
                     append("scale_push(typeof(Var_self), Var_self);\n");
                     typeStack.push_back(method->member_type);

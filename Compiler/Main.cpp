@@ -84,7 +84,6 @@ namespace sclc
     std::string scaleLatestFolder;
     std::vector<std::string> nonScaleFiles;
     std::vector<std::string> cflags;
-    std::vector<std::regex> disabledDiagnostics;
 
     void usage(std::string programName) {
         std::cout << "Usage: " << programName << " <filename> [args]" << std::endl;
@@ -103,7 +102,6 @@ namespace sclc
         std::cout << "  -cflags                     Print c compiler flags and exit" << std::endl;
         std::cout << "  -no-error-location          Do not print an overview of the file on error" << std::endl;
         std::cout << "  -verbose-linker             Tells the linker to run in verbose mode for debugging purposes" << std::endl;
-        std::cout << "  -nowarn <regex>             Do not print any diagnostics where the message matches the given regular expression" << std::endl;
         std::cout << "  -stack-size <sz>            Sets the starting stack size. Must be a multiple of 2" << std::endl;
         std::cout << "  -no-scale-std               Do not depend on Scale.framework" << std::endl;
         std::cout << "  -no-link-scale              Do not dynamically link to Scale.framework library" << std::endl;
@@ -115,38 +113,7 @@ namespace sclc
         std::cout << "  Any other options are passed directly to " << std::string(COMPILER) << " (or compiler specified by -compiler)" << std::endl;
     }
 
-    bool contains(std::vector<std::string>& vec, std::string& item) {
-        for (auto& i : vec) {
-            if (i == item) {
-                return true;
-            }
-        }
-        return false;
-    }
-
     FPResult findFileInIncludePath(std::string file);
-
-    std::vector<std::string> split(const std::string& str, const std::string& delimiter);
-
-    struct DocumentationEntry {
-        std::string name;
-        std::string description;
-        std::string module;
-        std::string file;
-    };
-
-    using DocumentationEntries = std::vector<DocumentationEntry>;
-
-    struct Documentation {
-        std::unordered_map<std::string, DocumentationEntries> entries;
-
-        auto begin() {
-            return entries.begin();
-        }
-        auto end() {
-            return entries.end();
-        }
-    };
 
     auto listFiles(const std::filesystem::path& dir, std::string ext) -> std::vector<std::filesystem::path> {
         std::vector<std::filesystem::path> files;
@@ -166,35 +133,35 @@ namespace sclc
         for (auto path : Main::options::includePaths) {
             if (std::filesystem::exists(path + DIR_SEP + framework + ".framework" DIR_SEP "index.drg")) {
                 DragonConfig::ConfigParser parser;
-                DragonConfig::CompoundEntry* root = parser.parse(path + DIR_SEP + framework + ".framework" DIR_SEP "index.drg");
+                Ptr<DragonConfig::CompoundEntry> root = parser.parse(path + DIR_SEP + framework + ".framework" DIR_SEP "index.drg");
                 if (root == nullptr) {
                     std::cerr << Color::RED << "Failed to parse index.drg of Framework " << framework << std::endl;
                     return false;
                 }
                 root = root->getCompound("framework");
                 Main::options::indexDrgFiles[framework] = root;
-                DragonConfig::ListEntry* implementers = root->getList("implementers");
-                DragonConfig::ListEntry* implHeaders = root->getList("implHeaders");
-                DragonConfig::ListEntry* depends = root->getList("depends");
-                DragonConfig::ListEntry* compilerFlags = root->getList("compilerFlags");
-                DragonConfig::CompoundEntry* build = root->getCompound("build");
-                DragonConfig::CompoundEntry* config = root->getCompound("config");
+                Ptr<DragonConfig::ListEntry> implementers = root->getList("implementers");
+                Ptr<DragonConfig::ListEntry> implHeaders = root->getList("implHeaders");
+                Ptr<DragonConfig::ListEntry> depends = root->getList("depends");
+                Ptr<DragonConfig::ListEntry> compilerFlags = root->getList("compilerFlags");
+                Ptr<DragonConfig::CompoundEntry> build = root->getCompound("build");
+                Ptr<DragonConfig::CompoundEntry> config = root->getCompound("config");
 
-                DragonConfig::StringEntry* versionTag = root->getString("version");
+                Ptr<DragonConfig::StringEntry> versionTag = root->getString("version");
                 std::string version = versionTag->getValue();
                 if (versionTag == nullptr) {
                     std::cerr << "Framework " << framework << " does not specify a version! Skipping." << std::endl;
                     return false;
                 }
                 
-                DragonConfig::StringEntry* headerDirTag = root->getString("headerDir");
+                Ptr<DragonConfig::StringEntry> headerDirTag = root->getString("headerDir");
                 std::string headerDir = headerDirTag == nullptr ? "" : headerDirTag->getValue();
                 Main::options::mapFrameworkIncludeFolders[framework] = headerDir;
                 
-                DragonConfig::StringEntry* implDirTag = root->getString("implDir");
+                Ptr<DragonConfig::StringEntry> implDirTag = root->getString("implDir");
                 std::string implDir = implDirTag == nullptr ? "" : implDirTag->getValue();
                 
-                DragonConfig::StringEntry* implHeaderDirTag = root->getString("implHeaderDir");
+                Ptr<DragonConfig::StringEntry> implHeaderDirTag = root->getString("implHeaderDir");
                 std::string implHeaderDir = implHeaderDirTag == nullptr ? "" : implHeaderDirTag->getValue();
 
                 Version ver = Version(version);
@@ -227,7 +194,7 @@ namespace sclc
 
                 Main::frameworks.push_back(framework);
 
-                auto compileFramework = [](const std::string& framework, const std::string& path, const std::string& includePath, DragonConfig::CompoundEntry* build) {
+                auto compileFramework = [](const std::string& framework, const std::string& path, const std::string& includePath, Ptr<DragonConfig::CompoundEntry> build) {
                     if (build == nullptr) {
                         return;
                     }
@@ -235,9 +202,9 @@ namespace sclc
                     auto curPath = std::filesystem::current_path();
                     std::filesystem::current_path(path + DIR_SEP + framework + ".framework");
 
-                    DragonConfig::ListEntry* excludedFiles = build->getList("exclude");
-                    DragonConfig::ListEntry* includedFiles = build->getList("files");
-                    DragonConfig::ListEntry* arguments = build->getList("arguments");
+                    Ptr<DragonConfig::ListEntry> excludedFiles = build->getList("exclude");
+                    Ptr<DragonConfig::ListEntry> includedFiles = build->getList("files");
+                    Ptr<DragonConfig::ListEntry> arguments = build->getList("arguments");
                     auto libraryName = std::filesystem::absolute(build->getStringOrDefault("outfile", path + DIR_SEP + framework + ".framework" DIR_SEP + LIB_PREF + framework + LIB_SUFF)->getValue());
 
                     std::string cmd =
@@ -323,10 +290,10 @@ namespace sclc
 
                 if (config) {
                     for (auto x : config->entries) {
-                        if (Main::config->hasMember(x->getKey())) {
+                        if (Main::config.hasMember(x->getKey())) {
                             std::cerr << "Config entry with key '" << x->getKey() << "' already exists!" << std::endl;
                         } else {
-                            Main::config->entries.push_back(x);
+                            Main::config.entries.push_back(x);
                         }
                     }
                 }
@@ -335,14 +302,6 @@ namespace sclc
             }
         }
         return false;
-    }
-
-    std::string trimLeft(std::string s) {
-        size_t i = 0;
-        while (i < s.size() && isspace(s[i])) {
-            i++;
-        }
-        return s.substr(i);
     }
 
     void logWarns(std::vector<FPResult>& warns);
@@ -354,39 +313,30 @@ namespace sclc
         std::filesystem::create_directories(name + ".framework" DIR_SEP "impl");
         std::fstream indexFile((name + ".framework" DIR_SEP "index.drg").c_str(), std::fstream::out);
 
-        DragonConfig::CompoundEntry* framework = new DragonConfig::CompoundEntry();
-        framework->setKey("framework");
+        DragonConfig::CompoundEntry framework = DragonConfig::CompoundEntry();
+        framework.setKey("framework");
 
-        framework->addString("version", "24.2.0");
-        framework->addString("headerDir", "include");
-        framework->addString("implDir", "impl");
-        framework->addString("implHeaderDir", "impl");
+        framework.addString("version", "24.2.0");
+        framework.addString("headerDir", "include");
+        framework.addString("implDir", "impl");
+        framework.addString("implHeaderDir", "impl");
         
-        auto implementers = new DragonConfig::ListEntry();
-        implementers->setKey("implementers");
-        framework->addList(implementers);
+        auto implementers = DragonConfig::ListEntry();
+        implementers.setKey("implementers");
+        framework.addList(&implementers);
 
-        auto implHeaders = new DragonConfig::ListEntry();
-        implHeaders->setKey("implHeaders");
-        framework->addList(implHeaders);
+        auto implHeaders = DragonConfig::ListEntry();
+        implHeaders.setKey("implHeaders");
+        framework.addList(&implHeaders);
 
-        auto modules = new DragonConfig::CompoundEntry();
-        modules->setKey("modules");
-        framework->addCompound(modules);
+        auto modules = DragonConfig::CompoundEntry();
+        modules.setKey("modules");
+        framework.addCompound(&modules);
 
-        framework->print(indexFile);
+        framework.print(indexFile);
 
         indexFile.close();
         return 0;
-    }
-
-    bool diagDisabled(std::string& diag) {
-        for (auto&& r : disabledDiagnostics) {
-            if (std::regex_search(diag, r)) {
-                return true;
-            }
-        }
-        return false;
     }
 
     std::string limitPathTo(const std::filesystem::path& path, size_t limit) {
@@ -401,11 +351,6 @@ namespace sclc
     void logWarns(std::vector<FPResult>& warns) {
         for (FPResult error : warns) {
             if (error.type >= tok_MAX) continue;
-            if (diagDisabled(error.message)) {
-                logWarns(error.warns);
-                logErrors(error.errors);
-                continue;
-            }
             if (error.location.line == 0) {
                 std::cout << Color::BOLDRED << "Fatal Error: " << error.location.file << ": " << error.message << Color::RESET << std::endl;
                 continue;
@@ -415,7 +360,7 @@ namespace sclc
                 std::cout << Color::BOLDRED << "Fatal Error: Could not open file " << error.location.file << ": " << strerror(errno) << Color::RESET << std::endl;
                 continue;
             }
-            char* line = new char[512];
+            char line[1024] = {0};
             int i = 1;
             if (f) fseek(f, 0, SEEK_SET);
             std::string colString;
@@ -447,7 +392,6 @@ namespace sclc
                 i++;
             }
             fclose(f);
-            delete[] line;
             logErrors(error.errors);
             logWarns(error.warns);
         }
@@ -459,11 +403,6 @@ namespace sclc
             if (errorCount >= Main::options::errorLimit) {
                 std::cout << Color::BOLDRED << "Too many errors (" << errors.size() << "), aborting" << Color::RESET << std::endl;
                 break;
-            }
-            if (diagDisabled(error.message)) {
-                logWarns(error.warns);
-                logErrors(error.errors);
-                continue;
             }
             if (error.type >= tok_MAX) continue;
             std::string colorStr;
@@ -483,7 +422,7 @@ namespace sclc
                 std::cout << Color::BOLDRED << "Fatal Error: Could not open file " << error.location.file << ": " << strerror(errno) << Color::RESET << std::endl;
                 continue;
             }
-            char* line = new char[512];
+            char line[1024] = {0};
             int i = 1;
             if (f) fseek(f, 0, SEEK_SET);
             std::string path = limitPathTo(std::filesystem::absolute(error.location.file), 48);
@@ -512,7 +451,6 @@ namespace sclc
                 i++;
             }
             fclose(f);
-            delete[] line;
             errorCount++;
             logErrors(error.errors);
             logWarns(error.warns);
@@ -561,15 +499,15 @@ namespace sclc
         #endif
         tmpFlags.push_back("-fvisibility=default");
 
-        Main::version = new Version(std::string(VERSION));
+        Main::version = Version(std::string(VERSION));
         Main::options::errorLimit = 20;
 
         DBG("Looking for project config");
 
-        Main::config = new DragonConfig::CompoundEntry();
+        Main::config = DragonConfig::CompoundEntry();
 
         if (std::filesystem::exists("scale.drg")) {
-            DragonConfig::CompoundEntry* scaleConfig = DragonConfig::ConfigParser().parse("scale.drg");
+            Ptr<DragonConfig::CompoundEntry> scaleConfig = DragonConfig::ConfigParser().parse("scale.drg");
             if (scaleConfig) {
                 if (scaleConfig->hasMember("outfile"))
                     Main::options::outfile = outfile = scaleConfig->getString("outfile")->getValue();
@@ -615,13 +553,13 @@ namespace sclc
                         }
                     }
 
-                DragonConfig::CompoundEntry* config = scaleConfig->getCompound("config");
+                Ptr<DragonConfig::CompoundEntry> config = scaleConfig->getCompound("config");
                 if (config) {
                     for (auto x : config->entries) {
-                        if (Main::config->hasMember(x->getKey())) {
+                        if (Main::config.hasMember(x->getKey())) {
                             std::cerr << "Config entry with key '" << x->getKey() << "' already exists!" << std::endl;
                         } else {
-                            Main::config->entries.push_back(x);
+                            Main::config.entries.push_back(x);
                         }
                     }
                 }
@@ -750,15 +688,6 @@ namespace sclc
                     std::string name = args[i + 1];
                     i++;
                     return makeFramework(name);
-                } else {
-                    std::cerr << "Error: " << args[i] << " requires an argument" << std::endl;
-                    return 1;
-                }
-            } else if (args[i] == "-nowarn") {
-                if (i + 1 < args.size()) {
-                    std::string regex = args[i + 1];
-                    i++;
-                    disabledDiagnostics.push_back(std::regex(regex));
                 } else {
                     std::cerr << "Error: " << args[i] << " requires an argument" << std::endl;
                     return 1;
@@ -893,10 +822,10 @@ namespace sclc
         #endif
         #endif
 
-        Main::config->setString("os", OS_IDENT);
-        Main::config->setString("os-name", OS_NAME);
-        Main::config->setString("arch", ARCH);
-        Main::config->setString("version", VERSION);
+        Main::config.setString("os", OS_IDENT);
+        Main::config.setString("os-name", OS_NAME);
+        Main::config.setString("arch", ARCH);
+        Main::config.setString("version", VERSION);
 
         if (!Main::options::noScaleFramework) {
             auto findModule = [&](const std::string moduleName) -> std::vector<std::string> {
@@ -937,8 +866,10 @@ namespace sclc
         for (size_t i = 0; i < Main::options::files.size() && !Main::options::printCflags; i++) {
             using path = std::filesystem::path;
             path s = Main::options::files[i];
-            if (s.parent_path().string().size())
-                Main::options::includePaths.push_back(s.parent_path().string());
+            auto parent = s.parent_path();
+            if (std::find(Main::options::includePaths.begin(), Main::options::includePaths.end(), parent.string()) == Main::options::includePaths.end()) {
+                Main::options::includePaths.push_back(parent.string());
+            }
         }
 
         DBG("Tokenizing %zu files", Main::options::files.size());
@@ -956,11 +887,8 @@ namespace sclc
                 continue;
             }
 
-            if (Main::tokenizer) {
-                Main::tokenizer->reset();
-            }
-            Main::tokenizer = new Tokenizer();
-            FPResult result = Main::tokenizer->tokenize(filename);
+            Tokenizer tokenizer;
+            FPResult result = tokenizer.tokenize(filename);
 
             logWarns(result.warns);
             logErrors(result.errors);
@@ -979,16 +907,16 @@ namespace sclc
                 return numErrs;
             }
 
-            Main::tokenizer->removeInvalidTokens();
+            tokenizer.removeInvalidTokens();
 
-            FPResult importResult = Main::tokenizer->tryImports();
+            FPResult importResult = tokenizer.tryImports();
             logErrors(importResult.errors);
             logWarns(importResult.warns);
             if (!importResult.errors.empty()) {
                 exit(1);
             }
 
-            std::vector<Token> theseTokens = Main::tokenizer->getTokens();
+            std::vector<Token> theseTokens = tokenizer.getTokens();
             
             tokens.insert(tokens.end(), theseTokens.begin(), theseTokens.end());
         }
@@ -998,34 +926,33 @@ namespace sclc
             return 0;
         }
 
-        DBG("Lexing tokens");
+        DBG("Parsing syntax tree");
 
-        TPResult result;
+        TPResult syntaxResult;
         if (!Main::options::printCflags) {
-            Main::lexer = new SyntaxTree(tokens);
-            Main::lexer->parse(result);
-        }
+            SyntaxTree lexer(tokens);
+            lexer.parse(syntaxResult);
 
-        logWarns(result.warns);
-        logErrors(result.errors);
-        size_t numErrs = sclc::count_if(result.errors, [](const FPResult& err) {
-            return !err.isNote;
-        });
-        numWarns += sclc::count_if(result.warns, [](const FPResult& err) {
-            return !err.isNote;
-        });
+            logWarns(syntaxResult.warns);
+            logErrors(syntaxResult.errors);
+            size_t numErrs = sclc::count_if(syntaxResult.errors, [](const FPResult& err) -> bool {
+                return !err.isNote;
+            });
+            numWarns += sclc::count_if(syntaxResult.warns, [](const FPResult& err) -> bool {
+                return !err.isNote;
+            });
 
-        if (numErrs) {
-            if (numWarns) {
-                std::cout << numWarns << " warning" << (numWarns == 1 ? "" : "s") << " and ";
+            if (numErrs) {
+                if (numWarns) {
+                    std::cout << numWarns << " warning" << (numWarns == 1 ? "" : "s") << " and ";
+                }
+                std::cout << numErrs << " error" << (numErrs == 1 ? "" : "s") << " generated." << std::endl;
+                return numErrs;
             }
-            std::cout << numErrs << " error" << (numErrs == 1 ? "" : "s") << " generated." << std::endl;
-            return numErrs;
         }
 
         DBG("Preparing parser");
-
-        Main::parser = new Parser(result);
+        Parser parser(syntaxResult);
 
         if (hasCppFiles) {
             // link to c++ library if needed
@@ -1045,7 +972,7 @@ namespace sclc
         DBG("Parsing");
         
         FPResult parseResult;
-        Main::parser->parse(
+        parser.parse(
             parseResult,
             outputFileName,
             outputHeaderFileName
@@ -1054,7 +981,7 @@ namespace sclc
         
         logWarns(parseResult.warns);
         logErrors(parseResult.errors);
-        numErrs = sclc::count_if(parseResult.errors, [](const FPResult& err) {
+        auto numErrs = sclc::count_if(parseResult.errors, [](const FPResult& err) {
             return !err.isNote;
         });
         numWarns += sclc::count_if(parseResult.warns, [](const FPResult& err) {

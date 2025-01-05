@@ -49,8 +49,8 @@ namespace sclc
         Variable(std::string name, std::string type, std::string memberType);
         virtual ~Variable();
 
-        bool isWritableFrom(Function* f) const;
-        bool isAccessible(Function* f) const;
+        bool isWritableFrom(Ptr<Function> f) const;
+        bool isAccessible(Ptr<Function> f) const;
         bool operator==(const Variable& other) const;
         bool operator!=(const Variable& other) const;
         Variable& also(std::function<void(Variable&)> f) override;

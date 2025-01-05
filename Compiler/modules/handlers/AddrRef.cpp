@@ -5,13 +5,13 @@
 #include <Functions.hpp>
 
 namespace sclc {
-    Function* generateReifiedFunction(Function* self, TPResult& result, std::vector<FPResult>& errors, std::vector<Token>& body, size_t& i, std::vector<std::string>& types);
+    Ptr<Function> generateReifiedFunction(Ptr<Function> self, TPResult& result, std::vector<FPResult>& errors, std::vector<Token>& body, size_t& i, std::vector<std::string>& types);
 
     handler(AddrRef) {
         noUnused;
         safeInc();
         Token toGet = body[i];
-        Function* f = nullptr;
+        Ptr<Function> f = nullptr;
 
         Variable v("", "");
 
@@ -86,7 +86,7 @@ namespace sclc {
                 };
 
                 bool found = false;
-                Function* have_reified = nullptr;
+                Ptr<Function> have_reified = nullptr;
                 for (auto&& overload : f->overloads) {
                     if (overload->has_reified && !have_reified) {
                         have_reified = overload;
@@ -153,7 +153,7 @@ namespace sclc {
                         std::string loadFrom = s.name + "$" + body[i].value;
                         v = getVar(loadFrom);
                     } else if (hasMethod(result, body[i].value, s.name)) {
-                        Method* f = getMethodByName(result, body[i].value, s.name);
+                        Ptr<Method> f = getMethodByName(result, body[i].value, s.name);
                         size_t begin = i;
                         if (i + 1 < body.size() && body[i + 1].type == tok_double_column) {
                             safeInc();
@@ -210,7 +210,7 @@ namespace sclc {
                             bool found = false;
                             for (auto&& overload : f->overloads) {
                                 if (argsEqual(overload->args) && overload->isMethod) {
-                                    f = (Method*) overload;
+                                    f = (Ptr<Method>) overload;
                                     found = true;
                                     break;
                                 }
@@ -251,7 +251,7 @@ namespace sclc {
                     }
                 }
             } else if (function->isMethod) {
-                Method* m = ((Method*) function);
+                Ptr<Method> m = ((Ptr<Method>) function);
                 Struct s = getStructByName(result, m->member_type);
                 if (s.hasMember(body[i].value)) {
                     v = s.getMember(body[i].value);
@@ -269,7 +269,7 @@ namespace sclc {
             safeInc();
             if (s != Struct::Null) {
                 if (hasMethod(result, body[i].value, s.name)) {
-                    Method* f = getMethodByName(result, body[i].value, s.name);
+                    Ptr<Method> f = getMethodByName(result, body[i].value, s.name);
                     size_t begin = i;
                     if (i + 1 < body.size() && body[i + 1].type == tok_double_column) {
                         safeInc();
@@ -326,7 +326,7 @@ namespace sclc {
                         bool found = false;
                         for (auto&& overload : f->overloads) {
                             if (argsEqual(overload->args) && overload->isMethod) {
-                                f = (Method*) overload;
+                                f = (Ptr<Method>) overload;
                                 found = true;
                                 break;
                             }

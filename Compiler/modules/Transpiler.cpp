@@ -23,7 +23,7 @@
 
 namespace sclc {
 
-    typedef void(*HandlerType)(std::vector<Token>&, Function*, std::vector<FPResult>&, std::vector<FPResult>&, std::ostream&, TPResult&, size_t&);
+    typedef void(*HandlerType)(std::vector<Token>&, Ptr<Function>, std::vector<FPResult>&, std::vector<FPResult>&, std::ostream&, TPResult&, size_t&);
 
     const std::unordered_map<TokenType, HandlerType> handleRefs = {
         std::pair(tok_await, handlerRef(Await)),
@@ -88,9 +88,9 @@ namespace sclc {
         std::pair(tok_pragma, handlerRef(Pragma)),
     };
 
-    Function* currentFunction = nullptr;
+    Ptr<Function> currentFunction = nullptr;
     Struct currentStruct("");
-    std::unordered_map<std::string, std::vector<Method*>> vtables;
+    std::unordered_map<std::string, std::vector<Ptr<Method>>> vtables;
     StructTreeNode* structTree;
     int scopeDepth = 0;
     size_t condCount = 0;
@@ -122,7 +122,7 @@ namespace sclc {
         int scopeDepth = 0;
         append("/* FUNCTION HEADERS */\n");
 
-        for (Function* function : result.functions) {
+        for (Ptr<Function> function : result.functions) {
             std::string return_type = sclTypeToCType(result, function->return_type);
             auto args = function->args;
             std::string arguments;
@@ -304,8 +304,8 @@ namespace sclc {
             if (c.isStatic()) continue;
             currentStruct = c;
             for (const std::string& i : c.interfaces) {
-                Interface* interface = getInterfaceByName(result, i);
-                if (interface == nullptr) {
+                const Interface& interface = getInterfaceByName(result, i);
+                if (interface.name.empty()) {
                     FPResult res;
                     Token t = c.name_token;
                     res.success = false;
@@ -316,7 +316,7 @@ namespace sclc {
                     errors.push_back(res);
                     continue;
                 }
-                for (Function* f : interface->toImplement) {
+                for (Ptr<Function> f : interface.toImplement) {
                     if (!hasMethod(result, f->name, c.name)) {
                         FPResult res;
                         Token t = c.name_token;
@@ -328,7 +328,7 @@ namespace sclc {
                         errors.push_back(res);
                         continue;
                     }
-                    Method* m = getMethodByName(result, f->name, c.name);
+                    Ptr<Method> m = getMethodByName(result, f->name, c.name);
                     if (!argsAreIdentical(m->args, f->args)) {
                         FPResult res;
                         Token t = m->name_token;
@@ -343,9 +343,9 @@ namespace sclc {
                     Struct argType = getStructByName(result, m->return_type);
                     bool implementedInterface = false;
                     if (argType != Struct::Null) {
-                        Interface* interface = getInterfaceByName(result, f->return_type);
-                        if (interface != nullptr) {
-                            implementedInterface = structImplements(result, argType, interface->name);
+                        const Interface& interface = getInterfaceByName(result, f->return_type);
+                        if (interface.name.size()) {
+                            implementedInterface = structImplements(result, argType, interface.name);
                         }
                     }
                     if (!implementedInterface && f->return_type != "?" && !typeEquals(m->return_type, f->return_type)) {
@@ -373,14 +373,14 @@ namespace sclc {
                 }
             }
 
-            for (Function* f : result.functions) {
+            for (Ptr<Function> f : result.functions) {
                 if (!f->isMethod) continue;
-                Method* m = (Method*) f;
+                Ptr<Method> m = (Ptr<Method>) f;
                 if (m->member_type != c.name) continue;
 
                 Struct super = getStructByName(result, c.super);
                 while (super != Struct::Null) {
-                    Method* other = getMethodByNameOnThisType(result, m->name, super.name);
+                    Ptr<Method> other = getMethodByNameOnThisType(result, m->name, super.name);
                     if (!other) goto afterSealedCheck;
                     if (other->has_final) {
                         FPResult res;
@@ -411,7 +411,7 @@ namespace sclc {
 
             for (Variable& s : c.members) {
                 if (!s.isVirtual) continue;
-                Method* getter = attributeAccessor(result, c.name, s.name);
+                Ptr<Method> getter = attributeAccessor(result, c.name, s.name);
                 if (!getter) {
                     FPResult res;
                     res.success = false;
@@ -422,7 +422,7 @@ namespace sclc {
                     errors.push_back(res);
                 }
                 if (!s.isConst) {
-                    Method* setter = attributeMutator(result, c.name, s.name);
+                    Ptr<Method> setter = attributeMutator(result, c.name, s.name);
                     if (!setter) {
                         FPResult res;
                         res.success = false;
@@ -508,7 +508,7 @@ namespace sclc {
     }
 
     int n_captures = 0;
-    void emitFunction(Function* function, std::ostream& fp, TPResult& result, bool isMainFunction, std::vector<FPResult>& errors, std::vector<FPResult>& warns) {
+    void emitFunction(Ptr<Function> function, std::ostream& fp, TPResult& result, bool isMainFunction, std::vector<FPResult>& errors, std::vector<FPResult>& warns) {
         varScopePush();
         if (UNLIKELY(function->has_async)) {
             for (Variable& var : function->args) {
@@ -670,7 +670,7 @@ namespace sclc {
         }
 
         for (size_t f = 0; f < result.functions.size(); f++) {
-            Function* function = currentFunction = result.functions[f];
+            Ptr<Function> function = currentFunction = result.functions[f];
             if (function->isMethod) {
                 if (function->has_reified && !function->has_nonvirtual) {
                     transpilerErrorTok("'reified' modifier implies 'nonvirtual' modifier on methods", function->name_token);
@@ -680,8 +680,8 @@ namespace sclc {
         }
 
         for (size_t f = 0; f < result.functions.size(); f++) {
-            Function* function = currentFunction = result.functions[f];
-            if (UNLIKELY(function->has_reified || function->has_expect || getInterfaceByName(result, function->member_type))) {
+            Ptr<Function> function = currentFunction = result.functions[f];
+            if (UNLIKELY(function->has_reified || function->has_expect || getInterfaceByName(result, function->member_type).name.size())) {
                 DBG("Skipping function '%s' with 'reified' or 'expect' modifier, or is part of an interface", function->name.c_str());
                 continue;
             }
@@ -798,14 +798,14 @@ namespace sclc {
             }
 
             if (function->isMethod) {
-                if (UNLIKELY(!((Method*) function)->force_add && !currentStruct.isOpen() && !currentStruct.name.empty())) {
+                if (UNLIKELY(!((Ptr<Method>) function)->force_add && !currentStruct.isOpen() && !currentStruct.name.empty())) {
                     transpilerErrorTok("Cannot add method '" + function->name + "' to closed Struct '" + currentStruct.name + "'", function->name_token);
                     errors.push_back(err);
                     continue;
                 }
                 append2("%s(%s) {\n", function->outputName().c_str(), arguments.c_str());
                 if (function->name_without_overload == "init" && currentStruct.super.size()) {
-                    Method* parentInit = getMethodByName(result, "init", currentStruct.super);
+                    Ptr<Method> parentInit = getMethodByName(result, "init", currentStruct.super);
                     if (parentInit && parentInit->args.size() == 1) {
                         append("  %s((%s) ", parentInit->outputName().c_str(), sclTypeToCType(result, parentInit->member_type).c_str());
                         if (UNLIKELY(function->has_async)) {

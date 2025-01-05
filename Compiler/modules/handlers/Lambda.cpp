@@ -7,7 +7,7 @@
 namespace sclc {
     handler(Lambda) {
         noUnused;
-        Function* f;
+        Ptr<Function> f;
         safeInc();
         std::string name = "";
         Token nameTok;

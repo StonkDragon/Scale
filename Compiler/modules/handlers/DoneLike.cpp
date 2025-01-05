@@ -13,7 +13,7 @@ namespace sclc {
             const Variable& v = getVar(name);
             append("scale_push(%s, Var_%s);\n", sclTypeToCType(result, v.type).c_str(), v.name.c_str());
             typeStack.push_back(v.type);
-            Method* closeMethod = getMethodByName(result, "close", v.type);
+            Ptr<Method> closeMethod = getMethodByName(result, "close", v.type);
             if (closeMethod == nullptr) {
                 transpilerError("No method 'close' found in type '" + v.type + "'", i);
                 errors.push_back(err);
