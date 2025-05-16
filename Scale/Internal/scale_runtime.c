@@ -302,9 +302,12 @@ void scale_free(scale_any ptr) {
 static void native_trace(void);
 
 char* vstrformat(const char* fmt, va_list args) {
+	va_list args_copy;
+	va_copy(args_copy, args);
 	size_t len = vsnprintf(nil, 0, fmt, args);
 	char* s = scale_alloc(len + 2);
-	vsnprintf(s, len + 1, fmt, args);
+	vsnprintf(s, len + 1, fmt, args_copy);
+	va_end(args_copy);
 	return s;
 }
 
